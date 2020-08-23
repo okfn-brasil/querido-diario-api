@@ -1,0 +1,22 @@
+name: Tests
+on: 
+  push:
+    branches:
+      - '*'
+ 
+jobs:
+    tests:
+        name: Run tests
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout source code
+              uses: actions/checkout@master
+
+            - name: Build container image
+              run: |
+                  make build
+
+            - name: Run tests
+              run: |
+                  make test
+

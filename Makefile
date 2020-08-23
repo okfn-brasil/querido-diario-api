@@ -5,8 +5,8 @@ IMAGE_TAG := latest
 clean: clean-coverage
 	podman rmi  $(IMAGE_NAME):$(IMAGE_TAG)
 
-.PHONY: build-container-images
-build-container-images:
+.PHONY: build
+build:
 	podman build --build-arg LOCAL_USER_ID=$(UID) \
 		--tag $(IMAGE_NAME):$(IMAGE_TAG) \
 		-f build/Dockerfile build/
@@ -53,4 +53,4 @@ black:
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
 		black .
 
-redo-everything: black build-container-images coverage
+redo-everything: black build coverage
