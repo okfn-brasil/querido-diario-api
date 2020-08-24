@@ -2,9 +2,9 @@ import unittest
 
 from .gazette_access_tests import (
     GazetteAccessTest,
-    GazetteDataGatewayInterfaceTest,
     GazetteTest,
     GazetteRequestTest,
+    GazetteAccessInterfacesTest,
 )
 
 if __name__ == "__main__":

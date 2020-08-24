@@ -1,3 +1,5 @@
+import abc
+
 class GazetteRequest:
     """
     Object containing the data to filter gazettes
@@ -9,19 +11,31 @@ class GazetteRequest:
         self.territory_id = territory_id
 
 
-class GazetteDataGateway:
+class GazetteDataGateway(abc.ABC):
     """
     Interface to access storage keeping the gazettes files
     """
 
+    @abc.abstractmethod
     def get_gazettes(self, territory_id=None):
-        raise Exception("Not implemented. You should not be using this class")
+        """
+        Method to get the gazette from storage
+        """
 
 
-class GazetteAccess:
+class GazetteAccessInterface(abc.ABC):
     """
     Rules to interact with the gazettes
     """
+
+    @abc.abstractmethod
+    def get_gazettes(self, filters=None):
+        """
+        Method to get the gazettes
+        """
+
+
+class GazetteAccess(GazetteAccessInterface):
 
     _data_gateway = None
 
@@ -36,7 +50,7 @@ class GazetteAccess:
 
 class Gazette:
     """
-    Item to represent a gazette in memory
+    Item to represent a gazette in memory inside the module
     """
 
     territory_id = None

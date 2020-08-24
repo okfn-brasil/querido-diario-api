@@ -1,1 +1,1 @@
-from .gazette_access import GazetteAccess, GazetteRequest, GazetteDataGateway, Gazette
+from .gazette_access import GazetteAccessInterface, GazetteAccess, GazetteRequest, GazetteDataGateway, Gazette
