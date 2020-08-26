@@ -1,10 +1,17 @@
 from unittest import TestCase
 from unittest.mock import MagicMock
+from datetime import date
 
-from gazettes import GazetteAccess, GazetteAccessInterface, GazetteRequest, GazetteDataGateway, Gazette
+from gazettes import (
+    GazetteAccess,
+    GazetteAccessInterface,
+    GazetteRequest,
+    GazetteDataGateway,
+    Gazette,
+)
+
 
 class GazetteAccessInterfacesTest(TestCase):
-
     def test_create_gazette_access_interface_object_should_fail(self):
         with self.assertRaises(Exception):
             self.gazette_access = GazetteAccessInterface()
@@ -13,12 +20,15 @@ class GazetteAccessInterfacesTest(TestCase):
         with self.assertRaises(Exception):
             self.gazette_access = GazetteDataGateway()
 
+
 class GazetteAccessTest(TestCase):
     def setUp(self):
+        self.return_value = [
+            Gazette("4205902", date.today(), "https://queridodiario.ok.org.br/"),
+            Gazette("4202909", date.today(), "https://queridodiario.ok.org.br/"),
+        ]
         self.mock_data_gateway = MagicMock()
-        self.mock_data_gateway.get_gazettes = MagicMock(
-            return_value=[Gazette("4205902"), Gazette("4202909")]
-        )
+        self.mock_data_gateway.get_gazettes = MagicMock(return_value=self.return_value)
         self.gazette_access = GazetteAccess(self.mock_data_gateway)
 
     def test_create_gazette_access(self):
@@ -52,6 +62,14 @@ class GazetteRequestTest(TestCase):
 
 class GazetteTest(TestCase):
     def test_gazette_creation(self):
-        gazette = Gazette("ID")
-        self.assertIsInstance(gazette.territory_id, str)
+        today = date.today()
+        url = "https://queridodiario.ok.org.br/"
+        gazette = Gazette("ID", today, url)
+        self.assertIsInstance(
+            gazette.territory_id, str, msg="Territory ID should be string"
+        )
         self.assertEqual("ID", gazette.territory_id)
+        self.assertIsInstance(gazette.date, date, msg="Expected a date object")
+        self.assertEqual(today, gazette.date)
+        self.assertIsInstance(gazette.url, str, msg="URL should be a string")
+        self.assertEqual(url, gazette.url)

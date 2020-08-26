@@ -1,5 +1,6 @@
 import abc
 
+
 class GazetteRequest:
     """
     Object containing the data to filter gazettes
@@ -54,6 +55,10 @@ class Gazette:
     """
 
     territory_id = None
+    date = None
+    url = None
 
-    def __init__(self, territory_id):
+    def __init__(self, territory_id, date, url):
         self.territory_id = territory_id
+        self.date = date
+        self.url = url
