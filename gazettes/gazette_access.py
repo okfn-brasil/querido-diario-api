@@ -44,9 +44,10 @@ class GazetteAccess(GazetteAccessInterface):
         self._data_gateway = gazette_data_gateway
 
     def get_gazettes(self, filters=None):
+        # TODO check if filters is a object og GazetteRequest
         territory_id = filters.territory_id if filters is not None else None
         for gazette in self._data_gateway.get_gazettes(territory_id=territory_id):
-            yield gazette
+            yield vars(gazette)
 
 
 class Gazette:

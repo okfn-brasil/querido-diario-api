@@ -35,11 +35,32 @@ class GazetteAccessTest(TestCase):
         self.assertIsNotNone(
             self.gazette_access, msg="Could not create GazetteAccess object"
         )
-        self.assertIsInstance(self.gazette_access, GazetteAccessInterface, msg="The GazetteAccess object should implement GazetteAccessInterface")
+        self.assertIsInstance(
+            self.gazette_access,
+            GazetteAccessInterface,
+            msg="The GazetteAccess object should implement GazetteAccessInterface",
+        )
 
     def test_get_gazettes(self):
         self.assertEqual(2, len(list(self.gazette_access.get_gazettes())))
         self.mock_data_gateway.get_gazettes.assert_called_once()
+
+    def test_get_gazettes_should_return_dictionary(self):
+        expected_results = [
+            {
+                "territory_id": "4205902",
+                "date": date.today(),
+                "url": "https://queridodiario.ok.org.br/",
+            },
+            {
+                "territory_id": "4202909",
+                "date": date.today(),
+                "url": "https://queridodiario.ok.org.br/",
+            },
+        ]
+
+        gazettes = self.gazette_access.get_gazettes()
+        self.assertCountEqual(expected_results, gazettes)
 
     def test_should_foward_filter_to_gateway(self):
         gazette_access = GazetteAccess(self.mock_data_gateway)
