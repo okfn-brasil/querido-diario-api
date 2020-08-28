@@ -18,6 +18,12 @@ test:
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
 		python -m unittest tests
 
+apitest:
+	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
+		--env PYTHONPATH=/mnt/code \
+		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
+		pytest -v tests/api_tests.py
+
 clean-coverage:
 	rm -f .coverage
 
