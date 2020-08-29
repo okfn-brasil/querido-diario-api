@@ -18,21 +18,26 @@ test:
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
 		python -m unittest tests
 
-apitest:
+clean-coverage:
 	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 		--env PYTHONPATH=/mnt/code \
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		pytest -v tests/api_tests.py
+		coverage erase
 
-clean-coverage:
-	rm -f .coverage
+coverage-run:
+	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
+		--env PYTHONPATH=/mnt/code \
+		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
+		coverage run -m unittest tests
+
+coverage-report:
+	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
+		--env PYTHONPATH=/mnt/code \
+		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
+		coverage report -m
 
 .PHONY: coverage
-coverage: clean-coverage
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--env PYTHONPATH=/mnt/code \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		coverage erase && coverage run -m unittest tests && coverage report -m
+coverage: clean-coverage coverage-run coverage-report
 
 .PHONY: shell
 shell:
@@ -47,3 +52,5 @@ black:
 		--env PYTHONPATH=/mnt/code \
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
 		black .
+
+redo-everything: black build-container-images coverage
