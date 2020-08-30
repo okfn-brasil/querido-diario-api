@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock
 from datetime import date
@@ -8,17 +9,35 @@ from gazettes import (
     GazetteRequest,
     GazetteDataGateway,
     Gazette,
+    create_gazettes_interface,
 )
 
 
-class GazetteAccessInterfacesTest(TestCase):
-    def test_create_gazette_access_interface_object_should_fail(self):
-        with self.assertRaises(Exception):
-            self.gazette_access = GazetteAccessInterface()
+@GazetteDataGateway.register
+class DummyDataGateway:
+    pass
 
+
+class InvalidDataGateway:
+    pass
+
+
+class GazetteAccessInterfacesTest(TestCase):
+    @unittest.expectedFailure
+    def test_create_gazette_access_interface_object_should_fail(self):
+        self.gazette_access = GazetteAccessInterface()
+
+    @unittest.expectedFailure
     def test_create_gazette_data_gateway_interface_object_should_fail(self):
-        with self.assertRaises(Exception):
-            self.gazette_access = GazetteDataGateway()
+        self.gazette_access = GazetteDataGateway()
+
+    def test_create_gazettes_interface_should_return_a_valid_interface_object(self):
+        interface = create_gazettes_interface(DummyDataGateway())
+        self.assertIsInstance(interface, GazetteAccessInterface)
+
+    @unittest.expectedFailure
+    def test_create_gazettes_interface_with_invalid_data_gateway_should_fail(self):
+        interace = create_gazettes_interface(InvalidDataGateway())
 
 
 class GazetteAccessTest(TestCase):

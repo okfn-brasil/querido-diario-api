@@ -4,4 +4,5 @@ from .gazette_access import (
     GazetteRequest,
     GazetteDataGateway,
     Gazette,
+    create_gazettes_interface,
 )

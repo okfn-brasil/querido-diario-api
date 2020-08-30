@@ -63,3 +63,11 @@ class Gazette:
         self.territory_id = territory_id
         self.date = date
         self.url = url
+
+
+def create_gazettes_interface(data_gateway: GazetteDataGateway):
+    if not isinstance(data_gateway, GazetteDataGateway):
+        raise Exception(
+            "Data gateway should implement the GazetteDataGateway interface"
+        )
+    return GazetteAccess(data_gateway)
