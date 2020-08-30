@@ -5,12 +5,17 @@ IMAGE_TAG := devel
 POSTGRES_PASSWORD := queridodiario
 POSTGRES_USER := $(POSTGRES_PASSWORD)
 POSTGRES_DB := $(POSTGRES_PASSWORD)
+POSTGRES_HOST := localhost
 
 TEST_POD_NAME := queridodiariotests
+API_POD_NAME := queridodiarioapi
 DATABASE_CONTAINER_NAME := queridodiario-test-db
+API_DATABASE_CONTAINER_NAME := queridodiario-api-db
 
-.PHONY: clean
-clean: clean-coverage
+API_PORT := 8080
+
+.PHONY: destroy
+destroy: clean-coverage destroydatabase
 	podman rmi  $(IMAGE_NAME):$(IMAGE_TAG)
 
 .PHONY: build
@@ -38,7 +43,11 @@ clean-coverage:
 
 coverage-run:
 	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
+		--pod $(TEST_POD_NAME) \
 		--env PYTHONPATH=/mnt/code \
+		--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+		--env POSTGRES_USER=$(POSTGRES_USER) \
+		--env POSTGRES_DB=$(POSTGRES_DB) \
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
 		coverage run -m unittest tests
 
@@ -101,6 +110,42 @@ sql:
 
 .PHONY: destroydatabase
 destroydatabase:
-	podman rm --force $(DATABASE_CONTAINER_NAME)
+	podman rm --force --ignore $(DATABASE_CONTAINER_NAME)
+
+destroy-api-pod:
+	podman pod rm --force --ignore $(API_POD_NAME)
+
+create-api-pod: destroy-api-pod
+	podman pod create --publish $(API_PORT):$(API_PORT) --name $(API_POD_NAME)
+
+.PHONY: apidatabase
+apidatabase: create-api-pod
+	podman run -d --rm -ti \
+		--name $(API_DATABASE_CONTAINER_NAME) \
+		--pod $(API_POD_NAME) \
+		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+		-e POSTGRES_USER=$(POSTGRES_USER) \
+		-e POSTGRES_DB=$(POSTGRES_DB) \
+		postgres:12
+
+.PHONY: stop
+stop: destroy-api-pod
+
+.PHONY: run
+run: 
+	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
+		--pod $(API_POD_NAME) \
+		--env PYTHONPATH=/mnt/code \
+		--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+		--env POSTGRES_USER=$(POSTGRES_USER) \
+		--env POSTGRES_DB=$(POSTGRES_DB) \
+		--env POSTGRES_HOST=$(POSTGRES_HOST) \
+		--publish-all \
+		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
+		python main
 
 
+apisql:
+	podman run --rm -ti \
+		--pod $(API_POD_NAME) \
+		postgres:12 psql -h localhost -U $(POSTGRES_USER)
