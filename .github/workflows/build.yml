@@ -16,6 +16,14 @@ jobs:
               run: |
                   make build
 
+            - name: Start database used in the tests
+              run: |
+                  make database
+
+            - name: Wait some seconds to the database start to accept connections
+              run: |
+                  sleep 30s
+
             - name: Run tests
               run: |
                   make test
