@@ -1,1 +1,1 @@
-from .database import QueridoDiarioDataMapper
+from .database import QueridoDiarioDataMapper, create_database_data_mapper

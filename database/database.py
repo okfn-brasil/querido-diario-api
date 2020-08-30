@@ -41,3 +41,18 @@ class QueridoDiarioDataMapper(GazetteDataGateway):
             query = query.filter(GazetteTable.territory_id == territory_id)
         for row in query:
             yield Gazette(row.territory_id, row.date, row.url)
+
+
+def create_database_data_mapper(
+    database: str, user: str, password: str, host: str
+) -> GazetteDataGateway:
+    if (
+        not isinstance(database, str)
+        or not isinstance(user, str)
+        or not isinstance(password, str)
+        or not isinstance(host, str)
+    ):
+        raise Exception("Invalid database data mapper arguments")
+    mapper = QueridoDiarioDataMapper(database, user, password, host)
+    mapper.connect()
+    return mapper

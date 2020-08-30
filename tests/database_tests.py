@@ -3,7 +3,7 @@ import unittest
 from unittest import TestCase
 from datetime import date
 
-from database import QueridoDiarioDataMapper
+from database import QueridoDiarioDataMapper, create_database_data_mapper
 from gazettes import GazetteDataGateway, Gazette
 import psycopg2
 
@@ -73,6 +73,23 @@ class DatabaseInterfacesValidation(TestCase):
             GazetteDataGateway,
             msg="QueridoDiarioDataMapper should be instance of the GazetteDataGateway",
         )
+
+    def test_create_gazettes_data_mapper_function(self):
+        mapper = create_database_data_mapper(
+            get_database_name(),
+            get_database_user(),
+            get_database_password(),
+            "localhost",
+        )
+        self.assertIsInstance(
+            mapper,
+            GazetteDataGateway,
+            msg="QueridoDiarioDataMapper should be instance of the GazetteDataGateway",
+        )
+
+    @unittest.expectedFailure
+    def test_create_gazettes_data_mapper_function_with_invalid_arguments(self):
+        create_database_data_mapper(1, 2, 3, 4)
 
 
 @unittest.skipIf(has_not_database_tests_prequisites(), "Test needs a database running")
