@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -19,8 +19,12 @@ class GazetteItem(BaseModel):
 
 
 @app.get("/gazettes/{territory_id}", response_model=List[GazetteItem])
-async def get_gazettes(territory_id: str):
-    gazettes = app.gazettes.get_gazettes(GazetteRequest(territory_id))
+async def get_gazettes(
+    territory_id: str, since: Optional[date] = None, until: Optional[date] = None
+):
+    gazettes = app.gazettes.get_gazettes(
+        GazetteRequest(territory_id, since=since, until=until)
+    )
     if gazettes:
         return [GazetteItem(**gazette) for gazette in gazettes]
     return []
