@@ -1,7 +1,7 @@
 import os
 import unittest
 from unittest import TestCase
-from datetime import date
+from datetime import date, timedelta
 
 from database import QueridoDiarioDataMapper, create_database_data_mapper
 from gazettes import GazetteDataGateway, Gazette
@@ -174,6 +174,43 @@ class DatabaseTest(TestCase):
         self._gazettes_data = [
             (1, "4205902", date.today(), "https://queridodiario.ok.org.br/"),
             (2, "4202909", date.today(), "https://queridodiario.ok.org.br/"),
+            (
+                3,
+                "4202910",
+                date.today() - timedelta(days=1),
+                "https://queridodiario.ok.org.br/",
+            ),
+            (
+                4,
+                "4202910",
+                date.today() + timedelta(days=1),
+                "https://queridodiario.ok.org.br/",
+            ),
+            (5, "4202910", date.today(), "https://queridodiario.ok.org.br/"),
+            (
+                6,
+                "4202910",
+                date.today() - timedelta(days=2),
+                "https://queridodiario.ok.org.br/",
+            ),
+            (
+                7,
+                "4205902",
+                date.today() - timedelta(days=1),
+                "https://queridodiario.ok.org.br/",
+            ),
+            (
+                8,
+                "4202909",
+                date.today() + timedelta(days=1),
+                "https://queridodiario.ok.org.br/",
+            ),
+            (
+                9,
+                "4205902",
+                date.today() + timedelta(days=1),
+                "https://queridodiario.ok.org.br/",
+            ),
         ]
         cursor = self._dbconnection.cursor()
         for data in self._gazettes_data:
@@ -213,7 +250,7 @@ class DatabaseTest(TestCase):
             if data[1] == "4205902"
         ]
         gazettes_found = list(self._mapper.get_gazettes(territory_id="4205902"))
-        self.assertEqual(1, len(gazettes_found))
+        self.assertEqual(len(gazettes_expected), len(gazettes_found))
         self.assertEqual(gazettes_found[0], gazettes_expected[0])
 
         gazettes_expected = [
@@ -222,5 +259,56 @@ class DatabaseTest(TestCase):
             if data[1] == "4202909"
         ]
         gazettes_found = list(self._mapper.get_gazettes(territory_id="4202909"))
-        self.assertEqual(1, len(gazettes_found))
+        self.assertEqual(len(gazettes_expected), len(gazettes_found))
         self.assertEqual(gazettes_found[0], gazettes_expected[0])
+
+    def test_data_mapper_get_gazettes_from_database_since_date(self):
+        gazettes_expected = [
+            Gazette(data[1], data[2], data[3])
+            for data in self._gazettes_data
+            if data[2] >= date.today()
+        ]
+        gazettes_found = list(self._mapper.get_gazettes(since=date.today()))
+        self.assertEqual(len(gazettes_expected), len(gazettes_found))
+
+    def test_data_mapper_get_gazettes_from_database_until_date(self):
+        gazettes_expected = [
+            Gazette(data[1], data[2], data[3])
+            for data in self._gazettes_data
+            if data[2] <= date.today()
+        ]
+        gazettes_found = list(self._mapper.get_gazettes(until=date.today()))
+        self.assertEqual(len(gazettes_expected), len(gazettes_found))
+
+    def test_data_mapper_get_gazettes_from_database_with_since_and_until_date(self):
+        gazettes_expected = [
+            Gazette(data[1], data[2], data[3])
+            for data in self._gazettes_data
+            if (
+                data[2] <= date.today()
+                and (data[2] >= (date.today() - timedelta(days=3)))
+            )
+        ]
+        gazettes_found = list(self._mapper.get_gazettes(until=date.today()))
+        self.assertEqual(len(gazettes_expected), len(gazettes_found))
+
+    def test_data_mapper_get_gazettes_from_database_by_territory_within_data_range(
+        self,
+    ):
+        gazettes_expected = [
+            Gazette(data[1], data[2], data[3])
+            for data in self._gazettes_data
+            if (
+                data[2] <= date.today()
+                and (data[2] >= (date.today() - timedelta(days=2)))
+                and (data[1] == "4205902")
+            )
+        ]
+        gazettes_found = list(
+            self._mapper.get_gazettes(
+                territory_id="4205902",
+                until=date.today(),
+                since=(date.today() - timedelta(days=1)),
+            )
+        )
+        self.assertEqual(len(gazettes_expected), len(gazettes_found))

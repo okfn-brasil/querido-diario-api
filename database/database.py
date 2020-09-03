@@ -35,10 +35,14 @@ class QueridoDiarioDataMapper(GazetteDataGateway):
         self._session.close()
         self._engine.dispose()
 
-    def get_gazettes(self, territory_id=None):
+    def get_gazettes(self, territory_id=None, since=None, until=None) -> Gazette:
         query = self._session.query(GazetteTable)
         if territory_id:
             query = query.filter(GazetteTable.territory_id == territory_id)
+        if since:
+            query = query.filter(GazetteTable.date >= since)
+        if until:
+            query = query.filter(GazetteTable.date <= until)
         for row in query:
             yield Gazette(row.territory_id, row.date, row.url)
 
