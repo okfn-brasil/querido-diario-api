@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock
-from datetime import date
+from datetime import date, timedelta
 
 from gazettes import (
     GazetteAccess,
@@ -44,7 +44,27 @@ class GazetteAccessTest(TestCase):
     def setUp(self):
         self.return_value = [
             Gazette("4205902", date.today(), "https://queridodiario.ok.org.br/"),
+            Gazette(
+                "4205902",
+                (date.today() - timedelta(days=1)),
+                "https://queridodiario.ok.org.br/",
+            ),
+            Gazette(
+                "4205902",
+                (date.today() + timedelta(days=1)),
+                "https://queridodiario.ok.org.br/",
+            ),
             Gazette("4202909", date.today(), "https://queridodiario.ok.org.br/"),
+            Gazette(
+                "4202909",
+                (date.today() - timedelta(days=1)),
+                "https://queridodiario.ok.org.br/",
+            ),
+            Gazette(
+                "4202909",
+                (date.today() + timedelta(days=1)),
+                "https://queridodiario.ok.org.br/",
+            ),
         ]
         self.mock_data_gateway = MagicMock()
         self.mock_data_gateway.get_gazettes = MagicMock(return_value=self.return_value)
@@ -61,21 +81,19 @@ class GazetteAccessTest(TestCase):
         )
 
     def test_get_gazettes(self):
-        self.assertEqual(2, len(list(self.gazette_access.get_gazettes())))
+        self.assertEqual(
+            len(self.return_value), len(list(self.gazette_access.get_gazettes()))
+        )
         self.mock_data_gateway.get_gazettes.assert_called_once()
 
     def test_get_gazettes_should_return_dictionary(self):
         expected_results = [
             {
-                "territory_id": "4205902",
-                "date": date.today(),
-                "url": "https://queridodiario.ok.org.br/",
-            },
-            {
-                "territory_id": "4202909",
-                "date": date.today(),
-                "url": "https://queridodiario.ok.org.br/",
-            },
+                "territory_id": gazette.territory_id,
+                "date": gazette.date,
+                "url": gazette.url,
+            }
+            for gazette in self.return_value
         ]
 
         gazettes = self.gazette_access.get_gazettes()
@@ -89,7 +107,25 @@ class GazetteAccessTest(TestCase):
             )
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
-            territory_id="4205902"
+            territory_id="4205902", since=None, until=None
+        )
+
+    def test_should_foward_since_date_filter_to_gateway(self):
+        gazette_access = GazetteAccess(self.mock_data_gateway)
+        list(
+            self.gazette_access.get_gazettes(filters=GazetteRequest(since=date.today()))
+        )
+        self.mock_data_gateway.get_gazettes.assert_called_once_with(
+            since=date.today(), until=None, territory_id=None
+        )
+
+    def test_should_foward_until_date_filter_to_gateway(self):
+        gazette_access = GazetteAccess(self.mock_data_gateway)
+        list(
+            self.gazette_access.get_gazettes(filters=GazetteRequest(until=date.today()))
+        )
+        self.mock_data_gateway.get_gazettes.assert_called_once_with(
+            until=date.today(), since=None, territory_id=None
         )
 
 

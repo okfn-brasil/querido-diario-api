@@ -8,8 +8,10 @@ class GazetteRequest:
 
     territory_id = None
 
-    def __init__(self, territory_id=None):
+    def __init__(self, territory_id=None, since=None, until=None):
         self.territory_id = territory_id
+        self.since = since
+        self.until = until
 
 
 class GazetteDataGateway(abc.ABC):
@@ -18,7 +20,7 @@ class GazetteDataGateway(abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_gazettes(self, territory_id=None):
+    def get_gazettes(self, territory_id=None, since=None, until=None):
         """
         Method to get the gazette from storage
         """
@@ -30,7 +32,7 @@ class GazetteAccessInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_gazettes(self, filters=None):
+    def get_gazettes(self, filters: GazetteRequest = None):
         """
         Method to get the gazettes
         """
@@ -43,10 +45,13 @@ class GazetteAccess(GazetteAccessInterface):
     def __init__(self, gazette_data_gateway=None):
         self._data_gateway = gazette_data_gateway
 
-    def get_gazettes(self, filters=None):
-        # TODO check if filters is a object og GazetteRequest
+    def get_gazettes(self, filters: GazetteRequest = None):
         territory_id = filters.territory_id if filters is not None else None
-        for gazette in self._data_gateway.get_gazettes(territory_id=territory_id):
+        since = filters.since if filters is not None else None
+        until = filters.until if filters is not None else None
+        for gazette in self._data_gateway.get_gazettes(
+            territory_id=territory_id, since=since, until=until
+        ):
             yield vars(gazette)
 
 
