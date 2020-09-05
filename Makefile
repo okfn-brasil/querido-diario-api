@@ -25,7 +25,7 @@ build:
 		-f build/Dockerfile build/
 
 .PHONY: test
-test: 
+test:
 	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 		--pod $(TEST_POD_NAME) \
 		--env PYTHONPATH=/mnt/code \
@@ -63,14 +63,6 @@ coverage: clean-coverage coverage-run coverage-report
 .PHONY: shell
 shell:
 	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--env PYTHONPATH=/mnt/code \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		bash
-
-.PHONY: testshell
-testshell:
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--pod $(TEST_POD_NAME) \
 		--env PYTHONPATH=/mnt/code \
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
 		bash
@@ -131,8 +123,19 @@ apidatabase: create-api-pod
 .PHONY: stop
 stop: destroy-api-pod
 
+waitapidatabase: 
+	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
+		--pod $(API_POD_NAME) \
+		--env PYTHONPATH=/mnt/code \
+		--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+		--env POSTGRES_USER=$(POSTGRES_USER) \
+		--env POSTGRES_DB=$(POSTGRES_DB) \
+		--env POSTGRES_HOST=$(POSTGRES_HOST) \
+		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
+		wait-for-it --timeout=30 localhost:5432
+
 .PHONY: run
-run: 
+run: waitapidatabase
 	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 		--pod $(API_POD_NAME) \
 		--env PYTHONPATH=/mnt/code \
