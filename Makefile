@@ -140,7 +140,6 @@ run:
 		--env POSTGRES_USER=$(POSTGRES_USER) \
 		--env POSTGRES_DB=$(POSTGRES_DB) \
 		--env POSTGRES_HOST=$(POSTGRES_HOST) \
-		--publish-all \
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
 		python main
 
