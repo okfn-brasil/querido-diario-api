@@ -55,7 +55,7 @@ destroy-pod:
 	podman pod rm --force --ignore $(POD_NAME)
 
 create-pod: destroy-pod
-	podman pod create --name $(POD_NAME)
+	podman pod create --publish $(API_PORT):$(API_PORT) --name $(POD_NAME)
 
 .PHONY: stop-database
 stop-database:
