@@ -6,7 +6,10 @@ from pydantic import BaseModel
 
 from gazettes import GazetteAccessInterface, GazetteRequest
 
-app = FastAPI()
+app = FastAPI(
+        title="Querido Diário",
+        description="API to access the gazettes from all Brazilian cities",
+        version="0.9.0")
 
 
 class GazetteItem(BaseModel):
