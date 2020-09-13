@@ -1,1 +1,3 @@
 from .database import QueridoDiarioDataMapper, create_database_data_mapper
+
+from .elasticsearch import ElasticSearchDataMapper, create_elasticsearch_data_mapper
