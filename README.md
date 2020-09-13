@@ -35,21 +35,15 @@ locally during development.
 To run the API locally in your machine, you can run the following command:
 
 ```
-make runall
-```
-or 
-```
-make database
 make run
 ```
 
+This command will start all containers necessary to run the API. In other words,
+it starts the database and the API container. If everything goes fine, you 
+should be able to query the API at `localhost:8080/gazettes/<City IBGE Code>`
+
 NOTE: When you want to restart the API, just quit the API process and 
-execute `make run` again.
-
-This command will start the database and the API locally in your machine. If
-everything goes fine, you should be able to query the API at 
-`localhost:8080/gazettes/<City IBGE Code>`
-
+execute `make rerun` again. You do not need to restart the database.
 
 You can all check the interactive documentation at `localhost:8080/docs`. Using 
 the docs page, you can all send request to the API. But to see it working you
@@ -71,16 +65,15 @@ By Robert C. Martin (a.k.a. Uncle Bob)
 To run the tests you can do the following:
 
 ```bash
-make test-database
 make test
 ```
 
 NOTE: You do not need to restart the test database all the times you want to
-run the tests. Once the database is running, you need to run the `make test` again.
+run the tests. Once the database is running, you need to run the `make retest` 
+again.
 
-You do not need to run `make database` everytime you want to run a test. You
-should do that just the first time you run the tests. After that, you can just
-run `make test`. Of course, if you remove the database with `make destroydatabse`
+You should do that just the first time you run the tests. After that, you can just
+run `make retest`. Of course, if you remove the database with `make destroydatabse`
 or reboot the machine, you need to start the database again.
 
 If you can to see the code coverage:

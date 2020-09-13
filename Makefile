@@ -6,43 +6,18 @@ POSTGRES_PASSWORD := queridodiario
 POSTGRES_USER := $(POSTGRES_PASSWORD)
 POSTGRES_DB := $(POSTGRES_PASSWORD)
 POSTGRES_HOST := localhost
-
-TEST_POD_NAME := queridodiariotests
-API_POD_NAME := queridodiarioapi
-TEST_DATABASE_CONTAINER_NAME := queridodiario-test-db
-API_DATABASE_CONTAINER_NAME := queridodiario-api-db
-
-POD_NAME := $(API_POD_NAME)
-DATABASE_CONTAINER_NAME := $(API_DATABASE_CONTAINER_NAME)
+# Elasticsearch ports
+ELASTICSEARCH_PORT1 := 9200
+ELASTICSEARCH_PORT2 := 9300
+# Containers data
+POD_NAME := queridodiarioapi
+DATABASE_CONTAINER_NAME := queridodiario-db
+ELASTICSEARCH_CONTAINER_NAME := queridodiario-elasticsearch
 
 API_PORT := 8080
 
-.PHONY: help
-help:
-	@echo "destroy: remove the container image"
-	@echo "build: builds the container image to run the API and tests"
-	@echo "black: run black to format the source code"
-	@echo "database: starts the database used by the API"
-	@echo "stop-database: removes database used by the API"
-	@echo "test-database: starts the database used by the tests"
-	@echo "stop-test-database: removes database used by the tests"
-	@echo "test: runs the tests"
-	@echo "coverage: show the code coverage"
-	@echo "shell: open a bash inside a container running the image used by tests and API"
-	@echo "sql: access the API database using psql"
-	@echo "test-sql: access the test database using psql"
-	@echo "runall: start the database and API"
-	@echo "run: start the API"
-
-.PHONY: destroy
-destroy: 
-	podman rmi  $(IMAGE_NAME):$(IMAGE_TAG)
-
-.PHONY: build
-build:
-	podman build --build-arg LOCAL_USER_ID=$(UID) \
-		--tag $(IMAGE_NAME):$(IMAGE_TAG) \
-		-f build/Dockerfile build/
+run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw --pod $(POD_NAME) --env PYTHONPATH=/mnt/code --env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) --env POSTGRES_HOST=$(POSTGRES_HOST) --env POSTGRES_USER=$(POSTGRES_USER) --env POSTGRES_DB=$(POSTGRES_DB) --user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) $1)
+wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw --pod $(POD_NAME) --env PYTHONPATH=/mnt/code --env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) --env POSTGRES_USER=$(POSTGRES_USER) --env POSTGRES_DB=$(POSTGRES_DB) --env POSTGRES_HOST=$(POSTGRES_HOST) --user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=30 $1)
 
 .PHONY: black
 black:
@@ -51,18 +26,31 @@ black:
 		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
 		black .
 
+.PHONY: build
+build:
+	podman build --build-arg LOCAL_USER_ID=$(UID) \
+		--tag $(IMAGE_NAME):$(IMAGE_TAG) \
+		-f build/Dockerfile build/
+
+.PHONY: destroy
+destroy:
+	podman rmi --force $(IMAGE_NAME):$(IMAGE_TAG)
+
 destroy-pod:
 	podman pod rm --force --ignore $(POD_NAME)
 
 create-pod: destroy-pod
-	podman pod create --publish $(API_PORT):$(API_PORT) --name $(POD_NAME)
+	podman pod create --publish $(API_PORT):$(API_PORT) \
+		--publish $(ELASTICSEARCH_PORT1):$(ELASTICSEARCH_PORT1) \
+		--publish $(ELASTICSEARCH_PORT2):$(ELASTICSEARCH_PORT2) \
+		--name $(POD_NAME) 
 
 .PHONY: stop-database
 stop-database:
 	podman rm --force --ignore $(DATABASE_CONTAINER_NAME) 
 
 .PHONY: database
-database: create-pod start-database wait-database
+database: start-database wait-database
 
 start-database:
 	podman run -d --rm -ti \
@@ -73,16 +61,8 @@ start-database:
 		-e POSTGRES_DB=$(POSTGRES_DB) \
 		postgres:12
 
-wait-database: 
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--pod $(POD_NAME) \
-		--env PYTHONPATH=/mnt/code \
-		--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-		--env POSTGRES_USER=$(POSTGRES_USER) \
-		--env POSTGRES_DB=$(POSTGRES_DB) \
-		--env POSTGRES_HOST=$(POSTGRES_HOST) \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		wait-for-it --timeout=30 localhost:5432
+wait-database:  
+	$(call wait-for, localhost:5432)
 
 .PHONY: sql
 sql:
@@ -90,56 +70,33 @@ sql:
 		--pod $(POD_NAME) \
 		postgres:12 psql -h localhost -U $(POSTGRES_USER)
 
-.PHONY: test-database
-test-database: POD_NAME=$(TEST_POD_NAME) 
-test-database: DATABASE_CONTAINER_NAME=$(TEST_DATABASE_CONTAINER_NAME)
-test-database: database
-
-.PHONY: stop-test-database
-stop-test-database: DATABASE_CONTAINER_NAME=$(TEST_DATABASE_CONTAINER_NAME)
-stop-test-database: stop-database
+set-test-variables:
+	$(eval POD_NAME=test-$(POD_NAME))
+	$(eval DATABASE_CONTAINER_NAME=test-$(DATABASE_CONTAINER_NAME))
+	$(eval API_PORT=8088)
+	$(eval ELASTICSEARCH_PORT1=9201)
+	$(eval ELASTICSEARCH_PORT2=9301)
+	$(eval ELASTICSEARCH_CONTAINER_NAME=test-$(ELASTICSEARCH_CONTAINER_NAME))
 
 .PHONY: test
-test: POD_NAME=$(TEST_POD_NAME) 
-test: DATABASE_CONTAINER_NAME=$(TEST_DATABASE_CONTAINER_NAME)
-test: 
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--pod $(POD_NAME) \
-		--env PYTHONPATH=/mnt/code \
-		--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-		--env POSTGRES_USER=$(POSTGRES_USER) \
-		--env POSTGRES_DB=$(POSTGRES_DB) \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		python -m unittest tests
+test: set-test-variables create-pod database elasticsearch retest
+
+.PHONY: retest
+retest: set-test-variables 
+	$(call run-command, python -m unittest -f tests)
 
 .PHONY: test-sql
-test-sql: POD_NAME=$(TEST_POD_NAME) 
-test-sql: sql
+test-sql: set-test-variables sql
 
-clean-coverage:
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--env PYTHONPATH=/mnt/code \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		coverage erase
-
-coverage-run:
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--pod $(TEST_POD_NAME) \
-		--env PYTHONPATH=/mnt/code \
-		--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-		--env POSTGRES_USER=$(POSTGRES_USER) \
-		--env POSTGRES_DB=$(POSTGRES_DB) \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		coverage run -m unittest tests
-
-coverage-report:
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--env PYTHONPATH=/mnt/code \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		coverage report -m
+.PHONY: test-shell
+test-shell: set-test-variables 
+	$(call run-command, bash)
 
 .PHONY: coverage
-coverage: clean-coverage coverage-run coverage-report
+coverage: set-test-variables
+	$(call run-command, coverage erase)
+	$(call run-command, coverage run -m unittest tests)
+	$(call run-command, coverage report -m)
 
 .PHONY: shell
 shell:
@@ -149,18 +106,25 @@ shell:
 		bash
 
 .PHONY: runall
-runall: database run
+run: create-pod database rerun
 
 .PHONY: run
-run: wait-database
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--pod $(API_POD_NAME) \
-		--env PYTHONPATH=/mnt/code \
-		--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-		--env POSTGRES_USER=$(POSTGRES_USER) \
-		--env POSTGRES_DB=$(POSTGRES_DB) \
-		--env POSTGRES_HOST=$(POSTGRES_HOST) \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
-		python main
+rerun: wait-database
+	$(call run-command, python main)
 
+elasticsearch: stop-elasticsearch start-elasticsearch wait-elasticsearch
 
+start-elasticsearch:
+	podman run -d --rm -ti \
+		--name $(ELASTICSEARCH_CONTAINER_NAME) \
+		--pod $(POD_NAME) \
+		--expose $(ELASTICSEARCH_PORT1) \
+		--expose $(ELASTICSEARCH_PORT2) \
+		--env discovery.type=single-node \
+		elasticsearch:7.9.1
+
+stop-elasticsearch:
+	podman rm --force --ignore $(ELASTICSEARCH_CONTAINER_NAME)
+
+wait-elasticsearch: 
+	$(call wait-for, localhost:9200)
