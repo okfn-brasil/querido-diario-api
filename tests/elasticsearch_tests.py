@@ -1,7 +1,7 @@
+from datetime import date, timedelta
+from unittest import TestCase
 import os
 import unittest
-from unittest import TestCase
-from datetime import date, timedelta
 
 import elasticsearch
 
@@ -81,7 +81,7 @@ class ElasticSearchDataMapperTest(TestCase):
                 "date": date.today(),
                 "territory_id": "4202909",
                 "url": "https://queridodiario.ok.org.br/",
-                "content": "This is a fake gazette content. 000.000.000-00",
+                "content": "This is a fake gazette with some keywork which is: 000.000.000-00",
             },
             {
                 "id": 6,
@@ -216,3 +216,42 @@ class ElasticSearchDataMapperTest(TestCase):
             Gazette(d["territory_id"], d["date"], d["url"]) for d in self._data
         ]
         self.assertCountEqual(gazettes, expected_gazettes)
+
+    def test_get_gazettes_by_keywords(self):
+        gazettes = self._mapper.get_gazettes(keywords=["000.000.000-00"])
+        expected_gazettes = [
+            Gazette(d["territory_id"], d["date"], d["url"])
+            for d in self._data
+            if "000.000.000-00" in d["content"]
+        ]
+        self.assertCountEqual(gazettes, expected_gazettes)
+
+        gazettes = self._mapper.get_gazettes(keywords=["anotherkeyword"])
+        expected_gazettes = [
+            Gazette(d["territory_id"], d["date"], d["url"])
+            for d in self._data
+            if "anotherkeyword" in d["content"]
+        ]
+        self.assertCountEqual(gazettes, expected_gazettes)
+
+        gazettes = self._mapper.get_gazettes(keywords=["keyword1"])
+        expected_gazettes = [
+            Gazette(d["territory_id"], d["date"], d["url"])
+            for d in self._data
+            if "keyword1" in d["content"]
+        ]
+        self.assertCountEqual(gazettes, expected_gazettes)
+
+    def test_get_gazettes_by_keywords_does_not_exist(self):
+        gazettes = self._mapper.get_gazettes(keywords=["wasd1234xxx"])
+        self.assertEqual(0, len(list(gazettes)), msg="No gazettes should be return ")
+
+    def test_get_gazettes_by_invalid_since_date(self):
+        two_months_future = date.today() + timedelta(weeks=8)
+        gazettes = self._mapper.get_gazettes(since=two_months_future)
+        self.assertEqual(0, len(list(gazettes)), msg="No gazettes should be return ")
+
+    def test_get_gazettes_by_invalid_until_date(self):
+        two_months_ago = date.today() - timedelta(weeks=8)
+        gazettes = self._mapper.get_gazettes(until=two_months_ago)
+        self.assertEqual(0, len(list(gazettes)), msg="No gazettes should be return ")
