@@ -27,10 +27,14 @@ class ApiTests(TestCase):
         set_gazette_interface(MockGazetteAccessInterface())
 
     def test_gazettes_endpoint_should_accept_territory_id(self):
-        set_gazette_interface(self.create_mock_gazette_interface())
+        interface = self.create_mock_gazette_interface()
+        set_gazette_interface(interface)
         client = TestClient(app)
         response = client.get("/gazettes/4205902")
         self.assertEqual(response.status_code, 200)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].keywords)
 
     def test_gazettes_endpoint_should_accept_query_since_date(self):
         set_gazette_interface(self.create_mock_gazette_interface())
@@ -137,3 +141,32 @@ class ApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), [])
+
+    def test_gazettes_endpoint_should_accept_query_keywords_date(self):
+        set_gazette_interface(self.create_mock_gazette_interface())
+        client = TestClient(app)
+        response = client.get(
+            "/gazettes/4205902", params={"keywords": ["keyword1" "keyword2"]}
+        )
+        self.assertEqual(response.status_code, 200)
+        response = client.get("/gazettes/4205902", params={"keywords": []})
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_gazettes_should_forwards_keywords_to_interface_object(self):
+        interface = self.create_mock_gazette_interface()
+        set_gazette_interface(interface)
+        client = TestClient(app)
+
+        response = client.get(
+            "/gazettes/4205902", params={"keywords": ["keyword1", 1, True]}
+        )
+        interface.get_gazettes.assert_called_once()
+        self.assertEqual(
+            interface.get_gazettes.call_args.args[0].keywords, ["keyword1", "1", "True"]
+        )
+
+        interface = self.create_mock_gazette_interface()
+        set_gazette_interface(interface)
+        response = client.get("/gazettes/4205902", params={"keywords": []})
+        interface.get_gazettes.assert_called_once()
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].keywords)
