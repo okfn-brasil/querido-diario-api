@@ -70,11 +70,17 @@ class ElasticSearchDataMapper(GazetteDataGateway):
 
         return query
 
+    def get_sort_from_current_gazettes_response(self, gazettes):
+        return (
+            gazettes["hits"]["hits"][-1]["sort"]
+            if len(gazettes["hits"]["hits"]) > 0
+            else None
+        )
+
     def get_gazettes(self, territory_id=None, since=None, until=None, keywords=None):
         query = self.build_query(territory_id, since, until, keywords=keywords)
         gazettes = self._es.search(body=query, index=self._index)
         total_documents = gazettes["hits"]["total"]["value"]
-        sort = gazettes["hits"]["hits"][-1]["sort"] if len(gazettes["hits"]["hits"]) > 0 else None
 
         while total_documents > 0:
             for gazette in gazettes["hits"]["hits"]:
@@ -88,7 +94,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
                 territory_id,
                 since,
                 until,
-                sort,
+                self.get_sort_from_current_gazettes_response(gazettes),
                 keywords,
             )
             gazettes = self._es.search(body=query, index=self._index)
