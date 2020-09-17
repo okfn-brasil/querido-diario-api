@@ -132,7 +132,9 @@ class ElasticSearchDataMapperTest(TestCase):
         ]
         bulk_data = []
         for gazette in self._data:
-            bulk_data.append({"index": {"_index": "gazettes", "_id": gazette["checksum"]}})
+            bulk_data.append(
+                {"index": {"_index": "gazettes", "_id": gazette["checksum"]}}
+            )
             bulk_data.append(gazette)
         self._es.bulk(bulk_data, index="gazettes", refresh=True)
         self._mapper = create_elasticsearch_data_mapper("localhost", "gazettes")
