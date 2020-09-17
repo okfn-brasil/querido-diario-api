@@ -9,6 +9,8 @@ class ElasticSearchDataMapper(GazetteDataGateway):
     def __init__(self, host: str, index: str):
         self._index = index
         self._es = elasticsearch.Elasticsearch(hosts=[host])
+        if not self._es.indices.exists(index=self._index):
+            raise Exception("Index does not exist")
 
     def build_date_query(self, must_query, since=None, until=None):
         if since is None and until is None:
@@ -25,7 +27,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             must_query.append({"term": {"territory_id": territory_id}})
 
     def build_sort_query(self, query):
-        query["sort"] = [{"date": {"order": "desc"}}, {"id": "asc"}]
+        query["sort"] = [{"date": {"order": "desc"}}]
 
     def build_match_query(self, query, keywords):
         if keywords is not None and len(keywords) > 0:
@@ -66,13 +68,13 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         if "query" not in query:
             query["query"] = {"match_none": {}}
 
-        print(query)
         return query
 
     def get_gazettes(self, territory_id=None, since=None, until=None, keywords=None):
         query = self.build_query(territory_id, since, until, keywords=keywords)
         gazettes = self._es.search(body=query, index=self._index)
         total_documents = gazettes["hits"]["total"]["value"]
+        sort = gazettes["hits"]["hits"][-1]["sort"] if len(gazettes["hits"]["hits"]) > 0 else None
 
         while total_documents > 0:
             for gazette in gazettes["hits"]["hits"]:
@@ -86,7 +88,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
                 territory_id,
                 since,
                 until,
-                gazettes["hits"]["hits"][-1]["sort"],
+                sort,
                 keywords,
             )
             gazettes = self._es.search(body=query, index=self._index)

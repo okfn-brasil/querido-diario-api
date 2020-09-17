@@ -26,6 +26,10 @@ class ElasticSearchInterfaceTest(TestCase):
         with self.assertRaisesRegex(Exception, "Missing index name") as cm:
             mapper = create_elasticsearch_data_mapper("localhost")
 
+    def test_create_elasticsearch_mapper_using_non_existing_index_should_fail(self):
+        with self.assertRaisesRegex(Exception, "Index does not exist") as cm:
+            create_elasticsearch_data_mapper("localhost", "zpto")
+
 
 class ElasticSearchDataMapperTest(TestCase):
     def setUp(self):
@@ -42,84 +46,84 @@ class ElasticSearchDataMapperTest(TestCase):
         day = timedelta(days=1)
         self._data = [
             {
-                "id": 0,
+                "checksum": "0",
                 "date": date.today(),
                 "territory_id": "4202909",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content",
             },
             {
-                "id": 1,
+                "checksum": "1",
                 "date": date.today() - day,
                 "territory_id": "4205902",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content",
             },
             {
-                "id": 2,
+                "checksum": "2",
                 "date": date.today() + day,
                 "territory_id": "4205902",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content",
             },
             {
-                "id": 3,
+                "checksum": "3",
                 "date": date.today() - day,
                 "territory_id": "4202909",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content. anotherkeyword",
             },
             {
-                "id": 4,
+                "checksum": "4",
                 "date": date.today() + day,
                 "territory_id": "4205902",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content. keyword1",
             },
             {
-                "id": 5,
+                "checksum": "5",
                 "date": date.today(),
                 "territory_id": "4202909",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette with some keywork which is: 000.000.000-00",
             },
             {
-                "id": 6,
+                "checksum": "6",
                 "date": week_ago - day,
                 "territory_id": "4202919",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content from ID 6",
             },
             {
-                "id": 7,
+                "checksum": "7",
                 "date": week_ago,
                 "territory_id": "4202919",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content from ID 7",
             },
             {
-                "id": 8,
+                "checksum": "8",
                 "date": week_ago + day,
                 "territory_id": "4202919",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content from ID 8",
             },
             {
-                "id": 9,
+                "checksum": "9",
                 "date": week_ago - day,
                 "territory_id": "4202920",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content from ID 9",
             },
             {
-                "id": 10,
+                "checksum": "10",
                 "date": week_ago,
                 "territory_id": "4202920",
                 "url": "https://queridodiario.ok.org.br/",
                 "content": "This is a fake gazette content from ID 10",
             },
             {
-                "id": 11,
+                "checksum": "11",
                 "date": week_ago + day,
                 "territory_id": "4202920",
                 "url": "https://queridodiario.ok.org.br/",
@@ -128,7 +132,7 @@ class ElasticSearchDataMapperTest(TestCase):
         ]
         bulk_data = []
         for gazette in self._data:
-            bulk_data.append({"index": {"_index": "gazettes", "_id": gazette["id"]}})
+            bulk_data.append({"index": {"_index": "gazettes", "_id": gazette["checksum"]}})
             bulk_data.append(gazette)
         self._es.bulk(bulk_data, index="gazettes", refresh=True)
         self._mapper = create_elasticsearch_data_mapper("localhost", "gazettes")
