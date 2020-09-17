@@ -8,10 +8,11 @@ class GazetteRequest:
 
     territory_id = None
 
-    def __init__(self, territory_id=None, since=None, until=None):
+    def __init__(self, territory_id=None, since=None, until=None, keywords=None):
         self.territory_id = territory_id
         self.since = since
         self.until = until
+        self.keywords = keywords
 
 
 class GazetteDataGateway(abc.ABC):
@@ -49,8 +50,9 @@ class GazetteAccess(GazetteAccessInterface):
         territory_id = filters.territory_id if filters is not None else None
         since = filters.since if filters is not None else None
         until = filters.until if filters is not None else None
+        keywords = filters.keywords if filters is not None else []
         for gazette in self._data_gateway.get_gazettes(
-            territory_id=territory_id, since=since, until=until
+            territory_id=territory_id, since=since, until=until, keywords=keywords
         ):
             yield vars(gazette)
 

@@ -39,6 +39,19 @@ class GazetteAccessInterfacesTest(TestCase):
     def test_create_gazettes_interface_with_invalid_data_gateway_should_fail(self):
         interace = create_gazettes_interface(InvalidDataGateway())
 
+    def test_GazetteRequest_should_territory_id_attribute(self):
+        territory_id = "1234"
+        since = date.today()
+        until = date.today() - timedelta(days=1)
+        keywords = ["cnpj", "bla", "foo", "bar"]
+        request = GazetteRequest(territory_id, since, until, keywords)
+        self.assertEqual(
+            territory_id, request.territory_id, msg="Territory ID is invalid"
+        )
+        self.assertEqual(since, request.since, msg="'Since' date is invalid")
+        self.assertEqual(until, request.until, msg="'Until' date is invalid")
+        self.assertEqual(keywords, request.keywords, msg="Keywords are invalid")
+
 
 class GazetteAccessTest(TestCase):
     def setUp(self):
@@ -107,7 +120,7 @@ class GazetteAccessTest(TestCase):
             )
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
-            territory_id="4205902", since=None, until=None
+            territory_id="4205902", since=None, until=None, keywords=None
         )
 
     def test_should_foward_since_date_filter_to_gateway(self):
@@ -116,7 +129,7 @@ class GazetteAccessTest(TestCase):
             self.gazette_access.get_gazettes(filters=GazetteRequest(since=date.today()))
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
-            since=date.today(), until=None, territory_id=None
+            since=date.today(), until=None, territory_id=None, keywords=None
         )
 
     def test_should_foward_until_date_filter_to_gateway(self):
@@ -125,7 +138,17 @@ class GazetteAccessTest(TestCase):
             self.gazette_access.get_gazettes(filters=GazetteRequest(until=date.today()))
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
-            until=date.today(), since=None, territory_id=None
+            until=date.today(), since=None, territory_id=None, keywords=None
+        )
+
+    def test_should_foward_keywords_filter_to_gateway(self):
+        gazette_access = GazetteAccess(self.mock_data_gateway)
+        keywords = ["foo", "bar", "zpto"]
+        list(
+            self.gazette_access.get_gazettes(filters=GazetteRequest(keywords=keywords))
+        )
+        self.mock_data_gateway.get_gazettes.assert_called_once_with(
+            until=None, since=None, territory_id=None, keywords=keywords
         )
 
 
