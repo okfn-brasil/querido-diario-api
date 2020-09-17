@@ -16,6 +16,6 @@ jobs:
               run: |
                   make build
 
-            - name: Start database used in the tests
+            - name: Run tests
               run: |
                   make test
