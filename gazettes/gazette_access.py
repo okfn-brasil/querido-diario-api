@@ -71,6 +71,16 @@ class Gazette:
         self.date = date
         self.url = url
 
+    def __hash__(self):
+        return hash((self.territory_id, self.date, self.url))
+
+    def __eq__(self, other):
+        return (
+            self.territory_id == other.territory_id
+            and self.date == other.date
+            and self.url == other.url
+        )
+
 
 def create_gazettes_interface(data_gateway: GazetteDataGateway):
     if not isinstance(data_gateway, GazetteDataGateway):
