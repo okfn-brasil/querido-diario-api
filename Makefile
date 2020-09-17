@@ -28,7 +28,6 @@ run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--env POSTGRES_HOST=$(POSTGRES_HOST) \
 	--env POSTGRES_USER=$(POSTGRES_USER) \
 	--env POSTGRES_DB=$(POSTGRES_DB) \
-	--publish-all \
 	--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) $1)
 
 wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
