@@ -12,7 +12,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         if not self._es.indices.exists(index=self._index):
             raise Exception("Index does not exist")
 
-    def build_date_query(self, must_query, since=None, until=None):
+    def build_date_query(self, query, since=None, until=None):
         if since is None and until is None:
             return
         date_query = {"date": {}}
@@ -20,32 +20,25 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             date_query["date"]["gte"] = since.strftime("%Y-%m-%d")
         if until is not None:
             date_query["date"]["lte"] = until.strftime("%Y-%m-%d")
-        must_query.append({"range": date_query})
+        query["must"].append({"range": date_query})
 
-    def build_territory_query(self, must_query, territory_id=None):
+    def build_territory_query(self, query, territory_id=None):
         if territory_id is not None:
-            must_query.append({"term": {"territory_id": territory_id}})
+            query["must"].append({"term": {"territory_id": territory_id}})
 
     def build_sort_query(self, query):
         query["sort"] = [{"date": {"order": "desc"}}]
 
     def build_match_query(self, query, keywords):
         if keywords is not None and len(keywords) > 0:
-            if "query" not in query:
-                query["query"] = {}
-            query["query"]["match"] = {"content": " ".join(keywords)}
-
-    def add_must_query_in_query_object(self, query, must_query):
-        if len(must_query) > 0:
-            if "query" not in query:
-                query["query"] = {}
-            query["query"]["bool"] = {"must": must_query}
+            query["should"].append(
+                {"match": {"content": {"query": " ".join(keywords)}}}
+            )
+            query["minimum_should_match"] = 1
 
     def build_must_query(self, query, territory_id=None, since=None, until=None):
-        must_query = []
-        self.build_date_query(must_query, since, until)
-        self.build_territory_query(must_query, territory_id)
-        self.add_must_query_in_query_object(query, must_query)
+        self.build_date_query(query, since, until)
+        self.build_territory_query(query, territory_id)
 
     def add_search_after(self, query, search_after):
         if search_after is not None:
@@ -59,14 +52,18 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         search_after=None,
         keywords: list = None,
     ):
-        query = {}
-        self.build_must_query(query, territory_id, since, until)
-        self.build_sort_query(query)
-        self.build_match_query(query, keywords)
-        self.add_search_after(query, search_after)
+        if territory_id is None and since is None and until is None and keywords is None:
+            return {"query": {"match_none": {}}}
 
-        if "query" not in query:
-            query["query"] = {"match_none": {}}
+        query = {
+            "must": [],
+            "should": [],
+        }
+        self.build_must_query(query, territory_id, since, until)
+        self.build_match_query(query, keywords)
+        query = {"query": {"bool": query}}
+        self.build_sort_query(query)
+        self.add_search_after(query, search_after)
 
         return query
 
