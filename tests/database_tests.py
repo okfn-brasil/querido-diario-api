@@ -33,23 +33,7 @@ def has_not_database_tests_prequisites():
         get_database_name()
         and get_database_user()
         and get_database_password()
-        and database_is_running()
     )
-
-
-def database_is_running():
-    try:
-        conn = psycopg2.connect(
-            dbname=get_database_name(),
-            user=get_database_user(),
-            password=get_database_password(),
-            host="localhost",
-        )
-        conn.close()
-        return True
-    except Exception as e:
-        print(e)
-    return False
 
 
 class DatabaseInterfacesValidation(TestCase):
