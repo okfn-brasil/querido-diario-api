@@ -28,7 +28,6 @@ async def get_gazettes(
         None, title="Keywords should be present in the gazette"
     ),
 ):
-    print(keywords)
     gazettes = app.gazettes.get_gazettes(
         GazetteRequest(territory_id, since=since, until=until, keywords=keywords)
     )
