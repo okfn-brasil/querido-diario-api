@@ -1,5 +1,6 @@
-IMAGE_NAME := querido-diario-api
-IMAGE_TAG := devel
+IMAGE_NAMESPACE ?= serenata
+IMAGE_NAME ?= querido-diario-api
+IMAGE_TAG ?= latest
 
 # Database configuration
 POSTGRES_PASSWORD := queridodiario
@@ -28,7 +29,7 @@ run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--env POSTGRES_HOST=$(POSTGRES_HOST) \
 	--env POSTGRES_USER=$(POSTGRES_USER) \
 	--env POSTGRES_DB=$(POSTGRES_DB) \
-	--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) $1)
+	--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) $1)
 
 wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--pod $(POD_NAME) \
@@ -38,24 +39,32 @@ wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--env POSTGRES_DB=$(POSTGRES_DB) \
 	--env POSTGRES_HOST=$(POSTGRES_HOST) \
 	--user=$(UID):$(UID) \
-	$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=30 $1)
+	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=30 $1)
 
 .PHONY: black
 black:
 	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 		--env PYTHONPATH=/mnt/code \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
+		--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
 		black .
 
 .PHONY: build
 build:
-	podman build --build-arg LOCAL_USER_ID=$(UID) \
-		--tag $(IMAGE_NAME):$(IMAGE_TAG) \
-		-f build/Dockerfile build/
+	podman build --tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
+		-f build/Dockerfile $(PWD)
+
+login:
+	podman login --username $(REGISTRY_USER) --password "$(REGISTRY_PASSWORD)" https://index.docker.io/v1/
+
+.PHONY:
+publish:
+	podman tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG} $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc)
+	podman push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc) 
+	podman push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG}
 
 .PHONY: destroy
 destroy:
-	podman rmi --force $(IMAGE_NAME):$(IMAGE_TAG)
+	podman rmi --force $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG)
 
 destroy-pod:
 	podman pod rm --force --ignore $(POD_NAME)
@@ -123,7 +132,7 @@ coverage: set-test-variables
 shell:
 	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 		--env PYTHONPATH=/mnt/code \
-		--user=$(UID):$(UID) $(IMAGE_NAME):$(IMAGE_TAG) \
+		--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
 		bash
 
 .PHONY: run
