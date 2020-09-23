@@ -3,20 +3,20 @@ IMAGE_NAME ?= querido-diario-api
 IMAGE_TAG ?= latest
 
 # Database configuration
-POSTGRES_PASSWORD := queridodiario
-POSTGRES_USER := $(POSTGRES_PASSWORD)
-POSTGRES_DB := $(POSTGRES_PASSWORD)
-POSTGRES_HOST := localhost
+POSTGRES_PASSWORD ?= queridodiario
+POSTGRES_USER ?= $(POSTGRES_PASSWORD)
+POSTGRES_DB ?= $(POSTGRES_PASSWORD)
+POSTGRES_HOST ?= localhost
 # Elasticsearch ports
 # Variables used to connect the app to the ElasticSearch
-QUERIDO_DIARIO_ELASTICSEARCH_HOST := localhost
-QUERIDO_DIARIO_ELASTICSEARCH_INDEX := gazettes
-ELASTICSEARCH_PORT1 := 9200
-ELASTICSEARCH_PORT2 := 9300
+QUERIDO_DIARIO_ELASTICSEARCH_HOST ?= localhost
+QUERIDO_DIARIO_ELASTICSEARCH_INDEX ?= gazettes
+ELASTICSEARCH_PORT1 ?= 9200
+ELASTICSEARCH_PORT2 ?= 9300
 # Containers data
-POD_NAME := queridodiarioapi
-DATABASE_CONTAINER_NAME := queridodiario-db
-ELASTICSEARCH_CONTAINER_NAME := queridodiario-elasticsearch
+POD_NAME ?= queridodiarioapi
+DATABASE_CONTAINER_NAME ?= queridodiario-db
+ELASTICSEARCH_CONTAINER_NAME ?= queridodiario-elasticsearch
 
 API_PORT := 8080
 
