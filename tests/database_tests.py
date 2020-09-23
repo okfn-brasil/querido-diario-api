@@ -29,11 +29,7 @@ def get_database_password():
 
 
 def has_not_database_tests_prequisites():
-    return not (
-        get_database_name()
-        and get_database_user()
-        and get_database_password()
-    )
+    return not (get_database_name() and get_database_user() and get_database_password())
 
 
 class DatabaseInterfacesValidation(TestCase):

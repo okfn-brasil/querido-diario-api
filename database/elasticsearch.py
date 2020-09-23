@@ -52,7 +52,12 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         search_after=None,
         keywords: list = None,
     ):
-        if territory_id is None and since is None and until is None and keywords is None:
+        if (
+            territory_id is None
+            and since is None
+            and until is None
+            and keywords is None
+        ):
             return {"query": {"match_none": {}}}
 
         query = {
