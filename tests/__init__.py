@@ -6,7 +6,7 @@ from .gazette_access_tests import (
     GazetteRequestTest,
     GazetteAccessInterfacesTest,
 )
-from .api_tests import ApiTests
+from .api_tests import ApiGazettesEndpointTests
 from .database_tests import (
     DatabaseTest,
     DatabaseInterfacesValidation,
