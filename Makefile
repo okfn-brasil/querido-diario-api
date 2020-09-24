@@ -123,7 +123,7 @@ test-shell: set-test-variables
 	$(call run-command, bash)
 
 .PHONY: coverage
-coverage: set-test-variables
+coverage: set-test-variables create-pod database elasticsearch
 	$(call run-command, coverage erase)
 	$(call run-command, coverage run -m unittest tests)
 	$(call run-command, coverage report -m)
