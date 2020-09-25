@@ -26,7 +26,7 @@ class ApiGazettesEndpointTests(TestCase):
     def test_api_should_not_fail_when_try_to_set_any_object_as_gazettes_interface(self):
         set_gazette_interface(MockGazetteAccessInterface())
 
-    def test_gazettes_endpoint_should_accept_territory_id(self):
+    def test_gazettes_endpoint_should_accept_territory_id_in_the_path(self):
         interface = self.create_mock_gazette_interface()
         set_gazette_interface(interface)
         client = TestClient(app)
@@ -38,6 +38,8 @@ class ApiGazettesEndpointTests(TestCase):
         self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
         self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
         self.assertIsNone(interface.get_gazettes.call_args.args[0].keywords)
+        self.assertIsNotNone(interface.get_gazettes.call_args.args[0].page)
+        self.assertIsNotNone(interface.get_gazettes.call_args.args[0].page_size)
 
     def test_gazettes_endpoint_should_accept_query_since_date(self):
         set_gazette_interface(self.create_mock_gazette_interface())
@@ -67,6 +69,22 @@ class ApiGazettesEndpointTests(TestCase):
         response = client.get("/gazettes/4205902", params={"until": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
+    def test_gazettes_endpoint_should_fail_with_invalid_pagination_data(self):
+        set_gazette_interface(self.create_mock_gazette_interface())
+        client = TestClient(app)
+        response = client.get(
+            "/gazettes/4205902", params={"page": "asfasdasd", "page_size": "10"}
+        )
+        self.assertEqual(response.status_code, 422)
+        response = client.get(
+            "/gazettes/4205902", params={"page": "1", "page_size": "ssddsfds"}
+        )
+        self.assertEqual(response.status_code, 422)
+        response = client.get(
+            "/gazettes/4205902", params={"page": "x", "page_size": "asdasdas"}
+        )
+        self.assertEqual(response.status_code, 422)
+
     def test_get_gazettes_without_territory_id_should_be_fine(self):
         interface = self.create_mock_gazette_interface()
         set_gazette_interface(interface)
@@ -77,6 +95,8 @@ class ApiGazettesEndpointTests(TestCase):
         self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
         self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
         self.assertIsNone(interface.get_gazettes.call_args.args[0].keywords)
+        self.assertIsNotNone(interface.get_gazettes.call_args.args[0].page)
+        self.assertIsNotNone(interface.get_gazettes.call_args.args[0].page_size)
 
     def test_get_gazettes_should_request_gazettes_to_interface_object(self):
         interface = self.create_mock_gazette_interface()
@@ -95,6 +115,8 @@ class ApiGazettesEndpointTests(TestCase):
             params={
                 "since": date.today().strftime("%Y-%m-%d"),
                 "until": date.today().strftime("%Y-%m-%d"),
+                "page": 10,
+                "page_size": 100,
             },
         )
         self.assertEqual(response.status_code, 200)
@@ -106,6 +128,8 @@ class ApiGazettesEndpointTests(TestCase):
             interface.get_gazettes.call_args.args[0].since, date.today(),
         )
         self.assertEqual(interface.get_gazettes.call_args.args[0].until, date.today())
+        self.assertEqual(interface.get_gazettes.call_args.args[0].page, 9)
+        self.assertEqual(interface.get_gazettes.call_args.args[0].page_size, 100)
 
     def test_get_gazettes_should_return_json_with_items(self):
         today = date.today()
@@ -210,3 +234,35 @@ class ApiGazettesEndpointTests(TestCase):
         client = TestClient(app)
         response = client.get("/gazettes", params={"until": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
+
+    def test_get_gazettes_should_forward_gazettes_filters_to_interface_object(self):
+        interface = self.create_mock_gazette_interface()
+        set_gazette_interface(interface)
+        client = TestClient(app)
+        response = client.get(
+            "/gazettes",
+            params={
+                "since": date.today().strftime("%Y-%m-%d"),
+                "until": date.today().strftime("%Y-%m-%d"),
+                "page": 10,
+                "page_size": 100,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        interface.get_gazettes.assert_called_once()
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].territory_id)
+        self.assertEqual(
+            interface.get_gazettes.call_args.args[0].since, date.today(),
+        )
+        self.assertEqual(interface.get_gazettes.call_args.args[0].until, date.today())
+        self.assertEqual(interface.get_gazettes.call_args.args[0].page, 9)
+        self.assertEqual(interface.get_gazettes.call_args.args[0].page_size, 100)
+
+    def test_api_should_decrease_one_from_page_number_for_internal_use(self):
+        interface = self.create_mock_gazette_interface()
+        set_gazette_interface(interface)
+        client = TestClient(app)
+        response = client.get("/gazettes", params={"page": 1,},)
+        self.assertEqual(response.status_code, 200)
+        interface.get_gazettes.assert_called_once()
+        self.assertEqual(interface.get_gazettes.call_args.args[0].page, 0)

@@ -24,9 +24,20 @@ def trigger_gazettes_search(
     since: date = None,
     until: date = None,
     keywords: List[str] = None,
+    page: int = 1,
+    page_size: int = 10,
 ):
+    if page > 0:
+        page -= 1
     gazettes = app.gazettes.get_gazettes(
-        GazetteRequest(territory_id, since=since, until=until, keywords=keywords)
+        GazetteRequest(
+            territory_id,
+            since=since,
+            until=until,
+            keywords=keywords,
+            page=page,
+            page_size=page_size,
+        )
     )
     if gazettes:
         return [GazetteItem(**gazette) for gazette in gazettes]
@@ -55,8 +66,16 @@ async def get_gazettes(
         title="Keywords should be present in the gazette",
         description="Look for gazettes containing the given keywords",
     ),
+    page: Optional[int] = Query(
+        1, title="Page", description="Define which page should be return.",
+    ),
+    page_size: Optional[int] = Query(
+        10,
+        title="Page size",
+        description="Define the number of item on the page returned.",
+    ),
 ):
-    return trigger_gazettes_search(None, since, until, keywords)
+    return trigger_gazettes_search(None, since, until, keywords, page, page_size)
 
 
 @app.get(
@@ -82,8 +101,18 @@ async def get_gazettes_by_territory_id(
         title="Keywords should be present in the gazette",
         description="Look for gazettes containing the given keywords",
     ),
+    page: Optional[int] = Query(
+        1, title="Page", description="Define which page should be return.",
+    ),
+    page_size: Optional[int] = Query(
+        10,
+        title="Page size",
+        description="Define the number of item on the page returned.",
+    ),
 ):
-    return trigger_gazettes_search(territory_id, since, until, keywords)
+    return trigger_gazettes_search(
+        territory_id, since, until, keywords, page, page_size
+    )
 
 
 def set_gazette_interface(gazettes: GazetteAccessInterface):
