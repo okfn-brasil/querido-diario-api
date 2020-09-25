@@ -8,11 +8,21 @@ class GazetteRequest:
 
     territory_id = None
 
-    def __init__(self, territory_id=None, since=None, until=None, keywords=None):
+    def __init__(
+        self,
+        territory_id=None,
+        since=None,
+        until=None,
+        keywords=None,
+        page: int = 0,
+        page_size: int = 10,
+    ):
         self.territory_id = territory_id
         self.since = since
         self.until = until
         self.keywords = keywords
+        self.page = page
+        self.page_size = page_size
 
 
 class GazetteDataGateway(abc.ABC):
@@ -21,7 +31,9 @@ class GazetteDataGateway(abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_gazettes(self, territory_id=None, since=None, until=None):
+    def get_gazettes(
+        self, territory_id=None, since=None, until=None, page: int = 0, size: int = 10
+    ):
         """
         Method to get the gazette from storage
         """
@@ -51,8 +63,15 @@ class GazetteAccess(GazetteAccessInterface):
         since = filters.since if filters is not None else None
         until = filters.until if filters is not None else None
         keywords = filters.keywords if filters is not None else []
+        page = filters.page if filters is not None else 1
+        page_size = filters.page_size if filters is not None else 10
         for gazette in self._data_gateway.get_gazettes(
-            territory_id=territory_id, since=since, until=until, keywords=keywords
+            territory_id=territory_id,
+            since=since,
+            until=until,
+            keywords=keywords,
+            page=page,
+            page_size=page_size,
         ):
             yield vars(gazette)
 

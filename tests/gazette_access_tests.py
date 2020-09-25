@@ -44,13 +44,17 @@ class GazetteAccessInterfacesTest(TestCase):
         since = date.today()
         until = date.today() - timedelta(days=1)
         keywords = ["cnpj", "bla", "foo", "bar"]
-        request = GazetteRequest(territory_id, since, until, keywords)
+        page = 10
+        page_size = 100
+        request = GazetteRequest(territory_id, since, until, keywords, page, page_size)
         self.assertEqual(
             territory_id, request.territory_id, msg="Territory ID is invalid"
         )
         self.assertEqual(since, request.since, msg="'Since' date is invalid")
         self.assertEqual(until, request.until, msg="'Until' date is invalid")
         self.assertEqual(keywords, request.keywords, msg="Keywords are invalid")
+        self.assertEqual(page, request.page, msg="Page are invalid")
+        self.assertEqual(page_size, request.page_size, msg="Page size are invalid")
 
 
 class GazetteAccessTest(TestCase):
@@ -120,7 +124,12 @@ class GazetteAccessTest(TestCase):
             )
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
-            territory_id="4205902", since=None, until=None, keywords=None
+            territory_id="4205902",
+            since=None,
+            until=None,
+            keywords=None,
+            page=0,
+            page_size=10,
         )
 
     def test_should_foward_since_date_filter_to_gateway(self):
@@ -129,7 +138,12 @@ class GazetteAccessTest(TestCase):
             self.gazette_access.get_gazettes(filters=GazetteRequest(since=date.today()))
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
-            since=date.today(), until=None, territory_id=None, keywords=None
+            since=date.today(),
+            until=None,
+            territory_id=None,
+            keywords=None,
+            page=0,
+            page_size=10,
         )
 
     def test_should_foward_until_date_filter_to_gateway(self):
@@ -138,7 +152,12 @@ class GazetteAccessTest(TestCase):
             self.gazette_access.get_gazettes(filters=GazetteRequest(until=date.today()))
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
-            until=date.today(), since=None, territory_id=None, keywords=None
+            until=date.today(),
+            since=None,
+            territory_id=None,
+            keywords=None,
+            page=0,
+            page_size=10,
         )
 
     def test_should_foward_keywords_filter_to_gateway(self):
@@ -148,7 +167,28 @@ class GazetteAccessTest(TestCase):
             self.gazette_access.get_gazettes(filters=GazetteRequest(keywords=keywords))
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
-            until=None, since=None, territory_id=None, keywords=keywords
+            until=None,
+            since=None,
+            territory_id=None,
+            keywords=keywords,
+            page=0,
+            page_size=10,
+        )
+
+    def test_should_foward_page_fields_filter_to_gateway(self):
+        gazette_access = GazetteAccess(self.mock_data_gateway)
+        list(
+            self.gazette_access.get_gazettes(
+                filters=GazetteRequest(page=10, page_size=100)
+            )
+        )
+        self.mock_data_gateway.get_gazettes.assert_called_once_with(
+            until=None,
+            since=None,
+            territory_id=None,
+            keywords=None,
+            page=10,
+            page_size=100,
         )
 
 
