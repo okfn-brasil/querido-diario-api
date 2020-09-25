@@ -14,4 +14,8 @@ from .database_tests import (
     DatabaseMigrations,
 )
 
-from .elasticsearch_tests import ElasticSearchInterfaceTest, ElasticSearchDataMapperTest
+from .elasticsearch_tests import (
+    ElasticSearchInterfaceTest,
+    ElasticSearchDataMapperTest,
+    ElasticSearchDataMapperPaginationTest,
+)

@@ -40,17 +40,18 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         self.build_date_query(query, since, until)
         self.build_territory_query(query, territory_id)
 
-    def add_search_after(self, query, search_after):
-        if search_after is not None:
-            query["search_after"] = search_after
+    def add_pagination_fields(self, query, page, page_size):
+        query["from"] = page * page_size
+        query["size"] = page_size
 
     def build_query(
         self,
         territory_id: str = None,
         since: date = None,
         until: date = None,
-        search_after=None,
         keywords: list = None,
+        page: int = 0,
+        page_size: int = 10,
     ):
         if (
             territory_id is None
@@ -67,8 +68,8 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         self.build_must_query(query, territory_id, since, until)
         self.build_match_query(query, keywords)
         query = {"query": {"bool": query}}
+        self.add_pagination_fields(query, page, page_size)
         self.build_sort_query(query)
-        self.add_search_after(query, search_after)
 
         return query
 
@@ -79,27 +80,24 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             else None
         )
 
-    def get_gazettes(self, territory_id=None, since=None, until=None, keywords=None):
-        query = self.build_query(territory_id, since, until, keywords=keywords)
+    def get_gazettes(
+        self,
+        territory_id=None,
+        since=None,
+        until=None,
+        keywords=None,
+        page=0,
+        page_size=10,
+    ):
+        query = self.build_query(territory_id, since, until, keywords, page, page_size,)
         gazettes = self._es.search(body=query, index=self._index)
-        total_documents = gazettes["hits"]["total"]["value"]
 
-        while total_documents > 0:
-            for gazette in gazettes["hits"]["hits"]:
-                total_documents -= 1
-                yield Gazette(
-                    gazette["_source"]["territory_id"],
-                    datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
-                    gazette["_source"]["url"],
-                )
-            query = self.build_query(
-                territory_id,
-                since,
-                until,
-                self.get_sort_from_current_gazettes_response(gazettes),
-                keywords,
+        for gazette in gazettes["hits"]["hits"]:
+            yield Gazette(
+                gazette["_source"]["territory_id"],
+                datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
+                gazette["_source"]["url"],
             )
-            gazettes = self._es.search(body=query, index=self._index)
 
 
 def create_elasticsearch_data_mapper(
