@@ -57,10 +57,8 @@ The project uses TDD during development. This means that there are no changes
 without tests. We should always seek 100% source code coverage. Another way to
 think about tests is the following:
 
-```
-"Write the test which forces you to write the code which you already know that you wanna write."
-By Robert C. Martin (a.k.a. Uncle Bob)
-```
+>  "Write the test which forces you to write the code which you already know that you wanna write."
+> By Robert C. Martin (a.k.a. Uncle Bob)
 
 To run the tests you can do the following:
 
