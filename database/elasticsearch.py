@@ -32,9 +32,9 @@ class ElasticSearchDataMapper(GazetteDataGateway):
     def build_match_query(self, query, keywords):
         if keywords is not None and len(keywords) > 0:
             query["should"].append(
-                {"match": {"content": {"query": " ".join(keywords)}}}
+                {"match": {"content": {"query": " ".join(keywords), "operator": "AND"}}}
             )
-            query["minimum_should_match"] = 1
+            query["minimum_should_match"] = len(query["should"])
 
     def build_must_query(self, query, territory_id=None, since=None, until=None):
         self.build_date_query(query, since, until)
@@ -72,13 +72,6 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         self.build_sort_query(query)
 
         return query
-
-    def get_sort_from_current_gazettes_response(self, gazettes):
-        return (
-            gazettes["hits"]["hits"][-1]["sort"]
-            if len(gazettes["hits"]["hits"]) > 0
-            else None
-        )
 
     def get_gazettes(
         self,

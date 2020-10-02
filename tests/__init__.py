@@ -18,4 +18,5 @@ from .elasticsearch_tests import (
     ElasticSearchInterfaceTest,
     ElasticSearchDataMapperTest,
     ElasticSearchDataMapperPaginationTest,
+    ElasticSearchDataMapperKeywordTest,
 )

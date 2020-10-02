@@ -31,6 +31,59 @@ def setUpModule():
         raise Exception("Could not connect to Elasticsearch")
 
 
+class ElasticSearchBaseTestCase(TestCase):
+
+    INDEX = "gazettes"
+    maxDifff = None
+    _data = []
+
+    def recreate_index(self):
+        if self._es.indices.exists(index=self.INDEX):
+            self._es.indices.delete(
+                index=self.INDEX, ignore_unavailable=True, timeout="30s"
+            )
+        self._es.indices.create(
+            index=self.INDEX,
+            body={"mappings": {"properties": {"date": {"type": "date"}}}},
+            timeout="60s",
+        )
+
+    def add_data_on_index(self):
+        bulk_data = []
+        for gazette in self._data:
+            bulk_data.append(
+                {"index": {"_index": self.INDEX, "_id": gazette["checksum"]}}
+            )
+            bulk_data.append(gazette)
+        self._es.bulk(bulk_data, index=self.INDEX, refresh=True, timeout="2m")
+
+    def setUp(self):
+        self._es = elasticsearch.Elasticsearch(hosts=["localhost"])
+        self.recreate_index()
+        self.generate_data()
+        self.add_data_on_index()
+        self._mapper = create_elasticsearch_data_mapper("localhost", self.INDEX)
+
+    def tearDown(self):
+        self._es.close()
+
+    def get_latest_gazettes_files(self, gazettes_count):
+        self._data.sort(reverse=True, key=lambda x: x["date"])
+        return [
+            Gazette(d["territory_id"], d["date"], d["url"])
+            for d in self._data[:gazettes_count]
+        ]
+
+    def get_expected_document_page(self, page_number, page_size):
+        start_slice = 0
+        if page_number > 0:
+            start_slice = page_number * page_size
+        end_slice = start_slice + page_size
+        total_documents = len(self._data)
+        expected_gazettes = self.get_latest_gazettes_files(total_documents)
+        return expected_gazettes[start_slice:end_slice]
+
+
 class ElasticSearchInterfaceTest(TestCase):
     def test_create_elasticsearch_mapper(self):
         mapper = create_elasticsearch_data_mapper("localhost", "gazettes")
@@ -425,3 +478,56 @@ class ElasticSearchDataMapperPaginationTest(TestCase):
                 self.get_expected_document_page(page_number, page_size),
                 msg=f"Page {page_number} is not right",
             )
+
+
+class ElasticSearchDataMapperKeywordTest(ElasticSearchBaseTestCase):
+
+    INDEX = "gazettes_keywords"
+
+    def generate_data(self):
+        week_ago = date.today() - timedelta(days=7)
+        day = timedelta(days=1)
+        self._data = [
+            {
+                "checksum": "0",
+                "date": date.today(),
+                "territory_id": "4202909",
+                "url": "https://queridodiario.ok.org.br/",
+                "content": "This is a fake gazette content. prefeitura",
+            },
+            {
+                "checksum": "1",
+                "date": date.today() - day,
+                "territory_id": "4205902",
+                "url": "https://queridodiario.ok.org.br/",
+                "content": "This is a fake gazette content. prefeitura foobar xpto piraporinha",
+            },
+            {
+                "checksum": "2",
+                "date": date.today() + day,
+                "territory_id": "4205902",
+                "url": "https://queridodiario.ok.org.br/",
+                "content": "This is a fake gazette content. prefeitura, piraporinha and cafundo",
+            },
+            {
+                "checksum": "3",
+                "date": date.today() + day,
+                "territory_id": "4205902",
+                "url": "https://queridodiario.ok.org.br/",
+                "content": "This is a fake gazette content. piraporinha and cafundo",
+            },
+        ]
+
+    def test_get_gazettes_by_keywords_does_not_exist_return_nothing(self):
+        gazettes = self._mapper.get_gazettes(keywords=["wasd1234xxx"])
+        self.assertEqual(0, len(list(gazettes)), msg="No gazettes should be return ")
+
+    def test_get_gazettes_return_only_documents_containing_all_keywords(self):
+        gazettes = self._mapper.get_gazettes(keywords=["prefeitura"])
+        self.assertEqual(3, len(list(gazettes)), msg="Only 3 gazettes should be return")
+
+        gazettes = self._mapper.get_gazettes(keywords=["piraporinha"])
+        self.assertEqual(3, len(list(gazettes)), msg="Only 3 gazettes should be return")
+
+        gazettes = list(self._mapper.get_gazettes(keywords=["piraporinha", "cafundo"]))
+        self.assertEqual(2, len(gazettes), msg="Only 2 gazettes should be return")
