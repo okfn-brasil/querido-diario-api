@@ -3,11 +3,32 @@ from unittest import TestCase
 import os
 import unittest
 import uuid
+import time
 
 import elasticsearch
 
 from database import ElasticSearchDataMapper, create_elasticsearch_data_mapper
 from gazettes import GazetteDataGateway, Gazette
+
+
+def is_elasticsearch_status_green(es):
+    status = es.cluster.stats()
+    if status["status"] == "green":
+        return True
+
+
+def is_elasticsearch_responding():
+    for _ in range(10):
+        es = elasticsearch.Elasticsearch(hosts=["localhost"])
+        if is_elasticsearch_status_green(es):
+            return True
+        time.sleep(30)
+    return False
+
+
+def setUpModule():
+    if not is_elasticsearch_responding():
+        raise Exception("Could not connect to Elasticsearch")
 
 
 class ElasticSearchInterfaceTest(TestCase):
