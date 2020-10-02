@@ -235,7 +235,9 @@ class ApiGazettesEndpointTests(TestCase):
         response = client.get("/gazettes", params={"until": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
-    def test_get_gazettes_should_forward_gazettes_filters_to_interface_object(self):
+    def test_get_gazettes_without_territory_id_should_forward_gazettes_filters_to_interface_object(
+        self,
+    ):
         interface = self.create_mock_gazette_interface()
         set_gazette_interface(interface)
         client = TestClient(app)
