@@ -38,14 +38,13 @@ class ElasticSearchBaseTestCase(TestCase):
     _data = []
 
     def recreate_index(self):
-        if self._es.indices.exists(index=self.INDEX):
-            self._es.indices.delete(
-                index=self.INDEX, ignore_unavailable=True, timeout="30s"
-            )
+        self._es.indices.delete(
+            index=self.INDEX, ignore_unavailable=True, timeout="2m"
+        )
         self._es.indices.create(
             index=self.INDEX,
             body={"mappings": {"properties": {"date": {"type": "date"}}}},
-            timeout="60s",
+            timeout="2m",
         )
 
     def add_data_on_index(self):
@@ -106,17 +105,8 @@ class ElasticSearchInterfaceTest(TestCase):
             create_elasticsearch_data_mapper("localhost", "zpto")
 
 
-class ElasticSearchDataMapperTest(TestCase):
-    def setUp(self):
-        self._es = elasticsearch.Elasticsearch(hosts=["localhost"])
-        self._es.indices.delete(
-            index="gazettes", ignore_unavailable=True, timeout="30s"
-        )
-        self._es.indices.create(
-            index="gazettes",
-            body={"mappings": {"properties": {"date": {"type": "date"}}}},
-            timeout="60s",
-        )
+class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
+    def generate_data(self):
         week_ago = date.today() - timedelta(days=7)
         day = timedelta(days=1)
         self._data = [
@@ -205,17 +195,6 @@ class ElasticSearchDataMapperTest(TestCase):
                 "content": "This is a fake gazette content from ID 11",
             },
         ]
-        bulk_data = []
-        for gazette in self._data:
-            bulk_data.append(
-                {"index": {"_index": "gazettes", "_id": gazette["checksum"]}}
-            )
-            bulk_data.append(gazette)
-        self._es.bulk(bulk_data, index="gazettes", refresh=True)
-        self._mapper = create_elasticsearch_data_mapper("localhost", "gazettes")
-
-    def tearDown(self):
-        self._es.close()
 
     def test_get_none_gazettes(self):
         gazettes = list(self._mapper.get_gazettes())
@@ -315,10 +294,6 @@ class ElasticSearchDataMapperTest(TestCase):
         ]
         self.assertCountEqual(gazettes, expected_gazettes)
 
-    def test_get_gazettes_by_keywords_does_not_exist(self):
-        gazettes = self._mapper.get_gazettes(keywords=["wasd1234xxx"])
-        self.assertEqual(0, len(list(gazettes)), msg="No gazettes should be return ")
-
     def test_get_gazettes_by_invalid_since_date(self):
         two_months_future = date.today() + timedelta(weeks=8)
         gazettes = self._mapper.get_gazettes(since=two_months_future)
@@ -330,59 +305,25 @@ class ElasticSearchDataMapperTest(TestCase):
         self.assertEqual(0, len(list(gazettes)), msg="No gazettes should be return ")
 
 
-class ElasticSearchDataMapperPaginationTest(TestCase):
+class ElasticSearchDataMapperPaginationTest(ElasticSearchBaseTestCase):
 
     INDEX = "gazettes_pagination"
 
-    def setUp(self):
-        self._documents_in_the_index = []
-        self._es = elasticsearch.Elasticsearch(hosts=["localhost"])
-        self.recreate_index()
-        self.create_fake_data_to_generate_pages_one_gazette_per_day()
-        self._mapper = create_elasticsearch_data_mapper("localhost", self.INDEX)
+    def generate_data(self):
+        for days_old in range(50):
+            self.create_new_fake_gazette(days_old)
 
-    def tearDown(self):
-        self._es.close()
-
-    def recreate_index(self):
-        self._es.indices.delete(
-            index=self.INDEX, ignore_unavailable=True, timeout="30s"
-        )
-        self._es.indices.create(
-            index=self.INDEX,
-            body={"mappings": {"properties": {"date": {"type": "date"}}}},
-            timeout="60s",
-        )
-
-    def generate_fake_gazette(self, uuid: str, date: date):
+    def create_new_fake_gazette(self, days_old: int):
+        document_uuid = str(uuid.uuid1())
+        document_date = date.today() - timedelta(days=days_old)
         gazette = {
-            "checksum": uuid,
-            "date": date,
+            "checksum": document_uuid,
+            "date": document_date,
             "territory_id": "4202909",
             "url": "https://queridodiario.ok.org.br/",
             "content": "This is a fake gazette content",
         }
-        self._documents_in_the_index.append(gazette)
-        return gazette
-
-    def add_new_fake_gazette_in_the_bulk_data(self, bulk_data, days_old: int):
-        document_uuid = str(uuid.uuid1())
-        bulk_data.append({"index": {"_index": self.INDEX, "_id": document_uuid}})
-        document_date = date.today() - timedelta(days=days_old)
-        bulk_data.append(self.generate_fake_gazette(document_uuid, document_date))
-
-    def create_fake_data_to_generate_pages_one_gazette_per_day(self):
-        bulk_data = []
-        for days_old in range(50):
-            self.add_new_fake_gazette_in_the_bulk_data(bulk_data, days_old)
-        self._es.bulk(bulk_data, index=self.INDEX, refresh=True)
-
-    def get_latest_gazettes_files(self, gazettes_count):
-        self._documents_in_the_index.sort(reverse=True, key=lambda x: x["date"])
-        return [
-            Gazette(d["territory_id"], d["date"], d["url"])
-            for d in self._documents_in_the_index[:gazettes_count]
-        ]
+        self._data.append(gazette)
 
     def test_page_size(self):
         gazettes = self._mapper.get_gazettes(
@@ -399,7 +340,10 @@ class ElasticSearchDataMapperPaginationTest(TestCase):
         self.assertEqual(30, len(list(gazettes)), msg="Invalid page size.")
 
     def test_pages_should_return_gazette_items(self):
-        gazettes = self._mapper.get_gazettes(page=0, page_size=10)
+        gazettes = list(
+            self._mapper.get_gazettes(territory_id="4202909", page=0, page_size=10)
+        )
+        self.assertNotEqual(0, len(gazettes))
         for gazette in gazettes:
             self.assertIsInstance(gazette, Gazette)
 
@@ -457,18 +401,9 @@ class ElasticSearchDataMapperPaginationTest(TestCase):
             msg="When requesting a page that does not exists. Not gazettes should be return",
         )
 
-    def get_expected_document_page(self, page_number, page_size):
-        start_slice = 0
-        if page_number > 0:
-            start_slice = page_number * page_size
-        end_slice = start_slice + page_size
-        total_documents = len(self._documents_in_the_index)
-        expected_gazettes = self.get_latest_gazettes_files(total_documents)
-        return expected_gazettes[start_slice:end_slice]
-
     def test_get_all_pages_available(self):
         page_size = 10
-        total_documents = len(self._documents_in_the_index)
+        total_documents = len(self._data)
         for page_number in range(int(total_documents / page_size)):
             page = self._mapper.get_gazettes(
                 territory_id="4202909", page=page_number, page_size=page_size
