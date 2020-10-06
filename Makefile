@@ -51,7 +51,7 @@ black:
 .PHONY: build
 build:
 	podman build --tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
-		-f build/Dockerfile $(PWD)
+		-f Dockerfile $(PWD)
 
 login:
 	podman login --username $(REGISTRY_USER) --password "$(REGISTRY_PASSWORD)" https://index.docker.io/v1/
