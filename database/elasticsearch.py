@@ -6,6 +6,9 @@ from gazettes import GazetteDataGateway, Gazette
 
 
 class ElasticSearchDataMapper(GazetteDataGateway):
+
+    GAZETTE_CONTENT_FIELD = "source_text"
+
     def __init__(self, host: str, index: str):
         self._index = index
         self._es = elasticsearch.Elasticsearch(hosts=[host])
@@ -32,7 +35,14 @@ class ElasticSearchDataMapper(GazetteDataGateway):
     def build_match_query(self, query, keywords):
         if keywords is not None and len(keywords) > 0:
             query["should"].append(
-                {"match": {"content": {"query": " ".join(keywords), "operator": "AND"}}}
+                {
+                    "match": {
+                        self.GAZETTE_CONTENT_FIELD: {
+                            "query": " ".join(keywords),
+                            "operator": "AND",
+                        }
+                    }
+                }
             )
             query["minimum_should_match"] = len(query["should"])
 
@@ -89,7 +99,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             yield Gazette(
                 gazette["_source"]["territory_id"],
                 datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
-                gazette["_source"]["url"],
+                gazette["_source"]["file_path"],
             )
 
 
