@@ -2,11 +2,6 @@ IMAGE_NAMESPACE ?= serenata
 IMAGE_NAME ?= querido-diario-api
 IMAGE_TAG ?= latest
 
-# Database configuration
-POSTGRES_PASSWORD ?= queridodiario
-POSTGRES_USER ?= $(POSTGRES_PASSWORD)
-POSTGRES_DB ?= $(POSTGRES_PASSWORD)
-POSTGRES_HOST ?= localhost
 # Elasticsearch ports
 # Variables used to connect the app to the ElasticSearch
 QUERIDO_DIARIO_ELASTICSEARCH_HOST ?= localhost
@@ -14,9 +9,9 @@ QUERIDO_DIARIO_ELASTICSEARCH_INDEX ?= gazettes
 ELASTICSEARCH_PORT1 ?= 9200
 ELASTICSEARCH_PORT2 ?= 9300
 # Containers data
-POD_NAME ?= queridodiarioapi
-DATABASE_CONTAINER_NAME ?= queridodiario-db
-ELASTICSEARCH_CONTAINER_NAME ?= queridodiario-elasticsearch
+POD_NAME ?= querido-diario-api
+DATABASE_CONTAINER_NAME ?= $(POD_NAME)-db
+ELASTICSEARCH_CONTAINER_NAME ?= $(POD_NAME)-elasticsearch
 
 API_PORT := 8080
 
@@ -25,19 +20,11 @@ run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--env QUERIDO_DIARIO_ELASTICSEARCH_INDEX=$(QUERIDO_DIARIO_ELASTICSEARCH_INDEX) \
 	--env QUERIDO_DIARIO_ELASTICSEARCH_HOST=$(QUERIDO_DIARIO_ELASTICSEARCH_HOST) \
 	--env PYTHONPATH=/mnt/code \
-	--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-	--env POSTGRES_HOST=$(POSTGRES_HOST) \
-	--env POSTGRES_USER=$(POSTGRES_USER) \
-	--env POSTGRES_DB=$(POSTGRES_DB) \
 	--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) $1)
 
 wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--pod $(POD_NAME) \
 	--env PYTHONPATH=/mnt/code \
-	--env POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-	--env POSTGRES_USER=$(POSTGRES_USER) \
-	--env POSTGRES_DB=$(POSTGRES_DB) \
-	--env POSTGRES_HOST=$(POSTGRES_HOST) \
 	--user=$(UID):$(UID) \
 	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=30 $1)
 
@@ -75,31 +62,6 @@ create-pod: destroy-pod
 		--publish $(ELASTICSEARCH_PORT2):$(ELASTICSEARCH_PORT2) \
 		--name $(POD_NAME)
 
-.PHONY: stop-database
-stop-database:
-	podman rm --force --ignore $(DATABASE_CONTAINER_NAME)
-
-.PHONY: database
-database: start-database wait-database
-
-start-database:
-	podman run -d --rm -ti \
-		--name $(DATABASE_CONTAINER_NAME) \
-		--pod $(POD_NAME) \
-		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-		-e POSTGRES_USER=$(POSTGRES_USER) \
-		-e POSTGRES_DB=$(POSTGRES_DB) \
-		postgres:12
-
-wait-database:
-	$(call wait-for, localhost:5432)
-
-.PHONY: sql
-sql:
-	podman run --rm -ti \
-		--pod $(POD_NAME) \
-		postgres:12 psql -h localhost -U $(POSTGRES_USER)
-
 set-test-variables:
 	$(eval POD_NAME=test-$(POD_NAME))
 	$(eval DATABASE_CONTAINER_NAME=test-$(DATABASE_CONTAINER_NAME))
@@ -109,21 +71,18 @@ set-test-variables:
 	$(eval ELASTICSEARCH_CONTAINER_NAME=test-$(ELASTICSEARCH_CONTAINER_NAME))
 
 .PHONY: test
-test: set-test-variables create-pod database elasticsearch retest
+test: set-test-variables create-pod elasticsearch retest
 
 .PHONY: retest
 retest: set-test-variables
-	$(call run-command, python -m unittest -f tests)
-
-.PHONY: test-sql
-test-sql: set-test-variables sql
+	$(call run-command, python -m unittest tests)
 
 .PHONY: test-shell
 test-shell: set-test-variables
 	$(call run-command, bash)
 
 .PHONY: coverage
-coverage: set-test-variables create-pod database elasticsearch
+coverage: set-test-variables create-pod elasticsearch
 	$(call run-command, coverage erase)
 	$(call run-command, coverage run -m unittest tests)
 	$(call run-command, coverage report -m)
