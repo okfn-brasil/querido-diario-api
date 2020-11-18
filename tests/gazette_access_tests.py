@@ -1,6 +1,6 @@
 import unittest
 from unittest import TestCase
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from datetime import date, timedelta
 
 from gazettes import (
@@ -34,6 +34,11 @@ class GazetteAccessInterfacesTest(TestCase):
     def test_create_gazettes_interface_should_return_a_valid_interface_object(self):
         interface = create_gazettes_interface(DummyDataGateway())
         self.assertIsInstance(interface, GazetteAccessInterface)
+
+    def test_create_gazettes_interface_with_url_prefix(self):
+        interface = create_gazettes_interface(DummyDataGateway(), "http://test.com")
+        self.assertIsInstance(interface, GazetteAccessInterface)
+        self.assertEqual(interface._url_prefix, "http://test.com")
 
     @unittest.expectedFailure
     def test_create_gazettes_interface_with_invalid_data_gateway_should_fail(self):
@@ -212,3 +217,25 @@ class GazetteTest(TestCase):
         self.assertEqual(today, gazette.date)
         self.assertIsInstance(gazette.url, str, msg="URL should be a string")
         self.assertEqual(url, gazette.url)
+
+
+class GazetteAccessBaseTests(TestCase):
+    @patch("gazettes.GazetteDataGateway")
+    def test_adding_url_prefix_in_gazettes(self, data_gateway_mock):
+        returned_gazette = Gazette("9999", "2020-01-01", "fake/path/to/file")
+        data_gateway_mock.get_gazettes = MagicMock(return_value=[returned_gazette])
+        url_prefix = "https://test.com.br"
+
+        gazettes_access = GazetteAccess(data_gateway_mock, url_prefix)
+        values = next(gazettes_access.get_gazettes())
+
+        self.assertEqual(
+            values,
+            {
+                "territory_id": "9999",
+                "date": "2020-01-01",
+                "url": f"{url_prefix}/fake/path/to/file",
+            },
+        )
+
+        data_gateway_mock.get_gazettes.assert_called_once()

@@ -55,8 +55,13 @@ class GazetteAccess(GazetteAccessInterface):
 
     _data_gateway = None
 
-    def __init__(self, gazette_data_gateway=None):
+    def __init__(self, gazette_data_gateway=None, url_prefix: str = ""):
         self._data_gateway = gazette_data_gateway
+        self._url_prefix = url_prefix
+
+    def update_gazette_url(self, gazette):
+        if len(self._url_prefix) > 0:
+            gazette.url = f"{self._url_prefix}/{gazette.url}"
 
     def get_gazettes(self, filters: GazetteRequest = None):
         territory_id = filters.territory_id if filters is not None else None
@@ -73,6 +78,7 @@ class GazetteAccess(GazetteAccessInterface):
             page=page,
             page_size=page_size,
         ):
+            self.update_gazette_url(gazette)
             yield vars(gazette)
 
 
@@ -101,9 +107,9 @@ class Gazette:
         )
 
 
-def create_gazettes_interface(data_gateway: GazetteDataGateway):
+def create_gazettes_interface(data_gateway: GazetteDataGateway, url_prefix: str = ""):
     if not isinstance(data_gateway, GazetteDataGateway):
         raise Exception(
             "Data gateway should implement the GazetteDataGateway interface"
         )
-    return GazetteAccess(data_gateway)
+    return GazetteAccess(data_gateway, url_prefix)
