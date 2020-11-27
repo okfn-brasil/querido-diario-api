@@ -8,9 +8,10 @@ from database import create_elasticsearch_data_mapper
 
 host = os.environ["QUERIDO_DIARIO_ELASTICSEARCH_HOST"]
 index = os.environ["QUERIDO_DIARIO_ELASTICSEARCH_INDEX"]
+root_path = os.environ.get("QUERIDO_DIARIO_API_ROOT_PATH", "")
 
 datagateway = create_elasticsearch_data_mapper(host, index)
 gazettes_interface = create_gazettes_interface(datagateway)
 set_gazette_interface(gazettes_interface)
 
-uvicorn.run(app, host="0.0.0.0", port=8080)
+uvicorn.run(app, host="0.0.0.0", port=8080, root_path=root_path)
