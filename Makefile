@@ -95,7 +95,11 @@ shell:
 		bash
 
 .PHONY: run
-run: create-pod elasticsearch rerun
+run: create-pod elasticsearch load-data rerun
+
+.PHONY:load-data
+load-data:
+	$(call run-command, python scripts/load_fake_gazettes.py)
 
 
 .PHONY: rerun
