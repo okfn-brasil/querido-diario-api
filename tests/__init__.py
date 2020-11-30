@@ -16,3 +16,5 @@ from .elasticsearch_tests import (
     ElasticSearchDataMapperPaginationTest,
     ElasticSearchDataMapperKeywordTest,
 )
+
+from .config_tests import BasicConfigurationTests
