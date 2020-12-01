@@ -1,1 +1,1 @@
-from .api import app, set_gazette_interface
+from .api import app, configure_api_app

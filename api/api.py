@@ -115,7 +115,10 @@ async def get_gazettes_by_territory_id(
     )
 
 
-def set_gazette_interface(gazettes: GazetteAccessInterface):
+def configure_api_app(gazettes: GazetteAccessInterface, api_root_path=None):
     if not isinstance(gazettes, GazetteAccessInterface):
         raise Exception("Only GazetteAccessInterface object are accepted")
+    if api_root_path is not None and type(api_root_path) != str:
+        raise Exception("Invalid api_root_path")
     app.gazettes = gazettes
+    app.root_path = api_root_path
