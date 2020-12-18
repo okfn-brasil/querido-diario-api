@@ -11,6 +11,8 @@ from database import ElasticSearchDataMapper, create_elasticsearch_data_mapper
 from gazettes import GazetteDataGateway, Gazette
 
 
+FILE_ENDPOINT = "http://test.com"
+
 def is_elasticsearch_status_green(es):
     status = es.cluster.stats()
     if status["status"] == "green":
@@ -94,7 +96,7 @@ class ElasticSearchBaseTestCase(TestCase):
     def get_latest_gazettes_files(self, gazettes_count):
         self._data.sort(reverse=True, key=lambda x: x["date"])
         return [
-            Gazette(d["territory_id"], d["date"], d["file_path"])
+            Gazette(d["territory_id"], d["date"], d["url"])
             for d in self._data[:gazettes_count]
         ]
 
@@ -149,6 +151,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e5",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -164,6 +167,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e52",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -179,6 +183,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e53",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -194,6 +199,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e54",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -209,6 +215,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e55",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -224,6 +231,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e56",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -239,6 +247,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e57",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -254,6 +263,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e58",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -269,6 +279,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e59",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -284,6 +295,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e510",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -299,6 +311,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e511",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -314,6 +327,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e512",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -347,7 +361,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         two_weeks_ago = date.today() - timedelta(days=14)
         gazettes = list(self._mapper.get_gazettes(since=two_weeks_ago))
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["file_path"]) for d in self._data
+            Gazette(d["territory_id"], d["date"], d["url"]) for d in self._data
         ]
         self.assertGreater(len(gazettes), 0)
         self.assertGreater(gazettes[0].date, gazettes[-1].date)
@@ -355,7 +369,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
     def test_search_gazettes_since_date(self):
         gazettes = self._mapper.get_gazettes(since=date.today())
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["file_path"])
+            Gazette(d["territory_id"], d["date"], d["url"])
             for d in self._data
             if d["date"] >= date.today()
         ]
@@ -365,7 +379,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         yesterday = date.today() - timedelta(days=1)
         gazettes = self._mapper.get_gazettes(until=yesterday)
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["file_path"])
+            Gazette(d["territory_id"], d["date"], d["url"])
             for d in self._data
             if d["date"] <= yesterday
         ]
@@ -374,7 +388,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
     def test_search_gazettes_by_territory_id(self):
         gazettes = list(self._mapper.get_gazettes(territory_id=self.TERRITORY_ID1))
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["file_path"])
+            Gazette(d["territory_id"], d["date"], d["url"])
             for d in self._data
             if d["territory_id"] == self.TERRITORY_ID1
         ]
@@ -384,7 +398,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         week_ago = date.today() - timedelta(days=7)
         day = timedelta(days=1)
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["file_path"])
+            Gazette(d["territory_id"], d["date"], d["url"])
             for d in self._data
             if d["territory_id"] == self.TERRITORY_ID4
             and d["date"] >= (week_ago - day)
@@ -399,7 +413,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
     def test_get_gazettes_by_keywords(self):
         gazettes = self._mapper.get_gazettes(keywords=["000.000.000-00"])
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["file_path"])
+            Gazette(d["territory_id"], d["date"], d["url"])
             for d in self._data
             if "000.000.000-00" in d["source_text"]
         ]
@@ -407,7 +421,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
 
         gazettes = self._mapper.get_gazettes(keywords=["anotherkeyword"])
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["file_path"])
+            Gazette(d["territory_id"], d["date"], d["url"])
             for d in self._data
             if "anotherkeyword" in d["source_text"]
         ]
@@ -415,7 +429,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
 
         gazettes = self._mapper.get_gazettes(keywords=["keyword1"])
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["file_path"])
+            Gazette(d["territory_id"], d["date"], d["url"])
             for d in self._data
             if "keyword1" in d["source_text"]
         ]
@@ -454,6 +468,7 @@ class ElasticSearchDataMapperPaginationTest(ElasticSearchBaseTestCase):
             "power": "executive",
             "file_checksum": document_uuid,
             "file_path": f"3304557/2019-02-26/{document_uuid}",
+            "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/{document_uuid}",
             "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
             "scraped_at": "2020-10-30T07:04:29.796347",
             "created_at": "2020-10-30T07:05:33.094289",
@@ -595,6 +610,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e5",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -611,6 +627,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e51",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -627,6 +644,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e52",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",
@@ -643,6 +661,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchBaseTestCase):
                 "power": "executive",
                 "file_checksum": "2566f0e0ff98d899ee0633da64bc65e53",
                 "file_path": "3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
+                "url": f"{FILE_ENDPOINT}/3304557/2019-02-26/c942328486185aa09ec19a7c723b3a33847258ee",
                 "file_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/4067",
                 "scraped_at": "2020-10-30T07:04:29.796347",
                 "created_at": "2020-10-30T07:05:33.094289",

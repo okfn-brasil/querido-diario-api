@@ -6,7 +6,6 @@ IMAGE_TAG ?= latest
 # Variables used to connect the app to the ElasticSearch
 QUERIDO_DIARIO_ELASTICSEARCH_HOST ?= localhost
 QUERIDO_DIARIO_ELASTICSEARCH_INDEX ?= gazettes
-QUERIDO_DIARIO_URL_PREFIX ?= http://test.com
 ELASTICSEARCH_PORT1 ?= 9200
 ELASTICSEARCH_PORT2 ?= 9300
 # Containers data
@@ -20,7 +19,6 @@ run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--pod $(POD_NAME) \
 	--env QUERIDO_DIARIO_ELASTICSEARCH_INDEX=$(QUERIDO_DIARIO_ELASTICSEARCH_INDEX) \
 	--env QUERIDO_DIARIO_ELASTICSEARCH_HOST=$(QUERIDO_DIARIO_ELASTICSEARCH_HOST) \
-	--env QUERIDO_DIARIO_URL_PREFIX=$(QUERIDO_DIARIO_URL_PREFIX) \
 	--env PYTHONPATH=/mnt/code \
 	--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) $1)
 

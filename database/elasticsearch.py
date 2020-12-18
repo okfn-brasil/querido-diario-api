@@ -99,7 +99,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             yield Gazette(
                 gazette["_source"]["territory_id"],
                 datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
-                gazette["_source"]["file_path"],
+                gazette["_source"]["url"],
             )
 
 
