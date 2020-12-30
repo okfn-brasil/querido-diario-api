@@ -100,6 +100,8 @@ class ElasticSearchDataMapper(GazetteDataGateway):
                 gazette["_source"]["territory_id"],
                 datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
                 gazette["_source"]["url"],
+                gazette["_source"]["territory_name"],
+                gazette["_source"]["state_code"],
             )
 
 
