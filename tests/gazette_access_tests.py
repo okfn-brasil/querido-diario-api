@@ -60,27 +60,47 @@ class GazetteAccessInterfacesTest(TestCase):
 class GazetteAccessTest(TestCase):
     def setUp(self):
         self.return_value = [
-            Gazette("4205902", date.today(), "https://queridodiario.ok.org.br/"),
+            Gazette(
+                "4205902",
+                date.today(),
+                "https://queridodiario.ok.org.br/",
+                "My city",
+                "My state",
+            ),
             Gazette(
                 "4205902",
                 (date.today() - timedelta(days=1)),
                 "https://queridodiario.ok.org.br/",
+                "My city",
+                "My state",
             ),
             Gazette(
                 "4205902",
                 (date.today() + timedelta(days=1)),
                 "https://queridodiario.ok.org.br/",
+                "My city",
+                "My state",
             ),
-            Gazette("4202909", date.today(), "https://queridodiario.ok.org.br/"),
+            Gazette(
+                "4202909",
+                date.today(),
+                "https://queridodiario.ok.org.br/",
+                "My city",
+                "My state",
+            ),
             Gazette(
                 "4202909",
                 (date.today() - timedelta(days=1)),
                 "https://queridodiario.ok.org.br/",
+                "My city",
+                "My state",
             ),
             Gazette(
                 "4202909",
                 (date.today() + timedelta(days=1)),
                 "https://queridodiario.ok.org.br/",
+                "My city",
+                "My state",
             ),
         ]
         self.mock_data_gateway = MagicMock()
@@ -109,6 +129,8 @@ class GazetteAccessTest(TestCase):
                 "territory_id": gazette.territory_id,
                 "date": gazette.date,
                 "url": gazette.url,
+                "territory_name": gazette.territory_name,
+                "state_code": gazette.state_code,
             }
             for gazette in self.return_value
         ]
@@ -203,7 +225,9 @@ class GazetteTest(TestCase):
     def test_gazette_creation(self):
         today = date.today()
         url = "https://queridodiario.ok.org.br/"
-        gazette = Gazette("ID", today, url)
+        territory_name = "My city"
+        state_code = "My state"
+        gazette = Gazette("ID", today, url, territory_name, state_code)
         self.assertIsInstance(
             gazette.territory_id, str, msg="Territory ID should be string"
         )
@@ -212,3 +236,5 @@ class GazetteTest(TestCase):
         self.assertEqual(today, gazette.date)
         self.assertIsInstance(gazette.url, str, msg="URL should be a string")
         self.assertEqual(url, gazette.url)
+        self.assertEqual(territory_name, gazette.territory_name)
+        self.assertEqual(state_code, gazette.state_code)

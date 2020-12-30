@@ -13,6 +13,7 @@ from gazettes import GazetteDataGateway, Gazette
 
 FILE_ENDPOINT = "http://test.com"
 
+
 def is_elasticsearch_status_green(es):
     status = es.cluster.stats()
     if status["status"] == "green":
@@ -96,7 +97,13 @@ class ElasticSearchBaseTestCase(TestCase):
     def get_latest_gazettes_files(self, gazettes_count):
         self._data.sort(reverse=True, key=lambda x: x["date"])
         return [
-            Gazette(d["territory_id"], d["date"], d["url"])
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
             for d in self._data[:gazettes_count]
         ]
 
@@ -361,7 +368,14 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         two_weeks_ago = date.today() - timedelta(days=14)
         gazettes = list(self._mapper.get_gazettes(since=two_weeks_ago))
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["url"]) for d in self._data
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
+            for d in self._data
         ]
         self.assertGreater(len(gazettes), 0)
         self.assertGreater(gazettes[0].date, gazettes[-1].date)
@@ -369,7 +383,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
     def test_search_gazettes_since_date(self):
         gazettes = self._mapper.get_gazettes(since=date.today())
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["url"])
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
             for d in self._data
             if d["date"] >= date.today()
         ]
@@ -379,7 +399,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         yesterday = date.today() - timedelta(days=1)
         gazettes = self._mapper.get_gazettes(until=yesterday)
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["url"])
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
             for d in self._data
             if d["date"] <= yesterday
         ]
@@ -388,7 +414,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
     def test_search_gazettes_by_territory_id(self):
         gazettes = list(self._mapper.get_gazettes(territory_id=self.TERRITORY_ID1))
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["url"])
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
             for d in self._data
             if d["territory_id"] == self.TERRITORY_ID1
         ]
@@ -398,7 +430,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         week_ago = date.today() - timedelta(days=7)
         day = timedelta(days=1)
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["url"])
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
             for d in self._data
             if d["territory_id"] == self.TERRITORY_ID4
             and d["date"] >= (week_ago - day)
@@ -413,7 +451,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
     def test_get_gazettes_by_keywords(self):
         gazettes = self._mapper.get_gazettes(keywords=["000.000.000-00"])
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["url"])
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
             for d in self._data
             if "000.000.000-00" in d["source_text"]
         ]
@@ -421,7 +465,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
 
         gazettes = self._mapper.get_gazettes(keywords=["anotherkeyword"])
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["url"])
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
             for d in self._data
             if "anotherkeyword" in d["source_text"]
         ]
@@ -429,7 +479,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
 
         gazettes = self._mapper.get_gazettes(keywords=["keyword1"])
         expected_gazettes = [
-            Gazette(d["territory_id"], d["date"], d["url"])
+            Gazette(
+                d["territory_id"],
+                d["date"],
+                d["url"],
+                d["territory_name"],
+                d["state_code"],
+            )
             for d in self._data
             if "keyword1" in d["source_text"]
         ]
