@@ -139,6 +139,8 @@ class ApiGazettesEndpointTests(TestCase):
                     "territory_id": "4205902",
                     "date": today,
                     "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
                 }
             ]
         )
@@ -157,6 +159,8 @@ class ApiGazettesEndpointTests(TestCase):
                     "territory_id": "4205902",
                     "date": today.strftime("%Y-%m-%d"),
                     "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
                 }
             ],
         )
