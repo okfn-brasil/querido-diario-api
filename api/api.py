@@ -17,6 +17,8 @@ class GazetteItem(BaseModel):
     territory_id: str
     date: date
     url: str
+    territory_name: str
+    state_code: str
 
 
 def trigger_gazettes_search(
