@@ -83,6 +83,17 @@ class ElasticSearchDataMapper(GazetteDataGateway):
 
         return query
 
+    def _assemble_gazette_object(self, gazette):
+        return Gazette(
+            gazette["_source"]["territory_id"],
+            datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
+            gazette["_source"]["url"],
+            gazette["_source"]["territory_name"],
+            gazette["_source"]["state_code"],
+            gazette["_source"].get("edition_number", None),
+            gazette["_source"].get("is_extra_edition", None),
+        )
+
     def get_gazettes(
         self,
         territory_id=None,
@@ -96,13 +107,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         gazettes = self._es.search(body=query, index=self._index)
 
         for gazette in gazettes["hits"]["hits"]:
-            yield Gazette(
-                gazette["_source"]["territory_id"],
-                datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
-                gazette["_source"]["url"],
-                gazette["_source"]["territory_name"],
-                gazette["_source"]["state_code"],
-            )
+            yield self._assemble_gazette_object(gazette)
 
 
 def create_elasticsearch_data_mapper(
