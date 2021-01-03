@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import MagicMock
 from unittest import TestCase, expectedFailure
 
@@ -141,6 +141,8 @@ class ApiGazettesEndpointTests(TestCase):
                     "url": "https://queridodiario.ok.org.br/",
                     "territory_name": "My city",
                     "state_code": "My state",
+                    "is_extra_edition": False,
+                    "edition": "12.3442",
                 }
             ]
         )
@@ -161,6 +163,8 @@ class ApiGazettesEndpointTests(TestCase):
                     "url": "https://queridodiario.ok.org.br/",
                     "territory_name": "My city",
                     "state_code": "My state",
+                    "is_extra_edition": False,
+                    "edition": "12.3442",
                 }
             ],
         )
@@ -280,3 +284,110 @@ class ApiGazettesEndpointTests(TestCase):
     def test_configure_api_root_path(self):
         configure_api_app(MockGazetteAccessInterface(), api_root_path="/api/v1")
         self.assertEqual("/api/v1", app.root_path)
+
+    def test_api_without_edition_and_extra_field(self):
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        interface = self.create_mock_gazette_interface(
+            [
+                {
+                    "territory_id": "4205902",
+                    "date": today,
+                    "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city", "state_code": "My state",
+                    "is_extra_edition": False,
+                    "edition": "12.3442",
+                },
+                {
+                    "territory_id": "4205902",
+                    "date": yesterday,
+                    "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
+                }
+            ]
+        )
+        configure_api_app(interface)
+        client = TestClient(app)
+        response = client.get("/gazettes/4205902")
+        interface.get_gazettes.assert_called_once()
+        self.assertEqual(
+            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            [
+                {
+                    "territory_id": "4205902",
+                    "date": today.strftime("%Y-%m-%d"),
+                    "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
+                    "is_extra_edition": False,
+                    "edition": "12.3442",
+                },
+                {
+                    "territory_id": "4205902",
+                    "date": yesterday.strftime("%Y-%m-%d"),
+                    "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
+                }
+            ],
+        )
+
+    def test_api_with_none_edition_and_extra_field(self):
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        interface = self.create_mock_gazette_interface(
+            [
+                {
+                    "territory_id": "4205902",
+                    "date": today,
+                    "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
+                    "is_extra_edition": False,
+                    "edition": "12.3442",
+                },
+                {
+                    "territory_id": "4205902",
+                    "date": yesterday,
+                    "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
+                    "is_extra_edition": None,
+                    "edition": None
+                }
+            ]
+        )
+        configure_api_app(interface)
+        client = TestClient(app)
+        response = client.get("/gazettes/4205902")
+        interface.get_gazettes.assert_called_once()
+        self.assertEqual(
+            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            [
+                {
+                    "territory_id": "4205902",
+                    "date": today.strftime("%Y-%m-%d"),
+                    "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
+                    "is_extra_edition": False,
+                    "edition": "12.3442",
+                },
+                {
+                    "territory_id": "4205902",
+                    "date": yesterday.strftime("%Y-%m-%d"),
+                    "url": "https://queridodiario.ok.org.br/",
+                    "territory_name": "My city",
+                    "state_code": "My state",
+                }
+            ],
+        )

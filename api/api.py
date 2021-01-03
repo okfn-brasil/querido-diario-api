@@ -19,6 +19,8 @@ class GazetteItem(BaseModel):
     url: str
     territory_name: str
     state_code: str
+    edition: Optional[str]
+    is_extra_edition: Optional[bool]
 
 
 def trigger_gazettes_search(
@@ -51,6 +53,8 @@ def trigger_gazettes_search(
     response_model=List[GazetteItem],
     name="Get gazettes",
     description="Get gazettes by date and keyword",
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
 )
 async def get_gazettes(
     since: Optional[date] = Query(
@@ -85,6 +89,8 @@ async def get_gazettes(
     response_model=List[GazetteItem],
     name="Get gazettes by territory ID",
     description="Get gazettes from specific city by date and keywords",
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
 )
 async def get_gazettes_by_territory_id(
     territory_id: str = Path(..., description="City's IBGE ID"),
