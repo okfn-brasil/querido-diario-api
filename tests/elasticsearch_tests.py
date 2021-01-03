@@ -103,6 +103,8 @@ class ElasticSearchBaseTestCase(TestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data[:gazettes_count]
         ]
@@ -165,6 +167,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID1,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content",
@@ -181,6 +185,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID2,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content",
@@ -197,6 +203,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID2,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content. anotherkeyword",
@@ -213,6 +221,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID1,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content. keyword1",
@@ -229,6 +239,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID2,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette with some keywork which is: 000.000.000-00",
@@ -245,6 +257,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID1,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content from ID 6",
@@ -261,6 +275,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID3,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content from ID 7",
@@ -277,6 +293,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID3,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content from ID 8",
@@ -293,6 +311,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID3,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content from ID 9",
@@ -309,6 +329,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID4,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content from ID 10",
@@ -325,6 +347,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID4,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
             {
                 "source_text": "This is a fake gazette content from ID 11",
@@ -341,6 +365,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "territory_id": self.TERRITORY_ID4,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "edition_number": "123.456",
+                "is_extra_edition": False,
             },
         ]
 
@@ -374,6 +400,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data
         ]
@@ -389,6 +417,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data
             if d["date"] >= date.today()
@@ -405,6 +435,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data
             if d["date"] <= yesterday
@@ -420,6 +452,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data
             if d["territory_id"] == self.TERRITORY_ID1
@@ -436,6 +470,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data
             if d["territory_id"] == self.TERRITORY_ID4
@@ -457,6 +493,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data
             if "000.000.000-00" in d["source_text"]
@@ -471,6 +509,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data
             if "anotherkeyword" in d["source_text"]
@@ -485,6 +525,8 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["edition_number"],
+                d["is_extra_edition"],
             )
             for d in self._data
             if "keyword1" in d["source_text"]
