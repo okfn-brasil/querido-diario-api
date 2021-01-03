@@ -81,18 +81,23 @@ class Gazette:
     Item to represent a gazette in memory inside the module
     """
 
-    territory_id = None
-    date = None
-    url = None
-    territory_name = None
-    state_code = None
-
-    def __init__(self, territory_id, date, url, territory_name, state_code):
+    def __init__(
+        self,
+        territory_id,
+        date,
+        url,
+        territory_name,
+        state_code,
+        edition=None,
+        is_extra_edition=None,
+    ):
         self.territory_id = territory_id
         self.date = date
         self.url = url
         self.territory_name = territory_name
         self.state_code = state_code
+        self.edition = edition
+        self.is_extra_edition = is_extra_edition
 
     def __hash__(self):
         return hash((self.territory_id, self.date, self.url))

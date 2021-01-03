@@ -66,6 +66,8 @@ class GazetteAccessTest(TestCase):
                 "https://queridodiario.ok.org.br/",
                 "My city",
                 "My state",
+                "123,456",
+                False,
             ),
             Gazette(
                 "4205902",
@@ -73,6 +75,8 @@ class GazetteAccessTest(TestCase):
                 "https://queridodiario.ok.org.br/",
                 "My city",
                 "My state",
+                "123,456",
+                False,
             ),
             Gazette(
                 "4205902",
@@ -80,6 +84,8 @@ class GazetteAccessTest(TestCase):
                 "https://queridodiario.ok.org.br/",
                 "My city",
                 "My state",
+                "123,456",
+                False,
             ),
             Gazette(
                 "4202909",
@@ -87,6 +93,8 @@ class GazetteAccessTest(TestCase):
                 "https://queridodiario.ok.org.br/",
                 "My city",
                 "My state",
+                "123,456",
+                False,
             ),
             Gazette(
                 "4202909",
@@ -94,6 +102,8 @@ class GazetteAccessTest(TestCase):
                 "https://queridodiario.ok.org.br/",
                 "My city",
                 "My state",
+                "123,456",
+                False,
             ),
             Gazette(
                 "4202909",
@@ -101,6 +111,8 @@ class GazetteAccessTest(TestCase):
                 "https://queridodiario.ok.org.br/",
                 "My city",
                 "My state",
+                "123,456",
+                False,
             ),
         ]
         self.mock_data_gateway = MagicMock()
@@ -131,6 +143,8 @@ class GazetteAccessTest(TestCase):
                 "url": gazette.url,
                 "territory_name": gazette.territory_name,
                 "state_code": gazette.state_code,
+                "edition": gazette.edition,
+                "is_extra_edition": gazette.is_extra_edition,
             }
             for gazette in self.return_value
         ]
@@ -227,7 +241,11 @@ class GazetteTest(TestCase):
         url = "https://queridodiario.ok.org.br/"
         territory_name = "My city"
         state_code = "My state"
-        gazette = Gazette("ID", today, url, territory_name, state_code)
+        edition = "123.45"
+        is_extra_edition = False
+        gazette = Gazette(
+            "ID", today, url, territory_name, state_code, edition, is_extra_edition
+        )
         self.assertIsInstance(
             gazette.territory_id, str, msg="Territory ID should be string"
         )
@@ -238,3 +256,26 @@ class GazetteTest(TestCase):
         self.assertEqual(url, gazette.url)
         self.assertEqual(territory_name, gazette.territory_name)
         self.assertEqual(state_code, gazette.state_code)
+        self.assertEqual(edition, gazette.edition)
+        self.assertFalse(gazette.is_extra_edition)
+
+    def test_gazette_without_edition_and_extra_fields(self):
+        today = date.today()
+        url = "https://queridodiario.ok.org.br/"
+        territory_name = "My city"
+        state_code = "My state"
+        gazette = Gazette(
+            "ID", today, url, territory_name, state_code
+        )
+        self.assertIsInstance(
+            gazette.territory_id, str, msg="Territory ID should be string"
+        )
+        self.assertEqual("ID", gazette.territory_id)
+        self.assertIsInstance(gazette.date, date, msg="Expected a date object")
+        self.assertEqual(today, gazette.date)
+        self.assertIsInstance(gazette.url, str, msg="URL should be a string")
+        self.assertEqual(url, gazette.url)
+        self.assertEqual(territory_name, gazette.territory_name)
+        self.assertEqual(state_code, gazette.state_code)
+        self.assertIsNone(gazette.edition)
+        self.assertIsNone(gazette.is_extra_edition)
