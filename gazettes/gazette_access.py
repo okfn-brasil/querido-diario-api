@@ -14,15 +14,15 @@ class GazetteRequest:
         since=None,
         until=None,
         keywords=None,
-        page: int = 0,
-        page_size: int = 10,
+        offset: int = 0,
+        size: int = 10,
     ):
         self.territory_id = territory_id
         self.since = since
         self.until = until
         self.keywords = keywords
-        self.page = page
-        self.page_size = page_size
+        self.offset = offset
+        self.size = size
 
 
 class GazetteDataGateway(abc.ABC):
@@ -63,17 +63,17 @@ class GazetteAccess(GazetteAccessInterface):
         since = filters.since if filters is not None else None
         until = filters.until if filters is not None else None
         keywords = filters.keywords if filters is not None else []
-        page = filters.page if filters is not None else 1
-        page_size = filters.page_size if filters is not None else 10
-        for gazette in self._data_gateway.get_gazettes(
+        offset = filters.offset if filters is not None else 0
+        size = filters.size if filters is not None else 10
+        total_number_gazettes, gazettes = self._data_gateway.get_gazettes(
             territory_id=territory_id,
             since=since,
             until=until,
             keywords=keywords,
-            page=page,
-            page_size=page_size,
-        ):
-            yield vars(gazette)
+            offset=offset,
+            size=size,
+        )
+        return (total_number_gazettes, [vars(gazette) for gazette in gazettes])
 
 
 class Gazette:
@@ -86,6 +86,7 @@ class Gazette:
         territory_id,
         date,
         url,
+        checksum,
         territory_name,
         state_code,
         edition=None,
@@ -98,16 +99,36 @@ class Gazette:
         self.state_code = state_code
         self.edition = edition
         self.is_extra_edition = is_extra_edition
+        self.checksum = checksum
 
     def __hash__(self):
-        return hash((self.territory_id, self.date, self.url))
+        return hash(
+            (
+                self.territory_id,
+                self.date,
+                self.url,
+                self.territory_name,
+                self.state_code,
+                self.edition,
+                self.is_extra_edition,
+                self.checksum,
+            )
+        )
 
     def __eq__(self, other):
         return (
-            self.territory_id == other.territory_id
+            self.checksum == other.checksum
+            and self.territory_id == other.territory_id
             and self.date == other.date
             and self.url == other.url
+            and self.territory_name == other.territory_name
+            and self.state_code == other.state_code
+            and self.edition == other.edition
+            and self.is_extra_edition == other.is_extra_edition
         )
+
+    def __repr__(self):
+        return f"Gazette({self.checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.edition}, {self.is_extra_edition})"
 
 
 def create_gazettes_interface(data_gateway: GazetteDataGateway):

@@ -10,10 +10,11 @@ from .gazette_access_tests import (
 from .api_tests import ApiGazettesEndpointTests
 
 from .elasticsearch_tests import (
-    ElasticSearchInterfaceTest,
-    ElasticSearchDataMapperTest,
-    ElasticSearchDataMapperPaginationTest,
     ElasticSearchDataMapperKeywordTest,
+    ElasticSearchDataMapperPaginationTest,
+    ElasticSearchDataMapperTest,
+    ElasticSearchInterfaceTest,
+    Elasticsearch,
 )
 
 from .config_tests import BasicConfigurationTests

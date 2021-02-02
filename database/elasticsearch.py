@@ -1,4 +1,6 @@
 from datetime import date, datetime
+import json
+from typing import Dict, List
 
 import elasticsearch
 
@@ -50,9 +52,9 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         self.build_date_query(query, since, until)
         self.build_territory_query(query, territory_id)
 
-    def add_pagination_fields(self, query, page, page_size):
-        query["from"] = page * page_size
-        query["size"] = page_size
+    def add_pagination_fields(self, query, offset, size):
+        query["from"] = offset
+        query["size"] = size
 
     def build_query(
         self,
@@ -60,8 +62,8 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         since: date = None,
         until: date = None,
         keywords: list = None,
-        page: int = 0,
-        page_size: int = 10,
+        offset: int = 0,
+        size: int = 10,
     ):
         if (
             territory_id is None
@@ -78,7 +80,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         self.build_must_query(query, territory_id, since, until)
         self.build_match_query(query, keywords)
         query = {"query": {"bool": query}}
-        self.add_pagination_fields(query, page, page_size)
+        self.add_pagination_fields(query, offset, size)
         self.build_sort_query(query)
 
         return query
@@ -88,11 +90,18 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             gazette["_source"]["territory_id"],
             datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
             gazette["_source"]["url"],
+            gazette["_source"]["file_checksum"],
             gazette["_source"]["territory_name"],
             gazette["_source"]["state_code"],
             gazette["_source"].get("edition_number", None),
             gazette["_source"].get("is_extra_edition", None),
         )
+
+    def create_list_with_gazette_objects(self, gazette_hits: List[Dict]):
+        return [self._assemble_gazette_object(gazette) for gazette in gazette_hits]
+
+    def get_total_number_items(self, search_response_json: Dict):
+        return search_response_json["hits"]["total"]["value"]
 
     def get_gazettes(
         self,
@@ -100,14 +109,16 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         since=None,
         until=None,
         keywords=None,
-        page=0,
-        page_size=10,
+        offset=0,
+        size=10,
     ):
-        query = self.build_query(territory_id, since, until, keywords, page, page_size,)
+        query = self.build_query(territory_id, since, until, keywords, offset, size,)
         gazettes = self._es.search(body=query, index=self._index)
 
-        for gazette in gazettes["hits"]["hits"]:
-            yield self._assemble_gazette_object(gazette)
+        return (
+            self.get_total_number_items(gazettes),
+            self.create_list_with_gazette_objects(gazettes["hits"]["hits"]),
+        )
 
 
 def create_elasticsearch_data_mapper(

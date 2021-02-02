@@ -44,17 +44,17 @@ class GazetteAccessInterfacesTest(TestCase):
         since = date.today()
         until = date.today() - timedelta(days=1)
         keywords = ["cnpj", "bla", "foo", "bar"]
-        page = 10
-        page_size = 100
-        request = GazetteRequest(territory_id, since, until, keywords, page, page_size)
+        offset = 10
+        size = 100
+        request = GazetteRequest(territory_id, since, until, keywords, offset, size)
         self.assertEqual(
             territory_id, request.territory_id, msg="Territory ID is invalid"
         )
         self.assertEqual(since, request.since, msg="'Since' date is invalid")
         self.assertEqual(until, request.until, msg="'Until' date is invalid")
         self.assertEqual(keywords, request.keywords, msg="Keywords are invalid")
-        self.assertEqual(page, request.page, msg="Page are invalid")
-        self.assertEqual(page_size, request.page_size, msg="Page size are invalid")
+        self.assertEqual(offset, request.offset, msg="Offset are invalid")
+        self.assertEqual(size, request.size, msg="Invalid number of items")
 
 
 class GazetteAccessTest(TestCase):
@@ -64,6 +64,7 @@ class GazetteAccessTest(TestCase):
                 "4205902",
                 date.today(),
                 "https://queridodiario.ok.org.br/",
+                "so'jsdogjeogjsdogjheogdfsdf",
                 "My city",
                 "My state",
                 "123,456",
@@ -73,6 +74,7 @@ class GazetteAccessTest(TestCase):
                 "4205902",
                 (date.today() - timedelta(days=1)),
                 "https://queridodiario.ok.org.br/",
+                "a;oijaeofdjewofijrogho490jhfeasd",
                 "My city",
                 "My state",
                 "123,456",
@@ -82,6 +84,7 @@ class GazetteAccessTest(TestCase):
                 "4205902",
                 (date.today() + timedelta(days=1)),
                 "https://queridodiario.ok.org.br/",
+                "eolgpijdsfesuhrgfiuhsad",
                 "My city",
                 "My state",
                 "123,456",
@@ -91,6 +94,7 @@ class GazetteAccessTest(TestCase):
                 "4202909",
                 date.today(),
                 "https://queridodiario.ok.org.br/",
+                "ew;oigfdfsdjn;dajnorgf",
                 "My city",
                 "My state",
                 "123,456",
@@ -100,6 +104,7 @@ class GazetteAccessTest(TestCase):
                 "4202909",
                 (date.today() - timedelta(days=1)),
                 "https://queridodiario.ok.org.br/",
+                "sdosauiydhbfeicneqiudnewf",
                 "My city",
                 "My state",
                 "123,456",
@@ -109,6 +114,7 @@ class GazetteAccessTest(TestCase):
                 "4202909",
                 (date.today() + timedelta(days=1)),
                 "https://queridodiario.ok.org.br/",
+                "sdo;ifjwefonsdiasndiswabdisbfnidf",
                 "My city",
                 "My state",
                 "123,456",
@@ -116,7 +122,9 @@ class GazetteAccessTest(TestCase):
             ),
         ]
         self.mock_data_gateway = MagicMock()
-        self.mock_data_gateway.get_gazettes = MagicMock(return_value=self.return_value)
+        self.mock_data_gateway.get_gazettes = MagicMock(
+            return_value=(len(self.return_value), self.return_value)
+        )
         self.gazette_access = GazetteAccess(self.mock_data_gateway)
 
     def test_create_gazette_access(self):
@@ -130,9 +138,9 @@ class GazetteAccessTest(TestCase):
         )
 
     def test_get_gazettes(self):
-        self.assertEqual(
-            len(self.return_value), len(list(self.gazette_access.get_gazettes()))
-        )
+        items_count, gazettes = self.gazette_access.get_gazettes()
+        self.assertEqual(items_count, len(self.return_value))
+        self.assertEqual(len(self.return_value), len(gazettes))
         self.mock_data_gateway.get_gazettes.assert_called_once()
 
     def test_get_gazettes_should_return_dictionary(self):
@@ -141,6 +149,7 @@ class GazetteAccessTest(TestCase):
                 "territory_id": gazette.territory_id,
                 "date": gazette.date,
                 "url": gazette.url,
+                "checksum": gazette.checksum,
                 "territory_name": gazette.territory_name,
                 "state_code": gazette.state_code,
                 "edition": gazette.edition,
@@ -149,7 +158,7 @@ class GazetteAccessTest(TestCase):
             for gazette in self.return_value
         ]
 
-        gazettes = self.gazette_access.get_gazettes()
+        _, gazettes = self.gazette_access.get_gazettes()
         self.assertCountEqual(expected_results, gazettes)
 
     def test_should_foward_filter_to_gateway(self):
@@ -157,74 +166,80 @@ class GazetteAccessTest(TestCase):
         list(
             self.gazette_access.get_gazettes(
                 filters=GazetteRequest(territory_id="4205902")
-            )
+            )[1]
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
             territory_id="4205902",
             since=None,
             until=None,
             keywords=None,
-            page=0,
-            page_size=10,
+            offset=0,
+            size=10,
         )
 
     def test_should_foward_since_date_filter_to_gateway(self):
         gazette_access = GazetteAccess(self.mock_data_gateway)
         list(
-            self.gazette_access.get_gazettes(filters=GazetteRequest(since=date.today()))
+            self.gazette_access.get_gazettes(
+                filters=GazetteRequest(since=date.today())
+            )[1]
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
             since=date.today(),
             until=None,
             territory_id=None,
             keywords=None,
-            page=0,
-            page_size=10,
+            offset=0,
+            size=10,
         )
 
     def test_should_foward_until_date_filter_to_gateway(self):
         gazette_access = GazetteAccess(self.mock_data_gateway)
         list(
-            self.gazette_access.get_gazettes(filters=GazetteRequest(until=date.today()))
+            self.gazette_access.get_gazettes(
+                filters=GazetteRequest(until=date.today())
+            )[1]
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
             until=date.today(),
             since=None,
             territory_id=None,
             keywords=None,
-            page=0,
-            page_size=10,
+            offset=0,
+            size=10,
         )
 
     def test_should_foward_keywords_filter_to_gateway(self):
         gazette_access = GazetteAccess(self.mock_data_gateway)
         keywords = ["foo", "bar", "zpto"]
         list(
-            self.gazette_access.get_gazettes(filters=GazetteRequest(keywords=keywords))
+            self.gazette_access.get_gazettes(filters=GazetteRequest(keywords=keywords))[
+                1
+            ]
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
             until=None,
             since=None,
             territory_id=None,
             keywords=keywords,
-            page=0,
-            page_size=10,
+            offset=0,
+            size=10,
         )
 
     def test_should_foward_page_fields_filter_to_gateway(self):
         gazette_access = GazetteAccess(self.mock_data_gateway)
         list(
             self.gazette_access.get_gazettes(
-                filters=GazetteRequest(page=10, page_size=100)
-            )
+                filters=GazetteRequest(offset=10, size=100)
+            )[1]
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
             until=None,
             since=None,
             territory_id=None,
             keywords=None,
-            page=10,
-            page_size=100,
+            offset=10,
+            size=100,
         )
 
 
@@ -243,8 +258,16 @@ class GazetteTest(TestCase):
         state_code = "My state"
         edition = "123.45"
         is_extra_edition = False
+        checksum = "qweolrjeglkjnasjdowejgorehn"
         gazette = Gazette(
-            "ID", today, url, territory_name, state_code, edition, is_extra_edition
+            "ID",
+            today,
+            url,
+            checksum,
+            territory_name,
+            state_code,
+            edition,
+            is_extra_edition,
         )
         self.assertIsInstance(
             gazette.territory_id, str, msg="Territory ID should be string"
@@ -258,15 +281,15 @@ class GazetteTest(TestCase):
         self.assertEqual(state_code, gazette.state_code)
         self.assertEqual(edition, gazette.edition)
         self.assertFalse(gazette.is_extra_edition)
+        self.assertEqual(gazette.checksum, checksum)
 
     def test_gazette_without_edition_and_extra_fields(self):
         today = date.today()
         url = "https://queridodiario.ok.org.br/"
+        checksum = "df;dsfnbkijdasjdasisdsad"
         territory_name = "My city"
         state_code = "My state"
-        gazette = Gazette(
-            "ID", today, url, territory_name, state_code
-        )
+        gazette = Gazette("ID", today, url, checksum, territory_name, state_code)
         self.assertIsInstance(
             gazette.territory_id, str, msg="Territory ID should be string"
         )
@@ -279,3 +302,4 @@ class GazetteTest(TestCase):
         self.assertEqual(state_code, gazette.state_code)
         self.assertIsNone(gazette.edition)
         self.assertIsNone(gazette.is_extra_edition)
+        self.assertEqual(gazette.checksum, checksum)
