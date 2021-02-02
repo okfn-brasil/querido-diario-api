@@ -12,6 +12,8 @@ ELASTICSEARCH_PORT2 ?= 9300
 POD_NAME ?= querido-diario-api
 DATABASE_CONTAINER_NAME ?= $(POD_NAME)-db
 ELASTICSEARCH_CONTAINER_NAME ?= $(POD_NAME)-elasticsearch
+# Run integration tests. Run local elasticsearch to validate the iteration
+RUN_INTEGRATION_TESTS ?= 0
 
 API_PORT := 8080
 
@@ -20,6 +22,7 @@ run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--env QUERIDO_DIARIO_ELASTICSEARCH_INDEX=$(QUERIDO_DIARIO_ELASTICSEARCH_INDEX) \
 	--env QUERIDO_DIARIO_ELASTICSEARCH_HOST=$(QUERIDO_DIARIO_ELASTICSEARCH_HOST) \
 	--env PYTHONPATH=/mnt/code \
+	--env RUN_INTEGRATION_TESTS=$(RUN_INTEGRATION_TESTS) \
 	--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) $1)
 
 wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
@@ -46,7 +49,7 @@ login:
 .PHONY: publish
 publish:
 	podman tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG} $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc)
-	podman push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc) 
+	podman push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc)
 	podman push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG}
 
 .PHONY: destroy
@@ -70,12 +73,18 @@ set-test-variables:
 	$(eval ELASTICSEARCH_PORT2=9301)
 	$(eval ELASTICSEARCH_CONTAINER_NAME=test-$(ELASTICSEARCH_CONTAINER_NAME))
 
+set-integration-test-variables: set-test-variables
+	$(eval RUN_INTEGRATION_TESTS=1)
+
 .PHONY: test
-test: set-test-variables create-pod elasticsearch retest
+test: set-test-variables create-pod retest
 
 .PHONY: retest
 retest: set-test-variables
-	$(call run-command, python -m unittest tests)
+	$(call run-command,  python -m unittest -f tests)
+
+.PHONY: test-all
+test-all: set-integration-test-variables create-pod elasticsearch retest
 
 .PHONY: test-shell
 test-shell: set-test-variables
