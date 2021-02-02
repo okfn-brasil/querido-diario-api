@@ -23,34 +23,42 @@ class GazetteItem(BaseModel):
     is_extra_edition: Optional[bool]
 
 
+class GazetteSearchResponse(BaseModel):
+    total_gazettes: int
+    gazettes: List[GazetteItem]
+
+
 def trigger_gazettes_search(
     territory_id: str = None,
     since: date = None,
     until: date = None,
     keywords: List[str] = None,
-    page: int = 1,
-    page_size: int = 10,
+    offset: int = 0,
+    size: int = 10,
 ):
-    if page > 0:
-        page -= 1
-    gazettes = app.gazettes.get_gazettes(
+    gazettes_count, gazettes = app.gazettes.get_gazettes(
         GazetteRequest(
             territory_id,
             since=since,
             until=until,
             keywords=keywords,
-            page=page,
-            page_size=page_size,
+            offset=offset,
+            size=size,
         )
     )
-    if gazettes:
-        return [GazetteItem(**gazette) for gazette in gazettes]
-    return []
+    response = {
+        "total_gazettes": 0,
+        "gazettes": [],
+    }
+    if gazettes_count > 0 and gazettes:
+        response["gazettes"] = gazettes
+        response["total_gazettes"] = gazettes_count
+    return response
 
 
 @app.get(
     "/gazettes/",
-    response_model=List[GazetteItem],
+    response_model=GazetteSearchResponse,
     name="Get gazettes",
     description="Get gazettes by date and keyword",
     response_model_exclude_unset=True,
@@ -72,21 +80,21 @@ async def get_gazettes(
         title="Keywords should be present in the gazette",
         description="Look for gazettes containing the given keywords",
     ),
-    page: Optional[int] = Query(
-        1, title="Page", description="Define which page should be return.",
+    offset: Optional[int] = Query(
+        0, title="Offset", description="Number of item to skip in the result search",
     ),
-    page_size: Optional[int] = Query(
+    size: Optional[int] = Query(
         10,
-        title="Page size",
-        description="Define the number of item on the page returned.",
+        title="Number of item to return",
+        description="Define the number of item should be returned",
     ),
 ):
-    return trigger_gazettes_search(None, since, until, keywords, page, page_size)
+    return trigger_gazettes_search(None, since, until, keywords, offset, size)
 
 
 @app.get(
     "/gazettes/{territory_id}",
-    response_model=List[GazetteItem],
+    response_model=GazetteSearchResponse,
     name="Get gazettes by territory ID",
     description="Get gazettes from specific city by date and keywords",
     response_model_exclude_unset=True,
@@ -109,18 +117,16 @@ async def get_gazettes_by_territory_id(
         title="Keywords should be present in the gazette",
         description="Look for gazettes containing the given keywords",
     ),
-    page: Optional[int] = Query(
-        1, title="Page", description="Define which page should be return.",
+    offset: Optional[int] = Query(
+        0, title="Offset", description="Number of item to skip in the result search",
     ),
-    page_size: Optional[int] = Query(
+    size: Optional[int] = Query(
         10,
-        title="Page size",
-        description="Define the number of item on the page returned.",
+        title="Number of item to return",
+        description="Define the number of item should be returned",
     ),
 ):
-    return trigger_gazettes_search(
-        territory_id, since, until, keywords, page, page_size
-    )
+    return trigger_gazettes_search(territory_id, since, until, keywords, offset, size)
 
 
 def configure_api_app(gazettes: GazetteAccessInterface, api_root_path=None):
