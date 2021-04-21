@@ -4,7 +4,7 @@ from typing import Dict, List
 
 import elasticsearch
 
-from gazettes import GazetteDataGateway, Gazette
+from gazettes import GazetteDataGateway, Gazette, CityAutocomplete
 
 
 class ElasticSearchDataMapper(GazetteDataGateway):
@@ -119,6 +119,37 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             self.get_total_number_items(gazettes),
             self.create_list_with_gazette_objects(gazettes["hits"]["hits"]),
         )
+
+    def autocomplete_city(
+        self,
+        term=None,
+        size=10,
+    ):
+        query = { "query": { "match_phrase_prefix": { "territory_name": { "query": term } } },
+                  "size": 0,
+                  "aggs": {
+                    "territory_and_state": {
+                        "composite": {
+                        "size": size,
+                        "sources": [
+                            { "territory_id": { "terms": { "field": "territory_id.keyword" } } },
+                            { "territory_name": { "terms": { "field": "territory_name.keyword" } } },
+                            { "state_code": { "terms": { "field": "state_code.keyword" } } }
+                            ]
+                        }
+                    }
+                }
+               }
+        search_result = self._es.search(body=query, index=self._index)
+
+        def convert(document):
+            return CityAutocomplete(
+                document["key"]["territory_id"],
+                document["key"]["territory_name"],
+                document["key"]["state_code"],
+            )
+
+        return list(map(convert, search_result["aggregations"]["territory_and_state"]["buckets"]))
 
 
 def create_elasticsearch_data_mapper(
