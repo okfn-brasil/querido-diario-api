@@ -19,6 +19,7 @@ class GazetteItem(BaseModel):
     url: str
     territory_name: str
     state_code: str
+    highlight_text: str
     edition: Optional[str]
     is_extra_edition: Optional[bool]
 
@@ -35,6 +36,9 @@ def trigger_gazettes_search(
     keywords: List[str] = None,
     offset: int = 0,
     size: int = 10,
+    fragment_size: int = 150,
+    pre_tags: List[str] = [""],
+    post_tags: List[str] = [""],
 ):
     gazettes_count, gazettes = app.gazettes.get_gazettes(
         GazetteRequest(
@@ -44,6 +48,9 @@ def trigger_gazettes_search(
             keywords=keywords,
             offset=offset,
             size=size,
+            fragment_size=fragment_size,
+            pre_tags=pre_tags,
+            post_tags=post_tags,
         )
     )
     response = {
@@ -88,8 +95,23 @@ async def get_gazettes(
         title="Number of item to return",
         description="Define the number of item should be returned",
     ),
+    fragment_size: Optional[int] = Query(
+        150,
+        title="Number of fragments of hightlight to return",
+        description="Define the fragments of hightlight of item should be returned",
+    ),
+    pre_tags: List[str] = Query(
+        [""],
+        title="Pre tags of fragments of hightlight",
+        description="Pre tags of fragments of hightlight",
+    ),
+    post_tags: List[str] = Query(
+        [""],
+        title="Post tags of fragments of hightlight",
+        description="Post tags of fragments of hightlight",
+    ),
 ):
-    return trigger_gazettes_search(None, since, until, keywords, offset, size)
+    return trigger_gazettes_search(None, since, until, keywords, offset, size, fragment_size, pre_tags, post_tags)
 
 
 @app.get(
@@ -125,8 +147,23 @@ async def get_gazettes_by_territory_id(
         title="Number of item to return",
         description="Define the number of item should be returned",
     ),
+    fragment_size: Optional[int] = Query(
+        150,
+        title="Number of fragments of hightlight to return",
+        description="Define the fragments of hightlight of item should be returned",
+    ),
+    pre_tags: List[str] = Query(
+        [""],
+        title="Pre tags of fragments of hightlight",
+        description="Pre tags of fragments of hightlight",
+    ),
+    post_tags: List[str] = Query(
+        [""],
+        title="Post tags of fragments of hightlight",
+        description="Post tags of fragments of hightlight",
+    ),
 ):
-    return trigger_gazettes_search(territory_id, since, until, keywords, offset, size)
+    return trigger_gazettes_search(territory_id, since, until, keywords, offset, size, fragment_size, pre_tags, post_tags)
 
 
 def configure_api_app(gazettes: GazetteAccessInterface, api_root_path=None):

@@ -145,6 +145,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
+                        "highlight_text": "test",
                     }
                 ],
             )
@@ -170,6 +171,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
+                        "highlight_text": "test",
                     }
                 ],
             },
@@ -308,6 +310,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
+                        "highlight_text": "test",
                     },
                     {
                         "territory_id": "4205902",
@@ -315,6 +318,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
+                        "highlight_text": "test",
                     },
                 ],
             )
@@ -340,6 +344,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
+                        "highlight_text": "test",
                     },
                     {
                         "territory_id": "4205902",
@@ -347,6 +352,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
+                        "highlight_text": "test",
                     },
                 ],
             },
@@ -367,6 +373,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
+                        "highlight_text": "test",
                     },
                     {
                         "territory_id": "4205902",
@@ -376,6 +383,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": None,
                         "edition": None,
+                        "highlight_text": "test",
                     },
                 ],
             )
@@ -401,6 +409,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
+                        "highlight_text": "test",
                     },
                     {
                         "territory_id": "4205902",
@@ -408,6 +417,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
+                        "highlight_text": "test",
                     },
                 ],
             },
