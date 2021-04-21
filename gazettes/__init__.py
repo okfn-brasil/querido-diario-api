@@ -4,5 +4,6 @@ from .gazette_access import (
     GazetteRequest,
     GazetteDataGateway,
     Gazette,
+    CityAutocomplete,
     create_gazettes_interface,
 )

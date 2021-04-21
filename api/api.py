@@ -28,6 +28,16 @@ class GazetteSearchResponse(BaseModel):
     gazettes: List[GazetteItem]
 
 
+class CityAutocompleteItem(BaseModel):
+    territory_id: str
+    territory_name: str
+    state_code: str
+
+
+class CityAutocompleteResponse(BaseModel):
+    suggestions: List[CityAutocompleteItem]
+
+
 def trigger_gazettes_search(
     territory_id: str = None,
     since: date = None,
@@ -128,6 +138,32 @@ async def get_gazettes_by_territory_id(
 ):
     return trigger_gazettes_search(territory_id, since, until, keywords, offset, size)
 
+@app.get(
+    "/cities/autocomplete",
+    response_model=CityAutocompleteResponse,
+    name="Autocomplete city",
+    description="Autocomplete city by term",
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def autocomplete_city(
+    term: str = Query(
+        0, title="Term", description="Term to autocomplete",
+    ),
+    size: Optional[int] = Query(
+        10,
+        title="Number of item to return",
+        description="Define the number of item should be returned",
+    ),
+):
+    def convert(item):
+        return CityAutocompleteItem(
+            territory_id=item.territory_id,
+            territory_name=item.territory_name,
+            state_code=item.state_code)
+
+    suggestions = list(map(convert, app.gazettes.autocomplete_city(term, size)))
+    return CityAutocompleteResponse(suggestions=suggestions)
 
 def configure_api_app(gazettes: GazetteAccessInterface, api_root_path=None):
     if not isinstance(gazettes, GazetteAccessInterface):

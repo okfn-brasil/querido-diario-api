@@ -38,6 +38,14 @@ class GazetteDataGateway(abc.ABC):
         Method to get the gazette from storage
         """
 
+    @abc.abstractmethod
+    def autocomplete_city(
+        self, term=None, size: int = 10
+    ):
+        """
+        Method to autocomplete city name
+        """
+
 
 class GazetteAccessInterface(abc.ABC):
     """
@@ -74,6 +82,9 @@ class GazetteAccess(GazetteAccessInterface):
             size=size,
         )
         return (total_number_gazettes, [vars(gazette) for gazette in gazettes])
+
+    def autocomplete_city(self, term=None, size: int = 10):
+        return self._data_gateway.autocomplete_city(term, size)
 
 
 class Gazette:
@@ -129,6 +140,40 @@ class Gazette:
 
     def __repr__(self):
         return f"Gazette({self.checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.edition}, {self.is_extra_edition})"
+
+class CityAutocomplete:
+    """
+    Item to represent a city
+    """
+
+    def __init__(
+        self,
+        territory_id,
+        territory_name,
+        state_code,
+    ):
+        self.territory_id = territory_id
+        self.territory_name = territory_name
+        self.state_code = state_code
+
+    def __hash__(self):
+        return hash(
+            (
+                self.territory_id,
+                self.territory_name,
+                self.state_code,
+            )
+        )
+
+    def __eq__(self, other):
+        return (
+            self.territory_id == other.territory_id
+            and self.territory_name == other.territory_name
+            and self.state_code == other.state_code
+        )
+
+    def __repr__(self):
+        return f"CityAutocomplete({self.territory_id}, {self.territory_name}, {self.state_code})"
 
 
 def create_gazettes_interface(data_gateway: GazetteDataGateway):
