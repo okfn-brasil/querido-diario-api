@@ -161,6 +161,7 @@ class GazetteAccessTest(TestCase):
                 "edition": gazette.edition,
                 "is_extra_edition": gazette.is_extra_edition,
                 "highlight_texts": gazette.highlight_texts,
+                "file_raw_txt": gazette.file_raw_txt,
             }
             for gazette in self.return_value
         ]

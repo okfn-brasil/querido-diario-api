@@ -117,6 +117,7 @@ class Gazette:
         highlight_texts,
         edition=None,
         is_extra_edition=None,
+        file_raw_txt=None,
     ):
         self.territory_id = territory_id
         self.date = date
@@ -127,6 +128,7 @@ class Gazette:
         self.edition = edition
         self.is_extra_edition = is_extra_edition
         self.checksum = checksum
+        self.file_raw_txt = file_raw_txt
 
     def __hash__(self):
         return hash(
@@ -140,6 +142,7 @@ class Gazette:
                 self.edition,
                 self.is_extra_edition,
                 self.checksum,
+                self.file_raw_txt,
             )
         )
 
@@ -154,10 +157,11 @@ class Gazette:
             and str(self.highlight_texts) == str(other.highlight_texts)
             and self.edition == other.edition
             and self.is_extra_edition == other.is_extra_edition
+            and self.file_raw_txt == other.file_raw_txt
         )
 
     def __repr__(self):
-        return f"Gazette({self.checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.highlight_texts}, {self.edition}, {self.is_extra_edition})"
+        return f"Gazette({self.checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.highlight_texts}, {self.edition}, {self.is_extra_edition}, {self.file_raw_txt})"
 
 
 def create_gazettes_interface(data_gateway: GazetteDataGateway):

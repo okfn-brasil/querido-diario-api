@@ -114,6 +114,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             gazette["highlight"].get("source_text", []) if "highlight" in gazette else [],
             gazette["_source"].get("edition_number", None),
             gazette["_source"].get("is_extra_edition", None),
+            gazette["_source"].get("file_raw_txt", None),
         )
 
     def create_list_with_gazette_objects(self, gazette_hits: List[Dict]):
