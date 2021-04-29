@@ -97,7 +97,7 @@ async def get_gazettes(
     ),
     fragment_size: Optional[int] = Query(
         150,
-        title=" Number of fragments (characters) of highlight to return.",
+        title="Number of fragments (characters) of highlight to return.",
         description="Define the fragments (characters)  of highlight of the item should be returned",
     ),
     pre_tags: List[str] = Query(
@@ -149,18 +149,18 @@ async def get_gazettes_by_territory_id(
     ),
     fragment_size: Optional[int] = Query(
         150,
-        title="Number of fragments of hightlight to return",
-        description="Define the fragments of hightlight of item should be returned",
+        title="Number of fragments (characters) of highlight to return.",
+        description="Define the fragments (characters)  of highlight of the item should be returned",
     ),
     pre_tags: List[str] = Query(
         [""],
-        title="Pre tags of fragments of hightlight",
-        description="Pre tags of fragments of hightlight",
+        title="Pre tags of fragments of highlight",
+        description="Pre tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear before the text which matches the query",
     ),
     post_tags: List[str] = Query(
         [""],
-        title="Post tags of fragments of hightlight",
-        description="Post tags of fragments of hightlight",
+        title="Post tags of fragments of highlight.",
+        description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
     ),
 ):
     return trigger_gazettes_search(territory_id, since, until, keywords, offset, size, fragment_size, pre_tags, post_tags)
