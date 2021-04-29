@@ -153,7 +153,7 @@ class ElasticSearchBaseTestCase(TestCase):
                 d["file_checksum"],
                 d["territory_name"],
                 d["state_code"],
-                d["highlight_text"],
+                d["highlight_texts"],
                 d["edition_number"],
                 d["is_extra_edition"],
             )
@@ -196,7 +196,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content",
@@ -215,7 +215,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content",
@@ -234,7 +234,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content. anotherkeyword",
@@ -253,7 +253,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content. keyword1",
@@ -272,7 +272,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette with some keywork which is: 000.000.000-00",
@@ -291,7 +291,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content from ID 6",
@@ -310,7 +310,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content from ID 7",
@@ -329,7 +329,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content from ID 8",
@@ -348,7 +348,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content from ID 9",
@@ -367,7 +367,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content from ID 10",
@@ -386,7 +386,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content from ID 11",
@@ -405,7 +405,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
         ]
 
@@ -467,7 +467,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
-                d["highlight_text"],
+                d["highlight_texts"],
                 d["edition_number"],
                 d["is_extra_edition"],
             )
@@ -519,7 +519,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["file_checksum"],
                 d["territory_name"],
                 d["state_code"],
-                d["highlight_text"],
+                d["highlight_texts"],
                 d["edition_number"],
                 d["is_extra_edition"],
             )
@@ -675,7 +675,7 @@ class ElasticSearchIntegrationBaseTestCase(TestCase):
                 d["file_checksum"],
                 d["territory_name"],
                 d["state_code"],
-                d["highlight_text"],
+                d["highlight_texts"],
                 d["edition_number"],
                 d["is_extra_edition"],
             )
@@ -719,7 +719,7 @@ class ElasticSearchDataMapperPaginationTest(ElasticSearchIntegrationBaseTestCase
             "territory_id": self.TERRITORY_ID,
             "territory_name": "Rio de Janeiro",
             "state_code": "RJ",
-            "highlight_text": "highlight",
+            "highlight_texts": ["highlight"],
         }
         self._data.append(gazette)
 
@@ -875,7 +875,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
                 "processed": False,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content. prefeitura foobar xpto piraporinha",
@@ -893,7 +893,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
                 "processed": False,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content. prefeitura, piraporinha and cafundo",
@@ -911,7 +911,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
                 "processed": False,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
             {
                 "source_text": "This is a fake gazette content. piraporinha and cafundo",
@@ -929,7 +929,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
                 "processed": False,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
-                "highlight_text": "highlight",
+                "highlight_texts": ["highlight"],
             },
         ]
 

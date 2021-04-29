@@ -1,7 +1,6 @@
 import abc
 from typing import List
 
-
 class GazetteRequest:
     """
     Object containing the data to filter gazettes
@@ -18,6 +17,7 @@ class GazetteRequest:
         offset: int = 0,
         size: int = 10,
         fragment_size: int = 150,
+        number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
     ):
@@ -28,6 +28,7 @@ class GazetteRequest:
         self.offset = offset
         self.size = size
         self.fragment_size = fragment_size
+        self.number_of_fragments = number_of_fragments
         self.pre_tags = pre_tags
         self.post_tags = post_tags
 
@@ -46,6 +47,7 @@ class GazetteDataGateway(abc.ABC):
         page: int = 0,
         size: int = 10,
         fragment_size: int = 150,
+        number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
     ):
@@ -81,6 +83,7 @@ class GazetteAccess(GazetteAccessInterface):
         offset = filters.offset if filters is not None else 0
         size = filters.size if filters is not None else 10
         fragment_size = filters.fragment_size if filters is not None else 150
+        number_of_fragments = filters.number_of_fragments if filters is not None else 1
         pre_tags = filters.pre_tags if filters is not None else [""]
         post_tags = filters.post_tags if filters is not None else [""]
         total_number_gazettes, gazettes = self._data_gateway.get_gazettes(
@@ -91,6 +94,7 @@ class GazetteAccess(GazetteAccessInterface):
             offset=offset,
             size=size,
             fragment_size=fragment_size,
+            number_of_fragments=number_of_fragments,
             pre_tags=pre_tags,
             post_tags=post_tags,
         )
@@ -110,7 +114,7 @@ class Gazette:
         checksum,
         territory_name,
         state_code,
-        highlight_text,
+        highlight_texts,
         edition=None,
         is_extra_edition=None,
     ):
@@ -119,7 +123,7 @@ class Gazette:
         self.url = url
         self.territory_name = territory_name
         self.state_code = state_code
-        self.highlight_text = highlight_text
+        self.highlight_texts = highlight_texts
         self.edition = edition
         self.is_extra_edition = is_extra_edition
         self.checksum = checksum
@@ -132,7 +136,7 @@ class Gazette:
                 self.url,
                 self.territory_name,
                 self.state_code,
-                self.highlight_text,
+                str(self.highlight_texts),
                 self.edition,
                 self.is_extra_edition,
                 self.checksum,
@@ -147,13 +151,13 @@ class Gazette:
             and self.url == other.url
             and self.territory_name == other.territory_name
             and self.state_code == other.state_code
-            and self.highlight_text == other.highlight_text
+            and str(self.highlight_texts) == str(other.highlight_texts)
             and self.edition == other.edition
             and self.is_extra_edition == other.is_extra_edition
         )
 
     def __repr__(self):
-        return f"Gazette({self.checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.highlight_text}, {self.edition}, {self.is_extra_edition})"
+        return f"Gazette({self.checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.highlight_texts}, {self.edition}, {self.is_extra_edition})"
 
 
 def create_gazettes_interface(data_gateway: GazetteDataGateway):

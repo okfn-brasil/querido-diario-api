@@ -56,12 +56,12 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         query["from"] = offset
         query["size"] = size
 
-    def add_highlight(self, query, fragment_size, pre_tags, post_tags):
+    def add_highlight(self, query, fragment_size, number_of_fragments, pre_tags, post_tags):
         query["highlight"] = {
             "fields": {
                 "source_text": {
                     "fragment_size": fragment_size,
-                    "number_of_fragments": 1,
+                    "number_of_fragments": number_of_fragments,
                     "type": "unified",
                     "pre_tags":pre_tags,
                     "post_tags":post_tags
@@ -78,6 +78,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         offset: int = 0,
         size: int = 10,
         fragment_size: int = 150,
+        number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
     ):
@@ -98,12 +99,11 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         query = {"query": {"bool": query}}
         self.add_pagination_fields(query, offset, size)
         self.build_sort_query(query)
-        self.add_highlight(query, fragment_size, pre_tags, post_tags)
+        self.add_highlight(query, fragment_size, number_of_fragments, pre_tags, post_tags)
 
         return query
 
     def _assemble_gazette_object(self, gazette):
-        highlight_texts = gazette["highlight"]["source_text"]
         return Gazette(
             gazette["_source"]["territory_id"],
             datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
@@ -111,7 +111,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             gazette["_source"]["file_checksum"],
             gazette["_source"]["territory_name"],
             gazette["_source"]["state_code"],
-            highlight_texts[0] if highlight_texts else "",
+            gazette["highlight"].get("source_text", []),
             gazette["_source"].get("edition_number", None),
             gazette["_source"].get("is_extra_edition", None),
         )
@@ -131,10 +131,12 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         offset=0,
         size=10,
         fragment_size: int = 150,
+        number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
     ):
-        query = self.build_query(territory_id, since, until, keywords, offset, size, fragment_size, pre_tags, post_tags,)
+        query = self.build_query(territory_id, since, until, keywords, offset, size, fragment_size, number_of_fragments, pre_tags, post_tags,)
+        print(f"query->{json.dumps(query)}")
         gazettes = self._es.search(body=query, index=self._index)
 
         return (
