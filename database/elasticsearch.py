@@ -136,7 +136,6 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         post_tags: List[str] = [""],
     ):
         query = self.build_query(territory_id, since, until, keywords, offset, size, fragment_size, number_of_fragments, pre_tags, post_tags,)
-        print(f"query->{json.dumps(query)}")
         gazettes = self._es.search(body=query, index=self._index)
 
         return (
