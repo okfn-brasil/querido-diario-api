@@ -111,7 +111,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             gazette["_source"]["file_checksum"],
             gazette["_source"]["territory_name"],
             gazette["_source"]["state_code"],
-            gazette["highlight"].get("source_text", []),
+            gazette["highlight"].get("source_text", []) if "highlight" in gazette else [],
             gazette["_source"].get("edition_number", None),
             gazette["_source"].get("is_extra_edition", None),
         )
