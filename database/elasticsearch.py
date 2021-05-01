@@ -56,6 +56,19 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         query["from"] = offset
         query["size"] = size
 
+    def add_highlight(self, query, fragment_size, number_of_fragments, pre_tags, post_tags):
+        query["highlight"] = {
+            "fields": {
+                "source_text": {
+                    "fragment_size": fragment_size,
+                    "number_of_fragments": number_of_fragments,
+                    "type": "unified",
+                    "pre_tags":pre_tags,
+                    "post_tags":post_tags
+                }
+            }
+        }
+
     def build_query(
         self,
         territory_id: str = None,
@@ -64,6 +77,10 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         keywords: list = None,
         offset: int = 0,
         size: int = 10,
+        fragment_size: int = 150,
+        number_of_fragments: int = 1,
+        pre_tags: List[str] = [""],
+        post_tags: List[str] = [""],
     ):
         if (
             territory_id is None
@@ -82,6 +99,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         query = {"query": {"bool": query}}
         self.add_pagination_fields(query, offset, size)
         self.build_sort_query(query)
+        self.add_highlight(query, fragment_size, number_of_fragments, pre_tags, post_tags)
 
         return query
 
@@ -93,6 +111,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             gazette["_source"]["file_checksum"],
             gazette["_source"]["territory_name"],
             gazette["_source"]["state_code"],
+            gazette["highlight"].get("source_text", []) if "highlight" in gazette else [],
             gazette["_source"].get("edition_number", None),
             gazette["_source"].get("is_extra_edition", None),
         )
@@ -111,8 +130,12 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         keywords=None,
         offset=0,
         size=10,
+        fragment_size: int = 150,
+        number_of_fragments: int = 1,
+        pre_tags: List[str] = [""],
+        post_tags: List[str] = [""],
     ):
-        query = self.build_query(territory_id, since, until, keywords, offset, size,)
+        query = self.build_query(territory_id, since, until, keywords, offset, size, fragment_size, number_of_fragments, pre_tags, post_tags,)
         gazettes = self._es.search(body=query, index=self._index)
 
         return (

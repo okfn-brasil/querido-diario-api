@@ -74,7 +74,15 @@ class ElasticSearchBaseTestCase(TestCase):
             "from": offset,
             "size": size,
             "sort": [{"date": {"order": "desc"}}],
+            "highlight": { "fields": { "source_text": {
+                        "fragment_size": 150,
+                        "number_of_fragments": 1,
+                        "type": "unified",
+                        "pre_tags":[""],
+                        "post_tags":[""]
+                    } } },
         }
+
         date_query = {"range": {"date": {}}}
         if since:
             date_query["range"]["date"]["gte"] = since.strftime("%Y-%m-%d")
@@ -116,6 +124,9 @@ class ElasticSearchBaseTestCase(TestCase):
                 "_id": hit["file_checksum"],
                 "_score": None,
                 "_source": hit,
+                "highlight": {
+                    "source_text": []
+                },
             }
             for hit in self._data
         ]
@@ -140,6 +151,7 @@ class ElasticSearchBaseTestCase(TestCase):
                 d["file_checksum"],
                 d["territory_name"],
                 d["state_code"],
+                d["highlight_texts"],
                 d["edition_number"],
                 d["is_extra_edition"],
             )
@@ -182,6 +194,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content",
@@ -200,6 +213,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content",
@@ -218,6 +232,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content. anotherkeyword",
@@ -236,6 +251,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content. keyword1",
@@ -254,6 +270,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette with some keywork which is: 000.000.000-00",
@@ -272,6 +289,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content from ID 6",
@@ -290,6 +308,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content from ID 7",
@@ -308,6 +327,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content from ID 8",
@@ -326,6 +346,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content from ID 9",
@@ -344,6 +365,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content from ID 10",
@@ -362,6 +384,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content from ID 11",
@@ -380,6 +403,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 "state_code": "RJ",
                 "edition_number": "123.456",
                 "is_extra_edition": False,
+                "highlight_texts": [],
             },
         ]
 
@@ -441,6 +465,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["url"],
                 d["territory_name"],
                 d["state_code"],
+                d["highlight_texts"],
                 d["edition_number"],
                 d["is_extra_edition"],
             )
@@ -492,6 +517,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
                 d["file_checksum"],
                 d["territory_name"],
                 d["state_code"],
+                d["highlight_texts"],
                 d["edition_number"],
                 d["is_extra_edition"],
             )
@@ -647,6 +673,7 @@ class ElasticSearchIntegrationBaseTestCase(TestCase):
                 d["file_checksum"],
                 d["territory_name"],
                 d["state_code"],
+                d["highlight_texts"],
                 d["edition_number"],
                 d["is_extra_edition"],
             )
@@ -690,6 +717,7 @@ class ElasticSearchDataMapperPaginationTest(ElasticSearchIntegrationBaseTestCase
             "territory_id": self.TERRITORY_ID,
             "territory_name": "Rio de Janeiro",
             "state_code": "RJ",
+            "highlight_texts": [],
         }
         self._data.append(gazette)
 
@@ -845,6 +873,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
                 "processed": False,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content. prefeitura foobar xpto piraporinha",
@@ -862,6 +891,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
                 "processed": False,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content. prefeitura, piraporinha and cafundo",
@@ -879,6 +909,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
                 "processed": False,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "highlight_texts": [],
             },
             {
                 "source_text": "This is a fake gazette content. piraporinha and cafundo",
@@ -896,6 +927,7 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
                 "processed": False,
                 "territory_name": "Rio de Janeiro",
                 "state_code": "RJ",
+                "highlight_texts": [],
             },
         ]
 
@@ -955,6 +987,9 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
+                        "highlight": {
+                            "source_text": []
+                        },
                         "sort": [1609977600000],
                     },
                     {
@@ -977,6 +1012,9 @@ class Elasticsearch(TestCase):
                             "territory_id": "3304557",
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
+                        },
+                        "highlight": {
+                            "source_text": []
                         },
                         "sort": [1609977600000],
                     },
@@ -1001,6 +1039,9 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
+                        "highlight": {
+                            "source_text": []
+                        },
                         "sort": [1609545600000],
                     },
                     {
@@ -1023,6 +1064,9 @@ class Elasticsearch(TestCase):
                             "territory_id": "4205920",
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
+                        },
+                        "highlight": {
+                            "source_text": []
                         },
                         "sort": [1609545600000],
                     },
@@ -1047,6 +1091,9 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
+                        "highlight": {
+                            "source_text": []
+                        },
                         "sort": [1609459200000],
                     },
                     {
@@ -1069,6 +1116,9 @@ class Elasticsearch(TestCase):
                             "territory_id": "4205920",
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
+                        },
+                        "highlight": {
+                            "source_text": []
                         },
                         "sort": [1609459200000],
                     },
@@ -1093,6 +1143,9 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
+                        "highlight": {
+                            "source_text": []
+                        },
                         "sort": [1609372800000],
                     },
                     {
@@ -1115,6 +1168,9 @@ class Elasticsearch(TestCase):
                             "territory_id": "4205920",
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
+                        },
+                        "highlight": {
+                            "source_text": []
                         },
                         "sort": [1609372800000],
                     },

@@ -67,6 +67,7 @@ class GazetteAccessTest(TestCase):
                 "so'jsdogjeogjsdogjheogdfsdf",
                 "My city",
                 "My state",
+                "highlight"
                 "123,456",
                 False,
             ),
@@ -77,6 +78,7 @@ class GazetteAccessTest(TestCase):
                 "a;oijaeofdjewofijrogho490jhfeasd",
                 "My city",
                 "My state",
+                "highlight"
                 "123,456",
                 False,
             ),
@@ -87,6 +89,7 @@ class GazetteAccessTest(TestCase):
                 "eolgpijdsfesuhrgfiuhsad",
                 "My city",
                 "My state",
+                "highlight"
                 "123,456",
                 False,
             ),
@@ -97,6 +100,7 @@ class GazetteAccessTest(TestCase):
                 "ew;oigfdfsdjn;dajnorgf",
                 "My city",
                 "My state",
+                "highlight"
                 "123,456",
                 False,
             ),
@@ -107,6 +111,7 @@ class GazetteAccessTest(TestCase):
                 "sdosauiydhbfeicneqiudnewf",
                 "My city",
                 "My state",
+                "highlight"
                 "123,456",
                 False,
             ),
@@ -117,6 +122,7 @@ class GazetteAccessTest(TestCase):
                 "sdo;ifjwefonsdiasndiswabdisbfnidf",
                 "My city",
                 "My state",
+                "highlight"
                 "123,456",
                 False,
             ),
@@ -154,6 +160,7 @@ class GazetteAccessTest(TestCase):
                 "state_code": gazette.state_code,
                 "edition": gazette.edition,
                 "is_extra_edition": gazette.is_extra_edition,
+                "highlight_texts": gazette.highlight_texts,
             }
             for gazette in self.return_value
         ]
@@ -175,6 +182,10 @@ class GazetteAccessTest(TestCase):
             keywords=None,
             offset=0,
             size=10,
+            fragment_size=150,
+            number_of_fragments=1,
+            pre_tags=[''],
+            post_tags=[''],
         )
 
     def test_should_foward_since_date_filter_to_gateway(self):
@@ -191,6 +202,10 @@ class GazetteAccessTest(TestCase):
             keywords=None,
             offset=0,
             size=10,
+            fragment_size=150,
+            number_of_fragments=1,
+            pre_tags=[''],
+            post_tags=[''],
         )
 
     def test_should_foward_until_date_filter_to_gateway(self):
@@ -207,6 +222,10 @@ class GazetteAccessTest(TestCase):
             keywords=None,
             offset=0,
             size=10,
+            fragment_size=150,
+            number_of_fragments=1,
+            pre_tags=[''],
+            post_tags=[''],
         )
 
     def test_should_foward_keywords_filter_to_gateway(self):
@@ -224,6 +243,10 @@ class GazetteAccessTest(TestCase):
             keywords=keywords,
             offset=0,
             size=10,
+            fragment_size=150,
+            number_of_fragments=1,
+            pre_tags=[''],
+            post_tags=[''],
         )
 
     def test_should_foward_page_fields_filter_to_gateway(self):
@@ -240,6 +263,10 @@ class GazetteAccessTest(TestCase):
             keywords=None,
             offset=10,
             size=100,
+            fragment_size=150,
+            number_of_fragments=1,
+            pre_tags=[''],
+            post_tags=[''],
         )
 
 
@@ -256,6 +283,7 @@ class GazetteTest(TestCase):
         url = "https://queridodiario.ok.org.br/"
         territory_name = "My city"
         state_code = "My state"
+        highlight_texts = ["highlight"]
         edition = "123.45"
         is_extra_edition = False
         checksum = "qweolrjeglkjnasjdowejgorehn"
@@ -266,6 +294,7 @@ class GazetteTest(TestCase):
             checksum,
             territory_name,
             state_code,
+            highlight_texts,
             edition,
             is_extra_edition,
         )
@@ -279,6 +308,7 @@ class GazetteTest(TestCase):
         self.assertEqual(url, gazette.url)
         self.assertEqual(territory_name, gazette.territory_name)
         self.assertEqual(state_code, gazette.state_code)
+        self.assertEqual(highlight_texts, gazette.highlight_texts)
         self.assertEqual(edition, gazette.edition)
         self.assertFalse(gazette.is_extra_edition)
         self.assertEqual(gazette.checksum, checksum)
@@ -289,7 +319,8 @@ class GazetteTest(TestCase):
         checksum = "df;dsfnbkijdasjdasisdsad"
         territory_name = "My city"
         state_code = "My state"
-        gazette = Gazette("ID", today, url, checksum, territory_name, state_code)
+        highlight_texts = ["highlight"]
+        gazette = Gazette("ID", today, url, checksum, territory_name, state_code, highlight_texts)
         self.assertIsInstance(
             gazette.territory_id, str, msg="Territory ID should be string"
         )
@@ -300,6 +331,7 @@ class GazetteTest(TestCase):
         self.assertEqual(url, gazette.url)
         self.assertEqual(territory_name, gazette.territory_name)
         self.assertEqual(state_code, gazette.state_code)
+        self.assertEqual(highlight_texts, gazette.highlight_texts)
         self.assertIsNone(gazette.edition)
         self.assertIsNone(gazette.is_extra_edition)
         self.assertEqual(gazette.checksum, checksum)
