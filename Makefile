@@ -135,3 +135,7 @@ stop-elasticsearch:
 
 wait-elasticsearch:
 	$(call wait-for, localhost:9200)
+
+.PHONY: bump-version
+bump-version:
+	bash scripts/bump-version.sh
