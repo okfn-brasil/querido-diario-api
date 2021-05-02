@@ -22,6 +22,7 @@ class GazetteItem(BaseModel):
     highlight_texts: List[str]
     edition: Optional[str]
     is_extra_edition: Optional[bool]
+    file_raw_txt: Optional[str]
 
 
 class GazetteSearchResponse(BaseModel):
