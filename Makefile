@@ -1,6 +1,7 @@
 IMAGE_NAMESPACE ?= serenata
 IMAGE_NAME ?= querido-diario-api
 IMAGE_TAG ?= latest
+IMAGE_FORMAT ?= docker
 
 # Elasticsearch ports
 # Variables used to connect the app to the ElasticSearch
@@ -40,7 +41,7 @@ black:
 
 .PHONY: build
 build:
-	podman build --tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
+	podman build --format $(IMAGE_FORMAT) --tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
 		-f Dockerfile $(PWD)
 
 login:
