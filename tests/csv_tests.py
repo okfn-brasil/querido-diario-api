@@ -1,0 +1,114 @@
+from unittest import TestCase, expectedFailure
+from unittest.mock import patch, MagicMock
+import os
+import unittest
+from tempfile import NamedTemporaryFile
+import csv
+
+from gazettes import GazetteDataGateway, Gazette, OpennessLevel, City
+from database.csv import CSVDatabase
+
+
+class CSVDatabaseTests(TestCase):
+    def setUp(self):
+        self.fake_database_data = [
+            {
+                "city_name": "Piraporinha",
+                "ibge_id": "1234",
+                "uf_name": "Santa Catarina",
+                "uf_short_name": "SC",
+                "openness_level": 2,
+                "gazettes_urls": ["https://somewebsite.org"],
+            },
+            {
+                "city_name": "Taquarinha Do Norte",
+                "ibge_id": "1235",
+                "uf_name": "Rio Grande Do Norte",
+                "uf_short_name": "RN",
+                "openness_level": 1,
+                "gazettes_urls": [
+                    "https://somewebsite.org",
+                    "https://anotherwebsite.org",
+                ],
+            },
+            {
+                "city_name": "Taquarinha Do Sul",
+                "ibge_id": "1236",
+                "uf_name": "Rio Grande Do Sul",
+                "uf_short_name": "RS",
+                "openness_level": 3,
+                "gazettes_urls": [
+                    "https://somewebsite.org",
+                    "https://anotherwebsite.org",
+                ],
+            },
+        ]
+        self.database_file = NamedTemporaryFile(delete=False).name
+        self.create_fake_csv_database_file(self.fake_database_data)
+
+    def tearDown(self):
+        if self.database_file is not None:
+            os.remove(self.database_file)
+
+    def create_fake_csv_database_file(self, data):
+        with open(self.database_file, "w", newline="") as csvfile:
+            fieldnames = list(data[0].keys())
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in data:
+                row["gazettes_urls"] = ",".join(row["gazettes_urls"])
+                writer.writerow(row)
+
+    def test_get_file_name_from_envvar(self):
+        with patch.dict(
+            os.environ, {"QUERIDO_DIARIO_DATABASE_CSV": self.database_file}
+        ):
+            database = CSVDatabase()
+            self.assertEqual(self.database_file, database.database_file)
+
+    @expectedFailure
+    def test_create_csv_database_without_envvar_with_file_path(self):
+        database = CSVDatabase()
+
+    def test_get_one_city(self):
+        with patch.dict(
+            os.environ, {"QUERIDO_DIARIO_DATABASE_CSV": self.database_file}
+        ):
+            database = CSVDatabase()
+            city = database.get_cities("pira")
+            expected_city = City(
+                "Piraporinha",
+                "1234",
+                "Santa Catarina",
+                "SC",
+                OpennessLevel(2),
+                ["https://somewebsite.org"],
+            )
+            self.assertCountEqual([expected_city], city)
+
+    def test_get_multiple_cities(self):
+        with patch.dict(
+            os.environ, {"QUERIDO_DIARIO_DATABASE_CSV": self.database_file}
+        ):
+            database = CSVDatabase()
+            cities = database.get_cities("taquarinha")
+            print(cities)
+            expected_cities = [
+                City(
+                    "Taquarinha Do Norte",
+                    "1235",
+                    "Rio Grande Do Norte",
+                    "RN",
+                    OpennessLevel(1),
+                    ["https://somewebsite.org", "https://anotherwebsite.org"],
+                ),
+                City(
+                    "Taquarinha Do Sul",
+                    "1236",
+                    "Rio Grande Do Sul",
+                    "RS",
+                    OpennessLevel(3),
+                    ["https://somewebsite.org", "https://anotherwebsite.org"],
+                ),
+            ]
+            self.assertCountEqual(expected_cities, cities)
