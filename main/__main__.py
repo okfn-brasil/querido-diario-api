@@ -4,7 +4,7 @@ import uvicorn
 
 from api import app, configure_api_app
 from gazettes import create_gazettes_interface
-from database import create_elasticsearch_data_mapper
+from index import create_elasticsearch_data_mapper
 from config import load_configuration
 
 configuration = load_configuration()

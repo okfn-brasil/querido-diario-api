@@ -8,7 +8,7 @@ import time
 
 import elasticsearch
 
-from database import ElasticSearchDataMapper, create_elasticsearch_data_mapper
+from index import ElasticSearchDataMapper, create_elasticsearch_data_mapper
 from gazettes import GazetteDataGateway, Gazette
 
 
@@ -74,13 +74,17 @@ class ElasticSearchBaseTestCase(TestCase):
             "from": offset,
             "size": size,
             "sort": [{"date": {"order": "desc"}}],
-            "highlight": { "fields": { "source_text": {
+            "highlight": {
+                "fields": {
+                    "source_text": {
                         "fragment_size": 150,
                         "number_of_fragments": 1,
                         "type": "unified",
-                        "pre_tags":[""],
-                        "post_tags":[""]
-                    } } },
+                        "pre_tags": [""],
+                        "post_tags": [""],
+                    }
+                }
+            },
         }
 
         date_query = {"range": {"date": {}}}
@@ -124,9 +128,7 @@ class ElasticSearchBaseTestCase(TestCase):
                 "_id": hit["file_checksum"],
                 "_score": None,
                 "_source": hit,
-                "highlight": {
-                    "source_text": []
-                },
+                "highlight": {"source_text": []},
             }
             for hit in self._data
         ]
@@ -987,9 +989,7 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
-                        "highlight": {
-                            "source_text": []
-                        },
+                        "highlight": {"source_text": []},
                         "sort": [1609977600000],
                     },
                     {
@@ -1013,9 +1013,7 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
-                        "highlight": {
-                            "source_text": []
-                        },
+                        "highlight": {"source_text": []},
                         "sort": [1609977600000],
                     },
                     {
@@ -1039,9 +1037,7 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
-                        "highlight": {
-                            "source_text": []
-                        },
+                        "highlight": {"source_text": []},
                         "sort": [1609545600000],
                     },
                     {
@@ -1065,9 +1061,7 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
-                        "highlight": {
-                            "source_text": []
-                        },
+                        "highlight": {"source_text": []},
                         "sort": [1609545600000],
                     },
                     {
@@ -1091,9 +1085,7 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
-                        "highlight": {
-                            "source_text": []
-                        },
+                        "highlight": {"source_text": []},
                         "sort": [1609459200000],
                     },
                     {
@@ -1117,9 +1109,7 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
-                        "highlight": {
-                            "source_text": []
-                        },
+                        "highlight": {"source_text": []},
                         "sort": [1609459200000],
                     },
                     {
@@ -1143,9 +1133,7 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
-                        "highlight": {
-                            "source_text": []
-                        },
+                        "highlight": {"source_text": []},
                         "sort": [1609372800000],
                     },
                     {
@@ -1169,9 +1157,7 @@ class Elasticsearch(TestCase):
                             "territory_name": "Rio de Janeiro",
                             "state_code": "RJ",
                         },
-                        "highlight": {
-                            "source_text": []
-                        },
+                        "highlight": {"source_text": []},
                         "sort": [1609372800000],
                     },
                 ],
