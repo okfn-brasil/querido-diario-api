@@ -67,8 +67,7 @@ class GazetteAccessTest(TestCase):
                 "so'jsdogjeogjsdogjheogdfsdf",
                 "My city",
                 "My state",
-                "highlight"
-                "123,456",
+                "highlight" "123,456",
                 False,
             ),
             Gazette(
@@ -78,8 +77,7 @@ class GazetteAccessTest(TestCase):
                 "a;oijaeofdjewofijrogho490jhfeasd",
                 "My city",
                 "My state",
-                "highlight"
-                "123,456",
+                "highlight" "123,456",
                 False,
             ),
             Gazette(
@@ -89,8 +87,7 @@ class GazetteAccessTest(TestCase):
                 "eolgpijdsfesuhrgfiuhsad",
                 "My city",
                 "My state",
-                "highlight"
-                "123,456",
+                "highlight" "123,456",
                 False,
             ),
             Gazette(
@@ -100,8 +97,7 @@ class GazetteAccessTest(TestCase):
                 "ew;oigfdfsdjn;dajnorgf",
                 "My city",
                 "My state",
-                "highlight"
-                "123,456",
+                "highlight" "123,456",
                 False,
             ),
             Gazette(
@@ -111,8 +107,7 @@ class GazetteAccessTest(TestCase):
                 "sdosauiydhbfeicneqiudnewf",
                 "My city",
                 "My state",
-                "highlight"
-                "123,456",
+                "highlight" "123,456",
                 False,
             ),
             Gazette(
@@ -122,8 +117,7 @@ class GazetteAccessTest(TestCase):
                 "sdo;ifjwefonsdiasndiswabdisbfnidf",
                 "My city",
                 "My state",
-                "highlight"
-                "123,456",
+                "highlight" "123,456",
                 False,
             ),
         ]
@@ -185,8 +179,8 @@ class GazetteAccessTest(TestCase):
             size=10,
             fragment_size=150,
             number_of_fragments=1,
-            pre_tags=[''],
-            post_tags=[''],
+            pre_tags=[""],
+            post_tags=[""],
         )
 
     def test_should_foward_since_date_filter_to_gateway(self):
@@ -205,8 +199,8 @@ class GazetteAccessTest(TestCase):
             size=10,
             fragment_size=150,
             number_of_fragments=1,
-            pre_tags=[''],
-            post_tags=[''],
+            pre_tags=[""],
+            post_tags=[""],
         )
 
     def test_should_foward_until_date_filter_to_gateway(self):
@@ -225,8 +219,8 @@ class GazetteAccessTest(TestCase):
             size=10,
             fragment_size=150,
             number_of_fragments=1,
-            pre_tags=[''],
-            post_tags=[''],
+            pre_tags=[""],
+            post_tags=[""],
         )
 
     def test_should_foward_keywords_filter_to_gateway(self):
@@ -246,8 +240,8 @@ class GazetteAccessTest(TestCase):
             size=10,
             fragment_size=150,
             number_of_fragments=1,
-            pre_tags=[''],
-            post_tags=[''],
+            pre_tags=[""],
+            post_tags=[""],
         )
 
     def test_should_foward_page_fields_filter_to_gateway(self):
@@ -266,8 +260,8 @@ class GazetteAccessTest(TestCase):
             size=100,
             fragment_size=150,
             number_of_fragments=1,
-            pre_tags=[''],
-            post_tags=[''],
+            pre_tags=[""],
+            post_tags=[""],
         )
 
 
@@ -321,7 +315,9 @@ class GazetteTest(TestCase):
         territory_name = "My city"
         state_code = "My state"
         highlight_texts = ["highlight"]
-        gazette = Gazette("ID", today, url, checksum, territory_name, state_code, highlight_texts)
+        gazette = Gazette(
+            "ID", today, url, checksum, territory_name, state_code, highlight_texts
+        )
         self.assertIsInstance(
             gazette.territory_id, str, msg="Territory ID should be string"
         )
