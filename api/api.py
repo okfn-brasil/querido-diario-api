@@ -119,7 +119,18 @@ async def get_gazettes(
         description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
     ),
 ):
-    return trigger_gazettes_search(None, since, until, keywords, offset, size, fragment_size, number_of_fragments, pre_tags, post_tags)
+    return trigger_gazettes_search(
+        None,
+        since,
+        until,
+        keywords,
+        offset,
+        size,
+        fragment_size,
+        number_of_fragments,
+        pre_tags,
+        post_tags,
+    )
 
 
 @app.get(
@@ -176,7 +187,18 @@ async def get_gazettes_by_territory_id(
         description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
     ),
 ):
-    return trigger_gazettes_search(territory_id, since, until, keywords, offset, size, fragment_size, number_of_fragments, pre_tags, post_tags)
+    return trigger_gazettes_search(
+        territory_id,
+        since,
+        until,
+        keywords,
+        offset,
+        size,
+        fragment_size,
+        number_of_fragments,
+        pre_tags,
+        post_tags,
+    )
 
 
 def configure_api_app(gazettes: GazetteAccessInterface, api_root_path=None):
