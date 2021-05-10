@@ -1,5 +1,7 @@
 import abc
 from typing import List
+from enum import Enum, unique
+
 
 class GazetteRequest:
     """
@@ -68,6 +70,18 @@ class GazetteAccessInterface(abc.ABC):
         """
 
 
+class DatabaseInterface(abc.ABC):
+    """
+    Interface to access data from databases.
+    """
+
+    @abc.abstractmethod
+    def get_cities(self, city_name: str = None):
+        """
+        Get the cities and their openness level.
+        """
+
+
 class GazetteAccess(GazetteAccessInterface):
 
     _data_gateway = None
@@ -99,6 +113,56 @@ class GazetteAccess(GazetteAccessInterface):
             post_tags=post_tags,
         )
         return (total_number_gazettes, [vars(gazette) for gazette in gazettes])
+
+
+@unique
+class OpennessLevel(Enum):
+    ZERO = 0
+    ONE = 1
+    TWO = 2
+    THREE = 3
+
+
+class City:
+    def __init__(
+        self,
+        name: str,
+        ibge_id: str,
+        uf_name: str,
+        uf_short_name: str,
+        openness_level: OpennessLevel,
+        gazettes_urls: List[str],
+    ):
+        self.gazettes_urls = gazettes_urls
+        self.ibge_id = ibge_id
+        self.name = name
+        self.openness_level = openness_level
+        self.uf_name = uf_name
+        self.uf_short_name = uf_short_name
+
+    def __eq__(self, other):
+        return (
+            self.ibge_id == other.ibge_id
+            and self.name == other.name
+            and self.openness_level == other.openness_level
+            and self.uf_name == other.uf_name
+            and self.uf_short_name == other.uf_short_name
+            and self.gazettes_urls == other.gazettes_urls
+        )
+
+    def __repr__(self):
+        return f"City({self.name}, {self.ibge_id}, {self.openness_level}, {self.uf_name}, {self.uf_short_name}, {self.gazettes_urls})"
+
+    def __hash__(self):
+        return hash(
+            (
+                self.ibge_id,
+                self.name,
+                self.uf_name,
+                self.uf_short_name,
+                self.openness_level,
+            )
+        )
 
 
 class Gazette:

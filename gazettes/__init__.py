@@ -1,8 +1,12 @@
 from .gazette_access import (
-    GazetteAccessInterface,
-    GazetteAccess,
-    GazetteRequest,
-    GazetteDataGateway,
+    City,
+    DatabaseInterface,
     Gazette,
+    GazetteAccess,
+    GazetteAccessInterface,
+    GazetteDataGateway,
+    GazetteRequest,
+    OpennessLevel,
+    OpennessLevel,
     create_gazettes_interface,
 )

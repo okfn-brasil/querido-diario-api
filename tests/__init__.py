@@ -18,3 +18,5 @@ from .elasticsearch_tests import (
 )
 
 from .config_tests import BasicConfigurationTests
+
+from .csv_tests import CSVDatabaseTests
