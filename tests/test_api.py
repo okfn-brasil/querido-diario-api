@@ -14,9 +14,10 @@ class MockGazetteAccessInterface:
 
 
 class ApiGazettesEndpointTests(TestCase):
-    def create_mock_gazette_interface(self, return_value=(0, [])):
+    def create_mock_gazette_interface(self, return_value=(0, []), cities_info=[]):
         interface = MockGazetteAccessInterface()
         interface.get_gazettes = MagicMock(return_value=return_value)
+        interface.get_cities = MagicMock(return_value=cities_info)
         return interface
 
     def test_api_should_fail_when_try_to_set_any_object_as_gazettes_interface(self):
@@ -420,5 +421,65 @@ class ApiGazettesEndpointTests(TestCase):
                         "highlight_texts": ["test"],
                     },
                 ],
+            },
+        )
+
+    def test_cities_endpoint_should_reject_request_without_partial_city_name(self):
+        configure_api_app(self.create_mock_gazette_interface())
+        client = TestClient(app)
+        response = client.get("/cities")
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_cities_endpoint_should_accept_request_without_partial_city_name(self):
+        configure_api_app(self.create_mock_gazette_interface())
+        client = TestClient(app)
+        response = client.get("/cities", params={"city_name": "pirapo"})
+        self.assertEqual(response.status_code, 200)
+
+    def test_cities_should_return_some_city_info(self):
+        configure_api_app(self.create_mock_gazette_interface())
+        client = TestClient(app)
+        response = client.get("/cities", params={"city_name": "pirapo"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(), {"cities": []},
+        )
+
+    def test_cities_should_request_data_from_gazette_interface(self):
+        interface = self.create_mock_gazette_interface()
+        configure_api_app(interface)
+        client = TestClient(app)
+        response = client.get("/cities", params={"city_name": "pirapo"})
+        interface.get_cities.assert_called_once()
+
+    def test_cities_should_return_data_returned_by_gazettes_interface(self):
+        configure_api_app(
+            self.create_mock_gazette_interface(
+                cities_info=[
+                    {
+                        "territory_id": "1234",
+                        "territory_name": "piraporia",
+                        "state_code": "SC",
+                        "publication_urls": ["https://querido-diario.org.br"],
+                        "level": "1",
+                    }
+                ]
+            )
+        )
+        client = TestClient(app)
+        response = client.get("/cities", params={"city_name": "pirapo"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "cities": [
+                    {
+                        "territory_id": "1234",
+                        "territory_name": "piraporia",
+                        "state_code": "SC",
+                        "publication_urls": ["https://querido-diario.org.br"],
+                        "level": "1",
+                    }
+                ]
             },
         )

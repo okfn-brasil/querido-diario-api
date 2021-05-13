@@ -1,3 +1,4 @@
+from enum import Enum, unique
 from datetime import date
 from typing import List, Optional
 
@@ -28,6 +29,26 @@ class GazetteItem(BaseModel):
 class GazetteSearchResponse(BaseModel):
     total_gazettes: int
     gazettes: List[GazetteItem]
+
+
+@unique
+class CityLevel(str, Enum):
+    ZERO = "0"
+    ONE = "1"
+    TWO = "2"
+    THREE = "3"
+
+
+class City(BaseModel):
+    territory_id: str
+    territory_name: str
+    state_code: str
+    publication_urls: Optional[List[str]]
+    level: CityLevel
+
+
+class CitiesSearchResponse(BaseModel):
+    cities: List[City]
 
 
 def trigger_gazettes_search(
@@ -199,6 +220,19 @@ async def get_gazettes_by_territory_id(
         pre_tags,
         post_tags,
     )
+
+
+@app.get(
+    "/cities/",
+    response_model=CitiesSearchResponse,
+    name="Search for cities with name similar to the citi_name query.",
+    description="Search for cities with name similar to the citi_name query.",
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def get_cities(city_name: str):
+    cities = app.gazettes.get_cities(city_name)
+    return {"cities": cities}
 
 
 def configure_api_app(gazettes: GazetteAccessInterface, api_root_path=None):

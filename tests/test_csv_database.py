@@ -15,16 +15,14 @@ class CSVDatabaseTests(TestCase):
             {
                 "city_name": "Piraporinha",
                 "ibge_id": "1234",
-                "uf_name": "Santa Catarina",
-                "uf_short_name": "SC",
+                "uf": "SC",
                 "openness_level": 2,
                 "gazettes_urls": ["https://somewebsite.org"],
             },
             {
                 "city_name": "Taquarinha Do Norte",
                 "ibge_id": "1235",
-                "uf_name": "Rio Grande Do Norte",
-                "uf_short_name": "RN",
+                "uf": "RN",
                 "openness_level": 1,
                 "gazettes_urls": [
                     "https://somewebsite.org",
@@ -34,8 +32,7 @@ class CSVDatabaseTests(TestCase):
             {
                 "city_name": "Taquarinha Do Sul",
                 "ibge_id": "1236",
-                "uf_name": "Rio Grande Do Sul",
-                "uf_short_name": "RS",
+                "uf": "RS",
                 "openness_level": 3,
                 "gazettes_urls": [
                     "https://somewebsite.org",
@@ -68,7 +65,14 @@ class CSVDatabaseTests(TestCase):
 
     @expectedFailure
     def test_create_csv_database_without_envvar_with_file_path(self):
-        database = CSVDatabase()
+        with patch.dict(
+            os.environ, {"QUERIDO_DIARIO_DATABASE_CSV": "/path/does/not/exists"}
+        ):
+            database = CSVDatabase()
+        with patch.dict(os.environ, {"QUERIDO_DIARIO_DATABASE_CSV": ""}):
+            database = CSVDatabase()
+        with patch.dict(os.environ, {}):
+            database = CSVDatabase()
 
     def test_get_one_city(self):
         with patch.dict(
@@ -79,9 +83,8 @@ class CSVDatabaseTests(TestCase):
             expected_city = City(
                 "Piraporinha",
                 "1234",
-                "Santa Catarina",
                 "SC",
-                OpennessLevel(2),
+                OpennessLevel("2"),
                 ["https://somewebsite.org"],
             )
             self.assertCountEqual([expected_city], city)
@@ -97,17 +100,15 @@ class CSVDatabaseTests(TestCase):
                 City(
                     "Taquarinha Do Norte",
                     "1235",
-                    "Rio Grande Do Norte",
                     "RN",
-                    OpennessLevel(1),
+                    OpennessLevel("1"),
                     ["https://somewebsite.org", "https://anotherwebsite.org"],
                 ),
                 City(
                     "Taquarinha Do Sul",
                     "1236",
-                    "Rio Grande Do Sul",
                     "RS",
-                    OpennessLevel(3),
+                    OpennessLevel("3"),
                     ["https://somewebsite.org", "https://anotherwebsite.org"],
                 ),
             ]

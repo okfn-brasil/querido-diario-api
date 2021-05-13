@@ -6,8 +6,11 @@ from datetime import date, timedelta
 from gazettes import (
     GazetteAccess,
     GazetteAccessInterface,
+    City,
+    OpennessLevel,
     GazetteRequest,
     GazetteDataGateway,
+    DatabaseInterface,
     Gazette,
     create_gazettes_interface,
 )
@@ -18,7 +21,16 @@ class DummyDataGateway:
     pass
 
 
+@DatabaseInterface.register
+class DummyDatabaseGateway:
+    pass
+
+
 class InvalidDataGateway:
+    pass
+
+
+class InvalidDatabaseGateway:
     pass
 
 
@@ -32,12 +44,22 @@ class GazetteAccessInterfacesTest(TestCase):
         self.gazette_access = GazetteDataGateway()
 
     def test_create_gazettes_interface_should_return_a_valid_interface_object(self):
-        interface = create_gazettes_interface(DummyDataGateway())
+        interface = create_gazettes_interface(
+            DummyDataGateway(), DummyDatabaseGateway()
+        )
         self.assertIsInstance(interface, GazetteAccessInterface)
 
     @unittest.expectedFailure
     def test_create_gazettes_interface_with_invalid_data_gateway_should_fail(self):
-        interace = create_gazettes_interface(InvalidDataGateway())
+        interace = create_gazettes_interface(
+            InvalidDataGateway(), DummyDatabaseGateway()
+        )
+
+    @unittest.expectedFailure
+    def test_create_gazettes_interface_with_invalid_database_gateway_should_fail(self):
+        interace = create_gazettes_interface(
+            DummyDataGateway(), InvalidDatabaseGateway()
+        )
 
     def test_GazetteRequest_should_territory_id_attribute(self):
         territory_id = "1234"
@@ -125,7 +147,30 @@ class GazetteAccessTest(TestCase):
         self.mock_data_gateway.get_gazettes = MagicMock(
             return_value=(len(self.return_value), self.return_value)
         )
-        self.gazette_access = GazetteAccess(self.mock_data_gateway)
+
+        self.database_data = [
+            City(
+                "Taquarinha Do Norte",
+                "1235",
+                "RN",
+                OpennessLevel("1"),
+                ["https://somewebsite.org", "https://anotherwebsite.org"],
+            ),
+            City(
+                "Taquarinha Do Sul",
+                "1236",
+                "RS",
+                OpennessLevel("3"),
+                ["https://somewebsite.org", "https://anotherwebsite.org"],
+            ),
+        ]
+        self.mock_database_gateway = MagicMock()
+        self.mock_database_gateway.get_cities = MagicMock(
+            return_value=self.database_data
+        )
+        self.gazette_access = GazetteAccess(
+            self.mock_data_gateway, self.mock_database_gateway
+        )
 
     def test_create_gazette_access(self):
         self.assertIsNotNone(
@@ -142,6 +187,12 @@ class GazetteAccessTest(TestCase):
         self.assertEqual(items_count, len(self.return_value))
         self.assertEqual(len(self.return_value), len(gazettes))
         self.mock_data_gateway.get_gazettes.assert_called_once()
+
+    def test_get_cities(self):
+        cities = self.gazette_access.get_cities()
+        self.assertEqual(len(self.database_data), len(cities))
+        self.mock_database_gateway.get_cities.assert_called_once()
+        self.assertCountEqual([vars(city) for city in self.database_data], cities)
 
     def test_get_gazettes_should_return_dictionary(self):
         expected_results = [
@@ -164,7 +215,9 @@ class GazetteAccessTest(TestCase):
         self.assertCountEqual(expected_results, gazettes)
 
     def test_should_foward_filter_to_gateway(self):
-        gazette_access = GazetteAccess(self.mock_data_gateway)
+        gazette_access = GazetteAccess(
+            self.mock_data_gateway, self.mock_database_gateway
+        )
         list(
             self.gazette_access.get_gazettes(
                 filters=GazetteRequest(territory_id="4205902")
@@ -184,7 +237,9 @@ class GazetteAccessTest(TestCase):
         )
 
     def test_should_foward_since_date_filter_to_gateway(self):
-        gazette_access = GazetteAccess(self.mock_data_gateway)
+        gazette_access = GazetteAccess(
+            self.mock_data_gateway, self.mock_database_gateway
+        )
         list(
             self.gazette_access.get_gazettes(
                 filters=GazetteRequest(since=date.today())
@@ -204,7 +259,9 @@ class GazetteAccessTest(TestCase):
         )
 
     def test_should_foward_until_date_filter_to_gateway(self):
-        gazette_access = GazetteAccess(self.mock_data_gateway)
+        gazette_access = GazetteAccess(
+            self.mock_data_gateway, self.mock_database_gateway
+        )
         list(
             self.gazette_access.get_gazettes(
                 filters=GazetteRequest(until=date.today())
@@ -224,7 +281,9 @@ class GazetteAccessTest(TestCase):
         )
 
     def test_should_foward_keywords_filter_to_gateway(self):
-        gazette_access = GazetteAccess(self.mock_data_gateway)
+        gazette_access = GazetteAccess(
+            self.mock_data_gateway, self.mock_database_gateway
+        )
         keywords = ["foo", "bar", "zpto"]
         list(
             self.gazette_access.get_gazettes(filters=GazetteRequest(keywords=keywords))[
@@ -245,7 +304,9 @@ class GazetteAccessTest(TestCase):
         )
 
     def test_should_foward_page_fields_filter_to_gateway(self):
-        gazette_access = GazetteAccess(self.mock_data_gateway)
+        gazette_access = GazetteAccess(
+            self.mock_data_gateway, self.mock_database_gateway
+        )
         list(
             self.gazette_access.get_gazettes(
                 filters=GazetteRequest(offset=10, size=100)
