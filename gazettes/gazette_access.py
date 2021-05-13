@@ -69,6 +69,12 @@ class GazetteAccessInterface(abc.ABC):
         Method to get the gazettes
         """
 
+    @abc.abstractmethod
+    def get_cities(self, citi_name: str = ""):
+        """
+        Method to get information about the cities
+        """
+
 
 class DatabaseInterface(abc.ABC):
     """
@@ -84,10 +90,12 @@ class DatabaseInterface(abc.ABC):
 
 class GazetteAccess(GazetteAccessInterface):
 
-    _data_gateway = None
+    _index_gateway = None
+    _database_gateway = None
 
-    def __init__(self, gazette_data_gateway=None):
-        self._data_gateway = gazette_data_gateway
+    def __init__(self, gazette_data_gateway=None, database_gateway=None):
+        self._index_gateway = gazette_data_gateway
+        self._database_gateway = database_gateway
 
     def get_gazettes(self, filters: GazetteRequest = None):
         territory_id = filters.territory_id if filters is not None else None
@@ -100,7 +108,7 @@ class GazetteAccess(GazetteAccessInterface):
         number_of_fragments = filters.number_of_fragments if filters is not None else 1
         pre_tags = filters.pre_tags if filters is not None else [""]
         post_tags = filters.post_tags if filters is not None else [""]
-        total_number_gazettes, gazettes = self._data_gateway.get_gazettes(
+        total_number_gazettes, gazettes = self._index_gateway.get_gazettes(
             territory_id=territory_id,
             since=since,
             until=until,
@@ -114,13 +122,16 @@ class GazetteAccess(GazetteAccessInterface):
         )
         return (total_number_gazettes, [vars(gazette) for gazette in gazettes])
 
+    def get_cities(self, city_name: str = ""):
+        return [vars(city) for city in self._database_gateway.get_cities(city_name)]
+
 
 @unique
-class OpennessLevel(Enum):
-    ZERO = 0
-    ONE = 1
-    TWO = 2
-    THREE = 3
+class OpennessLevel(str, Enum):
+    ZERO = "0"
+    ONE = "1"
+    TWO = "2"
+    THREE = "3"
 
 
 class City:
@@ -128,40 +139,31 @@ class City:
         self,
         name: str,
         ibge_id: str,
-        uf_name: str,
-        uf_short_name: str,
+        uf: str,
         openness_level: OpennessLevel,
         gazettes_urls: List[str],
     ):
-        self.gazettes_urls = gazettes_urls
-        self.ibge_id = ibge_id
-        self.name = name
-        self.openness_level = openness_level
-        self.uf_name = uf_name
-        self.uf_short_name = uf_short_name
+        self.publication_urls = gazettes_urls
+        self.territory_id = ibge_id
+        self.territory_name = name
+        self.level = openness_level
+        self.state_code = uf
 
     def __eq__(self, other):
         return (
-            self.ibge_id == other.ibge_id
-            and self.name == other.name
-            and self.openness_level == other.openness_level
-            and self.uf_name == other.uf_name
-            and self.uf_short_name == other.uf_short_name
-            and self.gazettes_urls == other.gazettes_urls
+            self.territory_id == other.territory_id
+            and self.territory_name == other.territory_name
+            and self.level == other.level
+            and self.state_code == other.state_code
+            and self.publication_urls == other.publication_urls
         )
 
     def __repr__(self):
-        return f"City({self.name}, {self.ibge_id}, {self.openness_level}, {self.uf_name}, {self.uf_short_name}, {self.gazettes_urls})"
+        return f"City({self.territory_name}, {self.territory_id}, {self.level}, {self.state_code}, {self.publication_urls})"
 
     def __hash__(self):
         return hash(
-            (
-                self.ibge_id,
-                self.name,
-                self.uf_name,
-                self.uf_short_name,
-                self.openness_level,
-            )
+            (self.territory_id, self.territory_name, self.state_code, self.level,)
         )
 
 
@@ -228,9 +230,16 @@ class Gazette:
         return f"Gazette({self.checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.highlight_texts}, {self.edition}, {self.is_extra_edition}, {self.file_raw_txt})"
 
 
-def create_gazettes_interface(data_gateway: GazetteDataGateway):
-    if not isinstance(data_gateway, GazetteDataGateway):
+def create_gazettes_interface(
+    index_gateway: GazetteDataGateway, database_gateway: DatabaseInterface
+):
+    if not isinstance(index_gateway, GazetteDataGateway):
         raise Exception(
             "Data gateway should implement the GazetteDataGateway interface"
         )
-    return GazetteAccess(data_gateway)
+
+    if not isinstance(database_gateway, DatabaseInterface):
+        raise Exception(
+            "Database gateway should implement the DatabaseInterface interface"
+        )
+    return GazetteAccess(index_gateway, database_gateway)

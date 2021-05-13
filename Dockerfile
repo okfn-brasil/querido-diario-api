@@ -10,4 +10,7 @@ COPY . /mnt/code
 WORKDIR /mnt/code
 ENV PYTHONPATH=/mnt/code
 
+ADD https://querido-diario.nyc3.cdn.digitaloceanspaces.com/censo/censo.csv censo.csv
+RUN chmod 644 censo.csv
+
 USER gazette

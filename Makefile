@@ -7,6 +7,7 @@ IMAGE_FORMAT ?= docker
 # Variables used to connect the app to the ElasticSearch
 QUERIDO_DIARIO_ELASTICSEARCH_HOST ?= localhost
 QUERIDO_DIARIO_ELASTICSEARCH_INDEX ?= gazettes
+QUERIDO_DIARIO_DATABASE_CSV ?= censo.csv
 ELASTICSEARCH_PORT1 ?= 9200
 ELASTICSEARCH_PORT2 ?= 9300
 # Containers data
@@ -22,6 +23,7 @@ run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--pod $(POD_NAME) \
 	--env QUERIDO_DIARIO_ELASTICSEARCH_INDEX=$(QUERIDO_DIARIO_ELASTICSEARCH_INDEX) \
 	--env QUERIDO_DIARIO_ELASTICSEARCH_HOST=$(QUERIDO_DIARIO_ELASTICSEARCH_HOST) \
+	--env QUERIDO_DIARIO_DATABASE_CSV=$(QUERIDO_DIARIO_DATABASE_CSV) \
 	--env PYTHONPATH=/mnt/code \
 	--env RUN_INTEGRATION_TESTS=$(RUN_INTEGRATION_TESTS) \
 	--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) $1)
@@ -73,6 +75,7 @@ set-test-variables:
 	$(eval ELASTICSEARCH_PORT1=9201)
 	$(eval ELASTICSEARCH_PORT2=9301)
 	$(eval ELASTICSEARCH_CONTAINER_NAME=test-$(ELASTICSEARCH_CONTAINER_NAME))
+	$(eval QUERIDO_DIARIO_DATABASE_CSV="")
 
 set-integration-test-variables: set-test-variables
 	$(eval RUN_INTEGRATION_TESTS=1)
@@ -81,8 +84,8 @@ set-integration-test-variables: set-test-variables
 test: set-test-variables create-pod retest
 
 .PHONY: retest
-retest: set-test-variables
-	$(call run-command,  python -m unittest -f tests)
+retest: set-test-variables black
+	$(call run-command,  python -m unittest discover tests)
 
 .PHONY: test-all
 test-all: set-integration-test-variables create-pod elasticsearch retest

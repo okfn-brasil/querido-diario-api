@@ -13,6 +13,8 @@ class CSVDatabase(DatabaseInterface):
 
     def __init__(self):
         self.database_file = os.environ["QUERIDO_DIARIO_DATABASE_CSV"]
+        if not os.path.exists(self.database_file):
+            raise Exception("Missing databasefile")
 
     def get_cities(self, city_name: str = None):
         results = []
@@ -20,13 +22,14 @@ class CSVDatabase(DatabaseInterface):
             reader = csv.DictReader(database)
             for row in reader:
                 if city_name.lower() in row["city_name"].lower():
-                    urls = row["gazettes_urls"].split(",")
+                    urls = row["gazettes_urls"].strip().split(",")
+                    if len(urls) == 1 and len(urls[0]) == 0:
+                        urls = None
                     city = City(
                         row["city_name"],
                         row["ibge_id"],
-                        row["uf_name"],
-                        row["uf_short_name"],
-                        OpennessLevel(int(row["openness_level"])),
+                        row["uf"],
+                        OpennessLevel(row["openness_level"]),
                         urls,
                     )
                     results.append(city)
