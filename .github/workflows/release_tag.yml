@@ -1,0 +1,33 @@
+name: Build, test and publish when new tag is available
+on: 
+  push:
+    tags:
+     - "*"
+
+env:
+  REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+
+jobs:
+  everything:
+    name: Release tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@master
+
+      - name: Build container image
+        run: |
+          make build
+
+      - name: Run tests
+        run: |
+          make test
+
+      - name: Docker Hub login 
+        run: |
+          make login
+
+      - name: Publish container image
+        run: |
+          make publish
