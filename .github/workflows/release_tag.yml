@@ -30,4 +30,4 @@ jobs:
 
       - name: Publish container image
         run: |
-          make publish
+          make publish-tag
