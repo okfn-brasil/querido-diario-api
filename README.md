@@ -51,11 +51,16 @@ need to insert data into the database. There is another make target, `make apisq
 which open the `psql` and connect to the database. Thus, you can insert data
 using some `INSERT INTO ...` statements and test the API. ;)
 
-
 ### Using suggestion endpoint
 
 You need to create a token at [Mailjet](www.mailjet.com) to run
 application and send email (put on `config/current.env`).
+### Running with a remote Elastic Search
+
+If you want use a remote Elastic Search run application with this:
+```shell
+REMOTE_ELASTICSEARCH_INDEX="index_name" REMOTE_ELASTICSEARCH_HOST="es_host" make run-standalone
+```
 
 ## Tests
 

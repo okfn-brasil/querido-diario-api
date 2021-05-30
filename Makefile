@@ -138,10 +138,20 @@ start-elasticsearch:
 		--name $(ELASTICSEARCH_CONTAINER_NAME) \
 		--pod $(POD_NAME) \
 		--env discovery.type=single-node \
-		elasticsearch:7.9.1
+		docker.io/elasticsearch:7.9.1
 
 stop-elasticsearch:
 	podman rm --force --ignore $(ELASTICSEARCH_CONTAINER_NAME)
 
 wait-elasticsearch:
 	$(call wait-for, localhost:9200)
+
+run-standalone: build
+	podman run --rm \
+	           --env QUERIDO_DIARIO_ELASTICSEARCH_INDEX=$(REMOTE_ELASTICSEARCH_INDEX) \
+	           --env QUERIDO_DIARIO_ELASTICSEARCH_HOST=$(REMOTE_ELASTICSEARCH_HOST) \
+	           --env QUERIDO_DIARIO_DATABASE_CSV=$(QUERIDO_DIARIO_DATABASE_CSV) \
+	           --publish $(API_PORT):$(API_PORT) \
+	           --user=$(UID):$(UID) \
+	           $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
+	           python main
