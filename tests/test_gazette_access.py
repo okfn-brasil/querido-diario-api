@@ -234,6 +234,7 @@ class GazetteAccessTest(TestCase):
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
+            sort_by="descending_date",
         )
 
     def test_should_foward_since_date_filter_to_gateway(self):
@@ -256,6 +257,7 @@ class GazetteAccessTest(TestCase):
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
+            sort_by="descending_date",
         )
 
     def test_should_foward_until_date_filter_to_gateway(self):
@@ -278,6 +280,7 @@ class GazetteAccessTest(TestCase):
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
+            sort_by="descending_date",
         )
 
     def test_should_foward_keywords_filter_to_gateway(self):
@@ -301,6 +304,7 @@ class GazetteAccessTest(TestCase):
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
+            sort_by="descending_date",
         )
 
     def test_should_foward_page_fields_filter_to_gateway(self):
@@ -323,6 +327,7 @@ class GazetteAccessTest(TestCase):
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
+            sort_by="descending_date",
         )
 
 

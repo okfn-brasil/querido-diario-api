@@ -31,8 +31,8 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         if territory_id is not None:
             query["must"].append({"term": {"territory_id": territory_id}})
 
-    def build_sort_query(self, query):
-        query["sort"] = [{"date": {"order": "desc"}}]
+    def build_sort_query(self, query, order):
+        query["sort"] = [{"date": {"order": order}}]
 
     def build_match_query(self, query, keywords):
         if keywords is not None and len(keywords) > 0:
@@ -83,6 +83,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
+        sort_by: str = "descending_date",
     ):
         if (
             territory_id is None
@@ -100,7 +101,13 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         self.build_match_query(query, keywords)
         query = {"query": {"bool": query}}
         self.add_pagination_fields(query, offset, size)
-        self.build_sort_query(query)
+
+        if sort_by == "descending_date":
+            self.build_sort_query(query, "desc")
+        elif sort_by == "ascending_date":
+            self.build_sort_query(query, "asc")
+        # or else sort by relevance (score)
+
         self.add_highlight(
             query, fragment_size, number_of_fragments, pre_tags, post_tags
         )
@@ -141,6 +148,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
+        sort_by: str = "descending_date",
     ):
         query = self.build_query(
             territory_id,
@@ -153,6 +161,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             number_of_fragments,
             pre_tags,
             post_tags,
+            sort_by,
         )
         gazettes = self._es.search(body=query, index=self._index)
 
