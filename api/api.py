@@ -3,6 +3,7 @@ from datetime import date
 from typing import List, Optional
 
 from fastapi import FastAPI, Query, Path
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from gazettes import GazetteAccessInterface, GazetteRequest
@@ -11,6 +12,15 @@ app = FastAPI(
     title="Querido Diário",
     description="API to access the gazettes from all Brazilian cities",
     version="0.9.0",
+)
+
+# TODO load CORS configuration. Do NOT allow any origin.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
