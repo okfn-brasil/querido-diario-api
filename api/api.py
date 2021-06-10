@@ -11,7 +11,7 @@ from gazettes import GazetteAccessInterface, GazetteRequest
 app = FastAPI(
     title="Querido Diário",
     description="API to access the gazettes from all Brazilian cities",
-    version="0.9.0",
+    version="0.10.0",
 )
 
 # TODO load CORS configuration. Do NOT allow any origin.
