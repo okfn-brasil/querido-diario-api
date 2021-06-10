@@ -22,6 +22,7 @@ class GazetteRequest:
         number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
+        sort_by: str = "descending_date",
     ):
         self.territory_id = territory_id
         self.since = since
@@ -33,6 +34,7 @@ class GazetteRequest:
         self.number_of_fragments = number_of_fragments
         self.pre_tags = pre_tags
         self.post_tags = post_tags
+        self.sort_by = sort_by
 
 
 class GazetteDataGateway(abc.ABC):
@@ -52,6 +54,7 @@ class GazetteDataGateway(abc.ABC):
         number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
+        sort_by: str = "descending_date",
     ):
         """
         Method to get the gazette from storage
@@ -108,6 +111,7 @@ class GazetteAccess(GazetteAccessInterface):
         number_of_fragments = filters.number_of_fragments if filters is not None else 1
         pre_tags = filters.pre_tags if filters is not None else [""]
         post_tags = filters.post_tags if filters is not None else [""]
+        sort_by = filters.sort_by if filters is not None else "descending_date"
         total_number_gazettes, gazettes = self._index_gateway.get_gazettes(
             territory_id=territory_id,
             since=since,
@@ -119,6 +123,7 @@ class GazetteAccess(GazetteAccessInterface):
             number_of_fragments=number_of_fragments,
             pre_tags=pre_tags,
             post_tags=post_tags,
+            sort_by=sort_by,
         )
         return (total_number_gazettes, [vars(gazette) for gazette in gazettes])
 

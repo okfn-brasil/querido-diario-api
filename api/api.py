@@ -61,6 +61,13 @@ class CitiesSearchResponse(BaseModel):
     cities: List[City]
 
 
+@unique
+class SortBy(str, Enum):
+    RELEVANCE = "relevance"
+    DESCENDING_DATE = "descending_date"
+    ASCENDING_DATE = "ascending_date"
+
+
 def trigger_gazettes_search(
     territory_id: str = None,
     since: date = None,
@@ -72,6 +79,7 @@ def trigger_gazettes_search(
     number_of_fragments: int = 1,
     pre_tags: List[str] = [""],
     post_tags: List[str] = [""],
+    sort_by: SortBy = SortBy.DESCENDING_DATE,
 ):
     gazettes_count, gazettes = app.gazettes.get_gazettes(
         GazetteRequest(
@@ -85,6 +93,7 @@ def trigger_gazettes_search(
             number_of_fragments=number_of_fragments,
             pre_tags=pre_tags,
             post_tags=post_tags,
+            sort_by=sort_by.value,
         )
     )
     response = {
@@ -149,6 +158,11 @@ async def get_gazettes(
         title="Post tags of fragments of highlight.",
         description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
     ),
+    sort_by: Optional[SortBy] = Query(
+        SortBy.DESCENDING_DATE,
+        title="Allow the user to define the order of the search results.",
+        description="Allow the user to define the order of the search results. The API should allow 3 types: relevance, descending_date, ascending_date",
+    ),
 ):
     return trigger_gazettes_search(
         None,
@@ -161,6 +175,7 @@ async def get_gazettes(
         number_of_fragments,
         pre_tags,
         post_tags,
+        sort_by,
     )
 
 
@@ -217,6 +232,11 @@ async def get_gazettes_by_territory_id(
         title="Post tags of fragments of highlight.",
         description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
     ),
+    sort_by: Optional[SortBy] = Query(
+        SortBy.DESCENDING_DATE,
+        title="Allow the user to define the order of the search results.",
+        description="Allow the user to define the order of the search results. The API should allow 3 types: relevance, descending_date, ascending_date",
+    ),
 ):
     return trigger_gazettes_search(
         territory_id,
@@ -229,6 +249,7 @@ async def get_gazettes_by_territory_id(
         number_of_fragments,
         pre_tags,
         post_tags,
+        sort_by,
     )
 
 
