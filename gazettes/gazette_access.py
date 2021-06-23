@@ -78,6 +78,12 @@ class GazetteAccessInterface(abc.ABC):
         Method to get information about the cities
         """
 
+    @abc.abstractmethod
+    def get_city(self, territory_id: str = ""):
+        """
+        Method to get information about a specific city
+        """
+
 
 class DatabaseInterface(abc.ABC):
     """
@@ -88,6 +94,12 @@ class DatabaseInterface(abc.ABC):
     def get_cities(self, city_name: str = None):
         """
         Get the cities and their openness level.
+        """
+
+    @abc.abstractmethod
+    def get_city(self, territory_id: str = ""):
+        """
+        Method to get information about a specific city
         """
 
 
@@ -129,6 +141,10 @@ class GazetteAccess(GazetteAccessInterface):
 
     def get_cities(self, city_name: str = ""):
         return [vars(city) for city in self._database_gateway.get_cities(city_name)]
+
+    def get_city(self, territory_id: str = ""):
+        city = self._database_gateway.get_city(territory_id)
+        return vars(city) if city is not None else None
 
 
 @unique

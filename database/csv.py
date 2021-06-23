@@ -22,15 +22,32 @@ class CSVDatabase(DatabaseInterface):
             reader = csv.DictReader(database)
             for row in reader:
                 if city_name.lower() in row["city_name"].lower():
-                    urls = row["gazettes_urls"].strip().split(",")
-                    if len(urls) == 1 and len(urls[0]) == 0:
-                        urls = None
                     city = City(
                         row["city_name"],
                         row["ibge_id"],
                         row["uf"],
                         OpennessLevel(row["openness_level"]),
-                        urls,
+                        self._split_urls(row["gazettes_urls"]),
                     )
                     results.append(city)
         return results
+
+    def get_city(self, territory_id: str = None):
+        with open(self.database_file) as database:
+            reader = csv.DictReader(database)
+            for row in reader:
+                if territory_id == row["ibge_id"]:
+                    city = City(
+                        row["city_name"],
+                        row["ibge_id"],
+                        row["uf"],
+                        OpennessLevel(row["openness_level"]),
+                        self._split_urls(row["gazettes_urls"]),
+                    )
+                    return city
+
+    def _split_urls(self, concatenated_urls: str = None):
+        urls = concatenated_urls.strip().split(",")
+        if len(urls) == 1 and len(urls[0]) == 0:
+            urls = None
+        return urls

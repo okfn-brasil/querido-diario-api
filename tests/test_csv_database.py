@@ -74,7 +74,7 @@ class CSVDatabaseTests(TestCase):
         with patch.dict(os.environ, {}):
             database = CSVDatabase()
 
-    def test_get_one_city(self):
+    def test_get_one_city_by_name(self):
         with patch.dict(
             os.environ, {"QUERIDO_DIARIO_DATABASE_CSV": self.database_file}
         ):
@@ -113,3 +113,26 @@ class CSVDatabaseTests(TestCase):
                 ),
             ]
             self.assertCountEqual(expected_cities, cities)
+
+    def test_get_one_city_by_territory_id(self):
+        with patch.dict(
+            os.environ, {"QUERIDO_DIARIO_DATABASE_CSV": self.database_file}
+        ):
+            database = CSVDatabase()
+            city = database.get_city("1234")
+            expected_city = City(
+                "Piraporinha",
+                "1234",
+                "SC",
+                OpennessLevel("2"),
+                ["https://somewebsite.org"],
+            )
+            self.assertEqual(expected_city, city)
+
+    def test_get_none_by_invalid_territory_id(self):
+        with patch.dict(
+            os.environ, {"QUERIDO_DIARIO_DATABASE_CSV": self.database_file}
+        ):
+            database = CSVDatabase()
+            city = database.get_city("invalid_id")
+            self.assertEqual(None, city)
