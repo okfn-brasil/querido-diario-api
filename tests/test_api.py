@@ -14,10 +14,13 @@ class MockGazetteAccessInterface:
 
 
 class ApiGazettesEndpointTests(TestCase):
-    def create_mock_gazette_interface(self, return_value=(0, []), cities_info=[]):
+    def create_mock_gazette_interface(
+        self, return_value=(0, []), cities_info=[], city_info=None
+    ):
         interface = MockGazetteAccessInterface()
         interface.get_gazettes = MagicMock(return_value=return_value)
         interface.get_cities = MagicMock(return_value=cities_info)
+        interface.get_city = MagicMock(return_value=city_info)
         return interface
 
     def test_api_should_fail_when_try_to_set_any_object_as_gazettes_interface(self):
@@ -481,5 +484,69 @@ class ApiGazettesEndpointTests(TestCase):
                         "level": "1",
                     }
                 ]
+            },
+        )
+
+    def test_city_endpoint_should_accept_request_with_city_id(self):
+        configure_api_app(
+            self.create_mock_gazette_interface(
+                city_info={
+                    "territory_id": "1234",
+                    "territory_name": "piraporia",
+                    "state_code": "SC",
+                    "publication_urls": ["https://querido-diario.org.br"],
+                    "level": "1",
+                }
+            )
+        )
+        client = TestClient(app)
+        response = client.get("/cities/1234")
+        self.assertEqual(response.status_code, 200)
+
+    def test_city_endpoint_should_return_404_with_city_id_not_found(self):
+        configure_api_app(self.create_mock_gazette_interface())
+        client = TestClient(app)
+        response = client.get("/cities/1234")
+        self.assertEqual(response.status_code, 404)
+
+    def test_city_endpoint_should_request_data_from_gazette_interface(self):
+        interface = self.create_mock_gazette_interface(
+            city_info={
+                "territory_id": "1234",
+                "territory_name": "piraporia",
+                "state_code": "SC",
+                "publication_urls": ["https://querido-diario.org.br"],
+                "level": "1",
+            }
+        )
+        configure_api_app(interface)
+        client = TestClient(app)
+        response = client.get("/cities/1234")
+        interface.get_city.assert_called_once()
+
+    def test_city_endpoint_should_return_city_info_returned_by_gazettes_interface(self):
+        configure_api_app(
+            self.create_mock_gazette_interface(
+                city_info={
+                    "territory_id": "1234",
+                    "territory_name": "piraporia",
+                    "state_code": "SC",
+                    "publication_urls": ["https://querido-diario.org.br"],
+                    "level": "1",
+                }
+            )
+        )
+        client = TestClient(app)
+        response = client.get("/cities/1234")
+        self.assertEqual(
+            response.json(),
+            {
+                "city": {
+                    "territory_id": "1234",
+                    "territory_name": "piraporia",
+                    "state_code": "SC",
+                    "publication_urls": ["https://querido-diario.org.br"],
+                    "level": "1",
+                }
             },
         )

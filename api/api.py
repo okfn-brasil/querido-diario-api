@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from gazettes import GazetteAccessInterface, GazetteRequest
@@ -61,11 +62,19 @@ class CitiesSearchResponse(BaseModel):
     cities: List[City]
 
 
+class CitySearchResponse(BaseModel):
+    city: City
+
+
 @unique
 class SortBy(str, Enum):
     RELEVANCE = "relevance"
     DESCENDING_DATE = "descending_date"
     ASCENDING_DATE = "ascending_date"
+
+
+class HTTPExceptionMessage(BaseModel):
+    detail: str
 
 
 def trigger_gazettes_search(
@@ -264,6 +273,24 @@ async def get_gazettes_by_territory_id(
 async def get_cities(city_name: str):
     cities = app.gazettes.get_cities(city_name)
     return {"cities": cities}
+
+
+@app.get(
+    "/cities/{territory_id}",
+    response_model=CitySearchResponse,
+    name="Get city by territory ID",
+    description="Get general info from specific city by territory 7-digit IBGE ID.",
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses={
+        404: {"model": HTTPExceptionMessage, "description": "City can't be found"}
+    },
+)
+async def get_city(territory_id: str = Path(..., description="City's IBGE ID")):
+    city_info = app.gazettes.get_city(territory_id)
+    if city_info is None:
+        return JSONResponse(status_code=404, content={"detail": "City not found."})
+    return {"city": city_info}
 
 
 def configure_api_app(gazettes: GazetteAccessInterface, api_root_path=None):

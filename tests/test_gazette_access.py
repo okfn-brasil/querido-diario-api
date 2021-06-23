@@ -168,6 +168,9 @@ class GazetteAccessTest(TestCase):
         self.mock_database_gateway.get_cities = MagicMock(
             return_value=self.database_data
         )
+        self.mock_database_gateway.get_city = MagicMock(
+            return_value=self.database_data[0]
+        )
         self.gazette_access = GazetteAccess(
             self.mock_data_gateway, self.mock_database_gateway
         )
@@ -193,6 +196,11 @@ class GazetteAccessTest(TestCase):
         self.assertEqual(len(self.database_data), len(cities))
         self.mock_database_gateway.get_cities.assert_called_once()
         self.assertCountEqual([vars(city) for city in self.database_data], cities)
+
+    def test_get_city(self):
+        city = self.gazette_access.get_city()
+        self.assertEqual(vars(self.database_data[0]), city)
+        self.mock_database_gateway.get_city.assert_called_once()
 
     def test_get_gazettes_should_return_dictionary(self):
         expected_results = [
