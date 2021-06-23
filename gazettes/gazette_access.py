@@ -73,7 +73,7 @@ class GazetteAccessInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_cities(self, citi_name: str = ""):
+    def get_cities(self, city_name: str = ""):
         """
         Method to get information about the cities
         """
