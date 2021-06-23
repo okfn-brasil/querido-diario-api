@@ -265,8 +265,8 @@ async def get_gazettes_by_territory_id(
 @app.get(
     "/cities/",
     response_model=CitiesSearchResponse,
-    name="Search for cities with name similar to the citi_name query.",
-    description="Search for cities with name similar to the citi_name query.",
+    name="Search for cities with name similar to the city_name query.",
+    description="Search for cities with name similar to the city_name query.",
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )

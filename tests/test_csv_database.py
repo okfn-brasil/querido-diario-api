@@ -95,7 +95,6 @@ class CSVDatabaseTests(TestCase):
         ):
             database = CSVDatabase()
             cities = database.get_cities("taquarinha")
-            print(cities)
             expected_cities = [
                 City(
                     "Taquarinha Do Norte",
