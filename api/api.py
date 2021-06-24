@@ -8,6 +8,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from gazettes import GazetteAccessInterface, GazetteRequest
+from config.config import load_configuration
+
+config = load_configuration()
 
 app = FastAPI(
     title="Querido Diário",
@@ -15,13 +18,12 @@ app = FastAPI(
     version="0.10.0",
 )
 
-# TODO load CORS configuration. Do NOT allow any origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=config.cors_allow_origins,
+    allow_credentials=config.cors_allow_credentials,
+    allow_methods=config.cors_allow_methods,
+    allow_headers=config.cors_allow_headers,
 )
 
 

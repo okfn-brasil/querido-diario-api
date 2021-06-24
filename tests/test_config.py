@@ -27,6 +27,22 @@ class BasicConfigurationTests(TestCase):
             expected_values["QUERIDO_DIARIO_URL_PREFIX"],
             msg="Invalid URL prefix",
         )
+        self.assertEqual(
+            configuration.cors_allow_origins,
+            expected_values["QUERIDO_DIARIO_CORS_ALLOW_ORIGINS"],
+        )
+        self.assertEqual(
+            configuration.cors_allow_credentials,
+            expected_values["QUERIDO_DIARIO_CORS_ALLOW_CREDENTIALS"],
+        )
+        self.assertEqual(
+            configuration.cors_allow_methods,
+            expected_values["QUERIDO_DIARIO_CORS_ALLOW_METHODS"],
+        )
+        self.assertEqual(
+            configuration.cors_allow_headers,
+            expected_values["QUERIDO_DIARIO_CORS_ALLOW_HEADERS"],
+        )
 
     @patch.dict(
         "os.environ", {}, True,
@@ -37,6 +53,10 @@ class BasicConfigurationTests(TestCase):
             "QUERIDO_DIARIO_ELASTICSEARCH_INDEX": "",
             "QUERIDO_DIARIO_API_ROOT_PATH": "",
             "QUERIDO_DIARIO_URL_PREFIX": "",
+            "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": ["*"],
+            "QUERIDO_DIARIO_CORS_ALLOW_CREDENTIALS": True,
+            "QUERIDO_DIARIO_CORS_ALLOW_METHODS": ["*"],
+            "QUERIDO_DIARIO_CORS_ALLOW_HEADERS": ["*"],
         }
         configuration = load_configuration()
         self.check_configuration_values(configuration, expected_config_dict)
@@ -48,6 +68,10 @@ class BasicConfigurationTests(TestCase):
             "QUERIDO_DIARIO_ELASTICSEARCH_INDEX": "",
             "QUERIDO_DIARIO_API_ROOT_PATH": "",
             "QUERIDO_DIARIO_URL_PREFIX": "",
+            "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": "",
+            "QUERIDO_DIARIO_CORS_ALLOW_CREDENTIALS": "",
+            "QUERIDO_DIARIO_CORS_ALLOW_METHODS": "",
+            "QUERIDO_DIARIO_CORS_ALLOW_HEADERS": "",
         },
         True,
     )
@@ -57,6 +81,10 @@ class BasicConfigurationTests(TestCase):
             "QUERIDO_DIARIO_ELASTICSEARCH_INDEX": "",
             "QUERIDO_DIARIO_API_ROOT_PATH": "",
             "QUERIDO_DIARIO_URL_PREFIX": "",
+            "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": [""],
+            "QUERIDO_DIARIO_CORS_ALLOW_CREDENTIALS": True,
+            "QUERIDO_DIARIO_CORS_ALLOW_METHODS": [""],
+            "QUERIDO_DIARIO_CORS_ALLOW_HEADERS": [""],
         }
         configuration = load_configuration()
         self.check_configuration_values(configuration, expected_config_dict)
@@ -68,6 +96,10 @@ class BasicConfigurationTests(TestCase):
             "QUERIDO_DIARIO_ELASTICSEARCH_INDEX": "myindex",
             "QUERIDO_DIARIO_API_ROOT_PATH": "api/",
             "QUERIDO_DIARIO_URL_PREFIX": "https://test.com",
+            "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": "localhost",
+            "QUERIDO_DIARIO_CORS_ALLOW_CREDENTIALS": "True",
+            "QUERIDO_DIARIO_CORS_ALLOW_METHODS": "GET,POST",
+            "QUERIDO_DIARIO_CORS_ALLOW_HEADERS": "X-Test-Test",
         },
         True,
     )
@@ -77,6 +109,10 @@ class BasicConfigurationTests(TestCase):
             "QUERIDO_DIARIO_ELASTICSEARCH_INDEX": "myindex",
             "QUERIDO_DIARIO_API_ROOT_PATH": "api/",
             "QUERIDO_DIARIO_URL_PREFIX": "https://test.com",
+            "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": ["localhost"],
+            "QUERIDO_DIARIO_CORS_ALLOW_CREDENTIALS": True,
+            "QUERIDO_DIARIO_CORS_ALLOW_METHODS": ["GET", "POST"],
+            "QUERIDO_DIARIO_CORS_ALLOW_HEADERS": ["X-Test-Test"],
         }
         configuration = load_configuration()
         self.check_configuration_values(configuration, expected_config_dict)
