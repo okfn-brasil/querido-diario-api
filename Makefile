@@ -26,6 +26,7 @@ run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--env QUERIDO_DIARIO_DATABASE_CSV=$(QUERIDO_DIARIO_DATABASE_CSV) \
 	--env PYTHONPATH=/mnt/code \
 	--env RUN_INTEGRATION_TESTS=$(RUN_INTEGRATION_TESTS) \
+	--env-file config/current.env \
 	--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) $1)
 
 wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
@@ -68,6 +69,7 @@ destroy-pod:
 	podman pod rm --force --ignore $(POD_NAME)
 
 create-pod: destroy-pod
+	cp --no-clobber config/sample.env config/current.env
 	podman pod create --publish $(API_PORT):$(API_PORT) \
 		--publish $(ELASTICSEARCH_PORT1):$(ELASTICSEARCH_PORT1) \
 		--publish $(ELASTICSEARCH_PORT2):$(ELASTICSEARCH_PORT2) \

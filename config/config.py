@@ -24,6 +24,27 @@ class Configuration:
         self.cors_allow_headers = Configuration._load_list(
             "QUERIDO_DIARIO_CORS_ALLOW_HEADERS", ["*"]
         )
+        self.suggestion_mailjet_rest_api_key = os.environ.get(
+            "QUERIDO_DIARIO_SUGGESTION_MAILJET_REST_API_KEY", ""
+        )
+        self.suggestion_mailjet_rest_api_secret = os.environ.get(
+            "QUERIDO_DIARIO_SUGGESTION_MAILJET_REST_API_SECRET", ""
+        )
+        self.suggestion_sender_name = os.environ.get(
+            "QUERIDO_DIARIO_SUGGESTION_SENDER_NAME", ""
+        )
+        self.suggestion_sender_email = os.environ.get(
+            "QUERIDO_DIARIO_SUGGESTION_SENDER_EMAIL", ""
+        )
+        self.suggestion_recipient_name = os.environ.get(
+            "QUERIDO_DIARIO_SUGGESTION_RECIPIENT_NAME", ""
+        )
+        self.suggestion_recipient_email = os.environ.get(
+            "QUERIDO_DIARIO_SUGGESTION_RECIPIENT_EMAIL", ""
+        )
+        self.suggestion_mailjet_custom_id = os.environ.get(
+            "QUERIDO_DIARIO_SUGGESTION_MAILJET_CUSTOM_ID", ""
+        )
 
     @classmethod
     def _load_list(cls, key, default=[]):

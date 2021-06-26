@@ -2,12 +2,13 @@ from enum import Enum, unique
 from datetime import date
 from typing import List, Optional
 
-from fastapi import FastAPI, Query, Path
+from fastapi import FastAPI, Query, Path, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from gazettes import GazetteAccessInterface, GazetteRequest
+from suggestions import Suggestion, SuggestionServiceInterface
 from config.config import load_configuration
 
 config = load_configuration()
@@ -77,6 +78,22 @@ class SortBy(str, Enum):
 
 class HTTPExceptionMessage(BaseModel):
     detail: str
+
+
+class CreateSuggestionBody(BaseModel):
+    email_address: str = Field(
+        title="Email address", description="Email address who is sending email"
+    )
+    name: str = Field(
+        title="Name", description="Name who is sending email",
+    )
+    content: str = Field(
+        title="Email content", description="Email content with suggestion",
+    )
+
+
+class CreatedSuggestionResponse(BaseModel):
+    status: str
 
 
 def trigger_gazettes_search(
@@ -295,10 +312,41 @@ async def get_city(territory_id: str = Path(..., description="City's IBGE ID")):
     return {"city": city_info}
 
 
-def configure_api_app(gazettes: GazetteAccessInterface, api_root_path=None):
+@app.post(
+    "/suggestions",
+    response_model=CreatedSuggestionResponse,
+    name="Send a suggestion",
+    description="Send a suggestion to the project",
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def add_suggestion(response: Response, body: CreateSuggestionBody):
+    suggestion = Suggestion(
+        email_address=body.email_address, name=body.name, content=body.content,
+    )
+    if app.suggestion_service.add_suggestion(suggestion):
+        response.status_code = status.HTTP_200_OK
+        return {"status": "sent"}
+    else:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {"status": "Problem on sent message"}
+
+
+def configure_api_app(
+    gazettes: GazetteAccessInterface,
+    suggestion_service: SuggestionServiceInterface,
+    api_root_path=None,
+):
     if not isinstance(gazettes, GazetteAccessInterface):
-        raise Exception("Only GazetteAccessInterface object are accepted")
+        raise Exception(
+            "Only GazetteAccessInterface object are accepted for gazettes parameter"
+        )
     if api_root_path is not None and type(api_root_path) != str:
         raise Exception("Invalid api_root_path")
+    if not isinstance(suggestion_service, SuggestionServiceInterface):
+        raise Exception(
+            "Only SuggestionServiceInterface object are accepted for suggestion_service parameter"
+        )
     app.gazettes = gazettes
+    app.suggestion_service = suggestion_service
     app.root_path = api_root_path

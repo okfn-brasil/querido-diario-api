@@ -1,0 +1,8 @@
+__pycache__
+.coverage
+Makefile
+README.md
+.github/
+LICENCE
+config/sample.env
+config/current.env

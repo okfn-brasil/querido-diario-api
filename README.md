@@ -51,6 +51,12 @@ need to insert data into the database. There is another make target, `make apisq
 which open the `psql` and connect to the database. Thus, you can insert data
 using some `INSERT INTO ...` statements and test the API. ;)
 
+
+### Using suggestion endpoint
+
+You need to create a token at [Mailjet](www.mailjet.com) to run
+application and send email (put on `config/current.env`).
+
 ## Tests
 
 The project uses TDD during development. This means that there are no changes 
