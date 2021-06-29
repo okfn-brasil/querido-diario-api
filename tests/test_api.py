@@ -609,7 +609,7 @@ class ApiSuggestionsEndpointTests(TestCase):
             },
         )
         assert response.status_code == 400
-        assert response.json() == {"status": "Problem on sent message"}
+        assert response.json() == {"status": "Could not sent message"}
 
     def test_suggestion_endpoint_should_reject_when_email_address_is_not_present(self):
         response = self.client.post(
