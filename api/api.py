@@ -324,12 +324,11 @@ async def add_suggestion(response: Response, body: CreateSuggestionBody):
     suggestion = Suggestion(
         email_address=body.email_address, name=body.name, content=body.content,
     )
-    if app.suggestion_service.add_suggestion(suggestion):
-        response.status_code = status.HTTP_200_OK
-        return {"status": "sent"}
-    else:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"status": "Could not sent message"}
+    suggestion_sent = app.suggestion_service.add_suggestion(suggestion)
+    response.status_code = (
+        status.HTTP_200_OK if suggestion_sent.success else status.HTTP_400_BAD_REQUEST
+    )
+    return {"status": suggestion_sent.status}
 
 
 def configure_api_app(

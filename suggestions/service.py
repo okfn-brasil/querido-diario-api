@@ -3,7 +3,10 @@ import logging
 
 from mailjet_rest import Client
 
-from .model import Suggestion
+from .model import (
+    Suggestion,
+    SuggestionSent,
+)
 
 
 class SuggestionServiceInterface(abc.ABC):
@@ -57,16 +60,31 @@ class MailjetSuggestionService(SuggestionServiceInterface):
             ]
         }
         result = self.mailjet_client.send.create(data=data)
+        result_json = result.json()
 
-        self.logger.debug(f"Suggestion body response {result.json()}")
+        self.logger.debug(f"Suggestion body response {result_json}")
+        print(f"Suggestion body response {result_json}")
         if 200 <= result.status_code <= 299:
             self.logger.info(f"Suggestion created for {suggestion.email_address}")
-            return True
+            return SuggestionSent(success=True, status="Sent")
         else:
+            status = "unknown error"
+            try:
+                errors = []
+                for message in result_json["Messages"]:
+                    for error in message["Errors"]:
+                        errors.append(error["ErrorMessage"])
+                if errors:
+                    status = ", ".join(errors)
+            except KeyError:
+                pass
+
             self.logger.error(
-                f"Error on send email {suggestion.email_address}. Status code response: {result.status_code}"
+                f"Could not sent message to <{suggestion.email_address}>. Status code response: {result.status_code} - {status}"
             )
-            return False
+            return SuggestionSent(
+                success=False, status=f"Could not sent message: {status}"
+            )
 
 
 def create_suggestion_service(

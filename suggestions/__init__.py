@@ -1,4 +1,7 @@
-from .model import Suggestion
+from .model import (
+    Suggestion,
+    SuggestionSent,
+)
 
 from .service import (
     SuggestionServiceInterface,

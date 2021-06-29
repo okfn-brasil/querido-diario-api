@@ -46,10 +46,11 @@ class MailjetSuggestionServiceTest(TestCase):
             )
         )
 
-        self.assertTrue(suggestion_result)
+        self.assertTrue(suggestion_result.success)
+        self.assertEqual(suggestion_result.status, "Sent")
         self.mailjet_client.send.create.assert_called_with(data=data)
 
-    def test_not_send_email(self):
+    def test_not_send_email_without_detail_error(self):
         data = {
             "Messages": [
                 {
@@ -73,7 +74,46 @@ class MailjetSuggestionServiceTest(TestCase):
             )
         )
 
-        self.assertFalse(suggestion_result)
+        self.assertFalse(suggestion_result.success)
+        self.assertEqual(
+            suggestion_result.status, "Could not sent message: unknown error"
+        )
+        self.mailjet_client.send.create.assert_called_with(data=data)
+
+    def test_not_send_email_with_detail_error(self):
+        data = {
+            "Messages": [
+                {
+                    "From": {"Name": "Sender Name", "Email": "sender-email@address",},
+                    "To": [
+                        {"Name": "Recipient Name", "Email": "recipient-email@address",}
+                    ],
+                    "Subject": "Querido Diário, hoje recebi uma sugestão",
+                    "TextPart": f"From A girl has no name <wrong@address.com>:\n\nArgument Clinic",
+                    "CustomID": "custom_id",
+                }
+            ]
+        }
+        detail_error = {
+            "Messages": [
+                {"Errors": [{"ErrorMessage": "Oops"}, {"ErrorMessage": "noooo!"}]}
+            ]
+        }
+        self.mailjet_client.send.create(data=data).json.return_value = detail_error
+        self.mailjet_client.send.create(data=data).configure_mock(status_code=401)
+
+        suggestion_result = self.subject.add_suggestion(
+            Suggestion(
+                email_address="wrong@address.com",
+                name="A girl has no name",
+                content="Argument Clinic",
+            )
+        )
+
+        self.assertFalse(suggestion_result.success)
+        self.assertEqual(
+            suggestion_result.status, "Could not sent message: Oops, noooo!"
+        )
         self.mailjet_client.send.create.assert_called_with(data=data)
 
 

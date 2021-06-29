@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from api import app, configure_api_app
 from gazettes import GazetteAccessInterface, GazetteRequest
-from suggestions import Suggestion, SuggestionServiceInterface
+from suggestions import Suggestion, SuggestionSent, SuggestionServiceInterface
 
 
 @GazetteAccessInterface.register
@@ -578,7 +578,8 @@ class ApiSuggestionsEndpointTests(TestCase):
         self.client = TestClient(app)
 
     def test_suggestion_endpoint_should_send_email(self):
-        self.suggestion_service.add_suggestion = MagicMock(return_value=True)
+        suggestion_sent = SuggestionSent(success=True, status="sent")
+        self.suggestion_service.add_suggestion = MagicMock(return_value=suggestion_sent)
 
         response = self.client.post(
             "/suggestions",
@@ -598,7 +599,10 @@ class ApiSuggestionsEndpointTests(TestCase):
             configure_api_app(MockGazetteAccessInterface(), MagicMock())
 
     def test_suggestion_endpoint_should_fail_send_email(self):
-        self.suggestion_service.add_suggestion = MagicMock(return_value=False)
+        suggestion_sent = SuggestionSent(
+            success=False, status="Could not sent message: an error"
+        )
+        self.suggestion_service.add_suggestion = MagicMock(return_value=suggestion_sent)
 
         response = self.client.post(
             "/suggestions",
@@ -609,7 +613,7 @@ class ApiSuggestionsEndpointTests(TestCase):
             },
         )
         assert response.status_code == 400
-        assert response.json() == {"status": "Could not sent message"}
+        assert response.json() == {"status": "Could not sent message: an error"}
 
     def test_suggestion_endpoint_should_reject_when_email_address_is_not_present(self):
         response = self.client.post(
