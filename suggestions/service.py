@@ -63,7 +63,6 @@ class MailjetSuggestionService(SuggestionServiceInterface):
         result_json = result.json()
 
         self.logger.debug(f"Suggestion body response {result_json}")
-        print(f"Suggestion body response {result_json}")
         if 200 <= result.status_code <= 299:
             self.logger.info(f"Suggestion created for {suggestion.email_address}")
             return SuggestionSent(success=True, status="Sent")
