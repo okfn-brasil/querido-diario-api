@@ -329,7 +329,7 @@ async def add_suggestion(response: Response, body: CreateSuggestionBody):
         return {"status": "sent"}
     else:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"status": "Problem on sent message"}
+        return {"status": "Could not sent message"}
 
 
 def configure_api_app(
