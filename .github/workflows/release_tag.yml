@@ -13,6 +13,13 @@ jobs:
     name: Release tag
     runs-on: ubuntu-latest
     steps:
+      - name: Setup cache
+        uses: actions/cache@v2
+        with:
+          key: querido-diario-cache
+          path: |
+            ~/.local/share/containers
+
       - name: Checkout source code
         uses: actions/checkout@master
 
