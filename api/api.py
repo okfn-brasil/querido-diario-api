@@ -146,13 +146,13 @@ async def get_gazettes(
     since: Optional[date] = Query(
         None,
         title="Since date",
-        description="Year-Month-Day.", 
+        description="Year-Month-Day. Look for gazettes where the date is greater or equal than given date ", 
         #remove long description sin is not visible in swagger
     ),
     until: Optional[date] = Query(
         None,
         title="Until date",
-        description="Year-Month-Day.",
+        description="Year-Month-Day. Look for gazettes where the date is less or equal than given date",
         #remove long description sin is not visible in swagger
     ),
     keywords: Optional[List[str]] = Query(
@@ -222,12 +222,12 @@ async def get_gazettes_by_territory_id(
     since: Optional[date] = Query(
         None,
         title="Since date",
-        description="Year-Month-Day.",
+        description="Year-Month-Day. Look for gazettes where the date is greater or equal than given date",
     ),
     until: Optional[date] = Query(
         None,
         title="Until date",
-        description="Year-Month-Day.",
+        description="Year-Month-Day. Look for gazettes where the date is less or equal than given date",
     ),
     keywords: Optional[List[str]] = Query(
         None,
