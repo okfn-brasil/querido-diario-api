@@ -5,7 +5,7 @@ on:
     tags:
     - 'v*'
 
-name: Build container image
+name: Build container images
 
 jobs:
   build:
@@ -38,7 +38,7 @@ jobs:
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            ghcr.io/querido-diario/querido-diario-api:latest
+            ghcr.io/okfn-brasil/querido-diario-api:latest
       -
         name: Retrieve tag name
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -54,4 +54,4 @@ jobs:
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            ghcr.io/querido-diario/querido-diario-api:${{ env.TAG_NAME }}
+            ghcr.io/okfn-brasil/querido-diario-api:${{ env.TAG_NAME }}
