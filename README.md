@@ -2,7 +2,7 @@
 
 ______________________________________
 
-_[Click here](languages/en-US/README.md) to read this article in english._
+_[Click here](docs/languages/en-US/README.md) to read this article in english._
 ______________________________________
 
 Seja bem-vinda(o) ao projeto Querido Diário API! O objetivo deste repositório é manter o código-fonte da API que disponibiliza os diários oficiais raspados pelo [Querido Diário](https://github.com/okfn-brasil/querido-diario). 
