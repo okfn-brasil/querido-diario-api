@@ -146,14 +146,14 @@ async def get_gazettes(
     since: Optional[date] = Query(
         None,
         title="Since date",
-        description="YYYY-MM-DD. Look for gazettes where the date is greater or equal than given date ", 
-        #remove long description sin is not visible in swagger
+        description="YYYY-MM-DD. Look for gazettes where the date is greater or equal than given date ",
+        # remove long description sin is not visible in swagger
     ),
     until: Optional[date] = Query(
         None,
         title="Until date",
         description="YYYY-MM-DD. Look for gazettes where the date is less or equal than given date",
-        #remove long description sin is not visible in swagger
+        # remove long description sin is not visible in swagger
     ),
     querystring: Optional[str] = Query(
         None,
