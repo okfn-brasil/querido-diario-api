@@ -1,4 +1,5 @@
 import abc
+from datetime import date
 from typing import List
 from enum import Enum, unique
 
@@ -12,10 +13,10 @@ class GazetteRequest:
 
     def __init__(
         self,
-        territory_id=None,
-        since=None,
-        until=None,
-        keywords=None,
+        territory_id: str = None,
+        since: date = None,
+        until: date = None,
+        querystring: str = None,
         offset: int = 0,
         size: int = 10,
         fragment_size: int = 150,
@@ -27,7 +28,7 @@ class GazetteRequest:
         self.territory_id = territory_id
         self.since = since
         self.until = until
-        self.keywords = keywords
+        self.querystring = querystring
         self.offset = offset
         self.size = size
         self.fragment_size = fragment_size
@@ -116,7 +117,7 @@ class GazetteAccess(GazetteAccessInterface):
         territory_id = filters.territory_id if filters is not None else None
         since = filters.since if filters is not None else None
         until = filters.until if filters is not None else None
-        keywords = filters.keywords if filters is not None else []
+        querystring = filters.querystring if filters is not None else ""
         offset = filters.offset if filters is not None else 0
         size = filters.size if filters is not None else 10
         fragment_size = filters.fragment_size if filters is not None else 150
@@ -128,7 +129,7 @@ class GazetteAccess(GazetteAccessInterface):
             territory_id=territory_id,
             since=since,
             until=until,
-            keywords=keywords,
+            querystring=querystring,
             offset=offset,
             size=size,
             fragment_size=fragment_size,

@@ -100,7 +100,7 @@ def trigger_gazettes_search(
     territory_id: str = None,
     since: date = None,
     until: date = None,
-    keywords: List[str] = None,
+    querystring: str = None,
     offset: int = 0,
     size: int = 10,
     fragment_size: int = 150,
@@ -114,7 +114,7 @@ def trigger_gazettes_search(
             territory_id,
             since=since,
             until=until,
-            keywords=keywords,
+            querystring=querystring,
             offset=offset,
             size=size,
             fragment_size=fragment_size,
@@ -155,10 +155,10 @@ async def get_gazettes(
         description="YYYY-MM-DD. Look for gazettes where the date is less or equal than given date",
         #remove long description sin is not visible in swagger
     ),
-    keywords: Optional[List[str]] = Query(
+    querystring: Optional[str] = Query(
         None,
-        title="Keywords should be present in the gazette",
-        description="Look for gazettes containing the given keywords",
+        title="Content should be present in the gazette according to querystring",
+        description="Search for content in gazettes using Apache Lucene query syntax",
     ),
     offset: Optional[int] = Query(
         0, title="Offset", description="Number of item to skip in the result search",
@@ -198,7 +198,7 @@ async def get_gazettes(
         None,
         since,
         until,
-        keywords,
+        querystring,
         offset,
         size,
         fragment_size,
@@ -213,7 +213,7 @@ async def get_gazettes(
     "/gazettes/{territory_id}",
     response_model=GazetteSearchResponse,
     name="Get gazettes by territory ID",
-    description="Get gazettes from specific city by date and keywords",
+    description="Get gazettes from specific city by date and querystring",
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
@@ -229,10 +229,10 @@ async def get_gazettes_by_territory_id(
         title="Until date",
         description="YYYY-MM-DD. Look for gazettes where the date is less or equal than given date",
     ),
-    keywords: Optional[List[str]] = Query(
+    querystring: Optional[str] = Query(
         None,
-        title="Keywords should be present in the gazette",
-        description="Look for gazettes containing the given keywords",
+        title="Content should be present in the gazette according to querystring",
+        description="Search for content in gazettes using Apache Lucene query syntax",
     ),
     offset: Optional[int] = Query(
         0, title="Offset", description="Number of item to skip in the result search",
@@ -272,7 +272,7 @@ async def get_gazettes_by_territory_id(
         territory_id,
         since,
         until,
-        keywords,
+        querystring,
         offset,
         size,
         fragment_size,

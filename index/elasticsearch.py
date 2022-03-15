@@ -25,32 +25,32 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             date_query["date"]["gte"] = since.strftime("%Y-%m-%d")
         if until is not None:
             date_query["date"]["lte"] = until.strftime("%Y-%m-%d")
-        query["must"].append({"range": date_query})
+        query["filter"].append({"range": date_query})
 
     def build_territory_query(self, query, territory_id=None):
         if territory_id is not None:
-            query["must"].append({"term": {"territory_id": territory_id}})
+            query["filter"].append({"term": {"territory_id": territory_id}})
+
+    def build_simple_query_string_query(self, query, querystring=None):
+        if querystring is not None:
+            query["must"].append(
+                {
+                    "simple_query_string": {
+                        "query": querystring,
+                        "fields": [self.GAZETTE_CONTENT_FIELD],
+                    }
+                }
+            )
 
     def build_sort_query(self, query, order):
         query["sort"] = [{"date": {"order": order}}]
 
-    def build_match_query(self, query, keywords):
-        if keywords is not None and len(keywords) > 0:
-            query["should"].append(
-                {
-                    "match": {
-                        self.GAZETTE_CONTENT_FIELD: {
-                            "query": " ".join(keywords),
-                            "operator": "AND",
-                        }
-                    }
-                }
-            )
-            query["minimum_should_match"] = len(query["should"])
-
-    def build_must_query(self, query, territory_id=None, since=None, until=None):
+    def build_filter_query(self, query, territory_id=None, since=None, until=None):
         self.build_date_query(query, since, until)
         self.build_territory_query(query, territory_id)
+
+    def build_must_query(self, query, querystring=None):
+        self.build_simple_query_string_query(query, querystring)
 
     def add_pagination_fields(self, query, offset, size):
         query["from"] = offset
@@ -76,33 +76,33 @@ class ElasticSearchDataMapper(GazetteDataGateway):
         territory_id: str = None,
         since: date = None,
         until: date = None,
-        keywords: list = None,
+        querystring: str = None,
         offset: int = 0,
         size: int = 10,
         fragment_size: int = 150,
         number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
-        sort_by: str = "descending_date",
+        sort_by: str = "relevance",
     ):
         if (
             territory_id is None
             and since is None
             and until is None
-            and keywords is None
+            and querystring is None
         ):
             return {"query": {"match_none": {}}}
 
         query = {
+            "filter": [],
             "must": [],
-            "should": [],
         }
-        self.build_must_query(query, territory_id, since, until)
-        self.build_match_query(query, keywords)
+        self.build_filter_query(query, territory_id, since, until)
+        self.build_must_query(query, querystring)
         query = {"query": {"bool": query}}
         self.add_pagination_fields(query, offset, size)
 
-        if sort_by == "descending_date":
+        if sort_by == "descending_date" or querystring is None:
             self.build_sort_query(query, "desc")
         elif sort_by == "ascending_date":
             self.build_sort_query(query, "asc")
@@ -138,12 +138,12 @@ class ElasticSearchDataMapper(GazetteDataGateway):
 
     def get_gazettes(
         self,
-        territory_id=None,
-        since=None,
-        until=None,
-        keywords=None,
-        offset=0,
-        size=10,
+        territory_id: str = None,
+        since: date = None,
+        until: date = None,
+        querystring: str = None,
+        offset: int = 0,
+        size: int = 10,
         fragment_size: int = 150,
         number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
@@ -154,7 +154,7 @@ class ElasticSearchDataMapper(GazetteDataGateway):
             territory_id,
             since,
             until,
-            keywords,
+            querystring,
             offset,
             size,
             fragment_size,
