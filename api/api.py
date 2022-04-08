@@ -107,7 +107,7 @@ def trigger_gazettes_search(
     number_of_fragments: int = 1,
     pre_tags: List[str] = [""],
     post_tags: List[str] = [""],
-    sort_by: SortBy = SortBy.DESCENDING_DATE,
+    sort_by: SortBy = SortBy.RELEVANCE,
 ):
     gazettes_count, gazettes = app.gazettes.get_gazettes(
         GazetteRequest(
@@ -189,7 +189,7 @@ async def get_gazettes(
         description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
     ),
     sort_by: Optional[SortBy] = Query(
-        SortBy.DESCENDING_DATE,
+        SortBy.RELEVANCE,
         title="Allow the user to define the order of the search results.",
         description="Allow the user to define the order of the search results. The API should allow 3 types: relevance, descending_date, ascending_date",
     ),
@@ -263,7 +263,7 @@ async def get_gazettes_by_territory_id(
         description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
     ),
     sort_by: Optional[SortBy] = Query(
-        SortBy.DESCENDING_DATE,
+        SortBy.RELEVANCE,
         title="Allow the user to define the order of the search results.",
         description="Allow the user to define the order of the search results. The API should allow 3 types: relevance, descending_date, ascending_date",
     ),
