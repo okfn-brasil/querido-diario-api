@@ -1,4 +1,5 @@
 import abc
+from datetime import date
 from typing import List
 from enum import Enum, unique
 
@@ -12,22 +13,22 @@ class GazetteRequest:
 
     def __init__(
         self,
-        territory_id=None,
-        since=None,
-        until=None,
-        keywords=None,
+        territory_id: str = None,
+        since: date = None,
+        until: date = None,
+        querystring: str = None,
         offset: int = 0,
         size: int = 10,
         fragment_size: int = 150,
         number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
-        sort_by: str = "descending_date",
+        sort_by: str = "relevance",
     ):
         self.territory_id = territory_id
         self.since = since
         self.until = until
-        self.keywords = keywords
+        self.querystring = querystring
         self.offset = offset
         self.size = size
         self.fragment_size = fragment_size
@@ -54,7 +55,7 @@ class GazetteDataGateway(abc.ABC):
         number_of_fragments: int = 1,
         pre_tags: List[str] = [""],
         post_tags: List[str] = [""],
-        sort_by: str = "descending_date",
+        sort_by: str = "relevance",
     ):
         """
         Method to get the gazette from storage
@@ -116,19 +117,19 @@ class GazetteAccess(GazetteAccessInterface):
         territory_id = filters.territory_id if filters is not None else None
         since = filters.since if filters is not None else None
         until = filters.until if filters is not None else None
-        keywords = filters.keywords if filters is not None else []
+        querystring = filters.querystring if filters is not None else ""
         offset = filters.offset if filters is not None else 0
         size = filters.size if filters is not None else 10
         fragment_size = filters.fragment_size if filters is not None else 150
         number_of_fragments = filters.number_of_fragments if filters is not None else 1
         pre_tags = filters.pre_tags if filters is not None else [""]
         post_tags = filters.post_tags if filters is not None else [""]
-        sort_by = filters.sort_by if filters is not None else "descending_date"
+        sort_by = filters.sort_by if filters is not None else "relevance"
         total_number_gazettes, gazettes = self._index_gateway.get_gazettes(
             territory_id=territory_id,
             since=since,
             until=until,
-            keywords=keywords,
+            querystring=querystring,
             offset=offset,
             size=size,
             fragment_size=fragment_size,

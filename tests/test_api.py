@@ -47,7 +47,7 @@ class ApiGazettesEndpointTests(TestCase):
         )
         self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
         self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].keywords)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].offset)
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].size)
 
@@ -104,7 +104,7 @@ class ApiGazettesEndpointTests(TestCase):
         self.assertIsNone(interface.get_gazettes.call_args.args[0].territory_id)
         self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
         self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].keywords)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].offset)
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].size)
 
@@ -202,34 +202,40 @@ class ApiGazettesEndpointTests(TestCase):
             response.json(), {"total_gazettes": 0, "gazettes": []},
         )
 
-    def test_gazettes_endpoint_should_accept_query_keywords_date(self):
+    def test_gazettes_endpoint_should_accept_query_querystring_date(self):
         configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
         client = TestClient(app)
         response = client.get(
-            "/gazettes/4205902", params={"keywords": ["keyword1" "keyword2"]}
+            "/gazettes/4205902", params={"querystring": "keyword1 keyword2"}
         )
         self.assertEqual(response.status_code, 200)
-        response = client.get("/gazettes/4205902", params={"keywords": []})
+        response = client.get("/gazettes/4205902", params={"querystring": []})
         self.assertEqual(response.status_code, 200)
 
-    def test_get_gazettes_should_forwards_keywords_to_interface_object(self):
+    def test_get_gazettes_should_forward_querystring_to_interface_object(self):
         interface = self.create_mock_gazette_interface()
         configure_api_app(interface, MockSuggestionService())
         client = TestClient(app)
 
         response = client.get(
-            "/gazettes/4205902", params={"keywords": ["keyword1", 1, True]}
+            "/gazettes/4205902", params={"querystring": "keyword1 1 True"}
         )
         interface.get_gazettes.assert_called_once()
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].keywords, ["keyword1", "1", "True"]
+            interface.get_gazettes.call_args.args[0].querystring, "keyword1 1 True"
         )
 
         interface = self.create_mock_gazette_interface()
         configure_api_app(interface, MockSuggestionService())
-        response = client.get("/gazettes/4205902", params={"keywords": []})
+        response = client.get("/gazettes/4205902", params={"querystring": None})
         interface.get_gazettes.assert_called_once()
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].keywords)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
+
+        interface = self.create_mock_gazette_interface()
+        configure_api_app(interface, MockSuggestionService())
+        response = client.get("/gazettes/4205902", params={"querystring": ""})
+        interface.get_gazettes.assert_called_once()
+        self.assertEqual(interface.get_gazettes.call_args.args[0].querystring, "")
 
     def test_gazettes_without_territory_endpoint__should_accept_query_since_date(self):
         configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())

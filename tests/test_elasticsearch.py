@@ -64,13 +64,16 @@ class ElasticSearchBaseTestCase(TestCase):
         self,
         since=None,
         until=None,
-        keywords=None,
+        querystring=None,
         territory_id=None,
         offset=0,
         size=10,
     ):
+        if not (since or until or territory_id or querystring):
+            return {"query": {"match_none": {}}}
+
         query = {
-            "query": {"bool": {"must": [], "should": [],}},
+            "query": {"bool": {"filter": [], "must": []}},
             "from": offset,
             "size": size,
             "sort": [{"date": {"order": "desc"}}],
@@ -93,15 +96,21 @@ class ElasticSearchBaseTestCase(TestCase):
         if until:
             date_query["range"]["date"]["lte"] = until.strftime("%Y-%m-%d")
         if since or until:
-            query["query"]["bool"]["must"].append(date_query)
+            query["query"]["bool"]["filter"].append(date_query)
         if territory_id:
-            query["query"]["bool"]["must"].append(
+            query["query"]["bool"]["filter"].append(
                 {"term": {"territory_id": territory_id}}
             )
-        if since or until or territory_id:
-            return query
-
-        return {"query": {"match_none": {}}}
+        if querystring:
+            query["query"]["bool"]["must"].append(
+                {
+                    "simple_query_string": {
+                        "query": querystring,
+                        "fields": ["source_text"],
+                    }
+                }
+            )
+        return query
 
     def setUp(self):
         self.es_mock = self.create_patch("elasticsearch.Elasticsearch")
@@ -409,11 +418,11 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
             },
         ]
 
-    def assert_basic_function_calls(
+    def assert_query_body_is_correct(
         self,
         since=None,
         until=None,
-        keywords=None,
+        querystring=None,
         territory_id=None,
         offset=0,
         size=10,
@@ -421,7 +430,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         expected_query = self.build_expected_query(
             since=since,
             until=until,
-            keywords=keywords,
+            querystring=querystring,
             territory_id=territory_id,
             offset=offset,
             size=size,
@@ -434,15 +443,14 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
 
         gazettes = self._mapper.get_gazettes()[1]
 
-        self.assert_basic_function_calls()
+        self.assert_query_body_is_correct()
         self.assertEqual(0, len(gazettes))
 
     def test_return_gazette_objects(self):
-
         week_ago = date.today() - timedelta(days=7)
         day = timedelta(days=1)
         gazettes = self._mapper.get_gazettes(since=week_ago - day)[1]
-        self.assert_basic_function_calls(since=week_ago - day)
+        self.assert_query_body_is_correct(since=week_ago - day)
         self.assertGreater(len(gazettes), 0)
         for gazette in gazettes:
             self.assertIsInstance(gazette, Gazette)
@@ -451,7 +459,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         week_ago = date.today() - timedelta(days=7)
         day = timedelta(days=1)
         gazettes = self._mapper.get_gazettes(since=week_ago - day)[1]
-        self.assert_basic_function_calls(since=week_ago - day)
+        self.assert_query_body_is_correct(since=week_ago - day)
         for g in gazettes:
             self.assertIsInstance(g.territory_id, str)
             self.assertIsInstance(g.url, str)
@@ -473,7 +481,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
             )
             for d in self._data
         ]
-        self.assert_basic_function_calls(since=two_weeks_ago)
+        self.assert_query_body_is_correct(since=two_weeks_ago)
         self.assertGreater(len(gazettes), 0)
         self.assertGreater(gazettes[0].date, gazettes[-1].date)
 
@@ -481,33 +489,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         self._data = []
         self.set_mock_search_return()
 
-    def set_search_results_returned_by_date(
-        self, since=None, until=None, territory_id=None, keywords=None
-    ):
+    def set_search_results_should_be_returned(self, indices=[]):
         """
         Define the entries returned by the ES mock in the search method call and
         return a list of Gazettes object of those entries
         """
 
-        data = self._data
-        if since:
-            data = [
-                d
-                for d in data
-                if datetime.strptime(d["date"], "%Y-%m-%d").date() >= since
-            ]
-        if until:
-            data = [
-                d
-                for d in data
-                if datetime.strptime(d["date"], "%Y-%m-%d").date() <= until
-            ]
-        if territory_id:
-            data = [d for d in data if d["territory_id"] == territory_id]
-        if keywords:
-            for keyword in keywords:
-                data = [d for d in data if keyword in d["source_text"]]
-
+        data = [self._data[i] for i in indices]
         self._data = data
         self.set_mock_search_return()
 
@@ -529,60 +517,50 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         return expected_gazettes
 
     def test_search_gazettes_since_date(self):
+        expected_gazettes = self.set_search_results_should_be_returned(
+            indices=[0, 2, 4, 5]
+        )
         today = date.today()
-        expected_gazettes = self.set_search_results_returned_by_date(since=today)
-
         gazettes = self._mapper.get_gazettes(since=today)[1]
 
-        self.assert_basic_function_calls(since=today)
+        self.assert_query_body_is_correct(since=today)
         self.assertCountEqual(gazettes, expected_gazettes)
 
     def test_search_gazettes_until_date(self):
+        expected_gazettes = self.set_search_results_should_be_returned(
+            indices=[1, 3, 6, 7, 8, 9, 10, 11]
+        )
         yesterday = date.today() - timedelta(days=1)
-        expected_gazettes = self.set_search_results_returned_by_date(until=yesterday)
         gazettes = self._mapper.get_gazettes(until=yesterday)[1]
-        self.assert_basic_function_calls(until=yesterday)
+
+        self.assert_query_body_is_correct(until=yesterday)
         self.assertCountEqual(gazettes, expected_gazettes)
 
     def test_search_gazettes_by_territory_id(self):
-        expected_gazettes = self.set_search_results_returned_by_date(
-            territory_id=self.TERRITORY_ID1
+        expected_gazettes = self.set_search_results_should_be_returned(
+            indices=[0, 3, 5]
         )
         gazettes = self._mapper.get_gazettes(territory_id=self.TERRITORY_ID1)[1]
-        self.assert_basic_function_calls(territory_id=self.TERRITORY_ID1)
+        self.assert_query_body_is_correct(territory_id=self.TERRITORY_ID1)
         self.assertCountEqual(gazettes, expected_gazettes)
 
     def test_search_gazettes_by_territory_id_and_dates(self):
+        expected_gazettes = self.set_search_results_should_be_returned(
+            indices=[9, 10, 11]
+        )
         week_ago = date.today() - timedelta(days=7)
         day = timedelta(days=1)
-        expected_gazettes = self.set_search_results_returned_by_date(
-            territory_id=self.TERRITORY_ID4, since=week_ago - day, until=week_ago + day
-        )
         gazettes = self._mapper.get_gazettes(
             territory_id=self.TERRITORY_ID4, since=week_ago - day, until=week_ago + day
         )[1]
-        self.assert_basic_function_calls(
+        self.assert_query_body_is_correct(
             territory_id=self.TERRITORY_ID4, since=week_ago - day, until=week_ago + day
         )
         self.assertCountEqual(gazettes, expected_gazettes)
 
-    def test_get_gazettes_by_keywords(self):
-        expected_gazettes = self.set_search_results_returned_by_date(
-            keywords=["000.000.000-00"]
-        )
-        gazettes = self._mapper.get_gazettes(keywords=["000.000.000-00"])[1]
-        self.assertCountEqual(gazettes, expected_gazettes)
-
-        expected_gazettes = self.set_search_results_returned_by_date(
-            keywords=["anotherkeyword"]
-        )
-        gazettes = self._mapper.get_gazettes(keywords=["anotherkeyword"])[1]
-        self.assertCountEqual(gazettes, expected_gazettes)
-
-        expected_gazettes = self.set_search_results_returned_by_date(
-            keywords=["keyword1"]
-        )
-        gazettes = self._mapper.get_gazettes(keywords=["keyword1"])[1]
+    def test_get_gazettes_by_querystring(self):
+        expected_gazettes = self.set_search_results_should_be_returned(indices=[3])
+        gazettes = self._mapper.get_gazettes(querystring="anotherkeyword")[1]
         self.assertCountEqual(gazettes, expected_gazettes)
 
     def test_get_gazettes_by_invalid_since_date(self):
@@ -600,7 +578,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
     def test_from_and_size_fields(self):
         today = date.today()
         self._mapper.get_gazettes(until=today, offset=5, size=15)
-        self.assert_basic_function_calls(until=today, offset=5, size=15)
+        self.assert_query_body_is_correct(until=today, offset=5, size=15)
 
 
 def is_running_integration_tests():
@@ -727,7 +705,7 @@ class ElasticSearchDataMapperPaginationTest(ElasticSearchIntegrationBaseTestCase
         self,
         since=None,
         until=None,
-        keywords=None,
+        querystring=None,
         territory_id=None,
         offset=0,
         size=10,
@@ -735,7 +713,7 @@ class ElasticSearchDataMapperPaginationTest(ElasticSearchIntegrationBaseTestCase
         expected_query = self.build_expected_query(
             since=since,
             until=until,
-            keywords=keywords,
+            querystring=querystring,
             territory_id=territory_id,
             offset=offset,
             size=size,
@@ -851,9 +829,9 @@ class ElasticSearchDataMapperPaginationTest(ElasticSearchIntegrationBaseTestCase
 
 
 @skipUnless(is_running_integration_tests(), "Integration tests disable")
-class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
+class ElasticSearchDataMapperQuerystringTest(ElasticSearchIntegrationBaseTestCase):
 
-    INDEX = "gazettes_keywords"
+    INDEX = "gazettes_querystring"
 
     def generate_data(self):
         week_ago = date.today() - timedelta(days=7)
@@ -933,27 +911,152 @@ class ElasticSearchDataMapperKeywordTest(ElasticSearchIntegrationBaseTestCase):
             },
         ]
 
-    def test_get_gazettes_by_keywords_does_not_exist_return_nothing(self):
-        _, gazettes = self._mapper.get_gazettes(keywords=["wasd1234xxx"])
-        self.assertEqual(0, len(gazettes), msg="No gazettes should be return ")
-
-    def test_get_gazettes_return_only_documents_containing_all_keywords(self):
-        _, gazettes = self._mapper.get_gazettes(keywords=["prefeitura"])
+    def test_get_gazettes_should_not_error_with_malformed_querystring(self):
+        _, gazettes = self._mapper.get_gazettes(querystring="prefeitura + ´[")
         self.assertEqual(
             3,
             len(gazettes),
-            msg="3 gazettes should be returned because has the keyword 'prefeitura'",
+            msg="3 gazettes should contain the keyword 'prefeitura' and ignore the malformed end of the querystring: 'prefeitura + ´['",
         )
 
-        _, gazettes = self._mapper.get_gazettes(keywords=["piraporinha"])
+    def test_get_gazettes_by_keywords(self):
+        _, gazettes = self._mapper.get_gazettes(querystring="prefeitura")
+        self.assertEqual(
+            3, len(gazettes), msg="3 gazettes should contain the keyword 'prefeitura'",
+        )
+
+        _, gazettes = self._mapper.get_gazettes(querystring="foobar cafundo")
         self.assertEqual(
             3,
             len(gazettes),
-            msg="3 gazettes should be returned because has the keyword 'piraporinha'",
+            msg="3 gazettes should contain the keywords 'foobar' or 'cafundo'",
         )
 
-        _, gazettes = self._mapper.get_gazettes(keywords=["piraporinha", "cafundo"])
-        self.assertEqual(2, len(gazettes), msg="Only 2 gazettes should be return")
+        _, gazettes = self._mapper.get_gazettes(querystring="wasd1234xxx")
+        self.assertEqual(
+            0, len(gazettes), msg="0 gazettes should contain the word 'wasd1234xxx'"
+        )
+
+    def test_get_gazettes_by_phrase(self):
+        _, gazettes = self._mapper.get_gazettes(querystring='"content. prefeitura"')
+        self.assertEqual(
+            3,
+            len(gazettes),
+            msg="3 gazettes should contain the phrase 'content. prefeitura'",
+        )
+
+        _, gazettes = self._mapper.get_gazettes(
+            querystring='"content. prefeitura" cafundo'
+        )
+        self.assertEqual(
+            4,
+            len(gazettes),
+            msg="4 gazettes should contain the phrase 'content. prefeitura' or the word 'cafundo'",
+        )
+
+        _, gazettes = self._mapper.get_gazettes(
+            querystring='"content. prefeitura cafundo"'
+        )
+        self.assertEqual(
+            0,
+            len(gazettes),
+            msg="0 gazettes should contain the phrase 'content. prefeitura cafundo'",
+        )
+
+    def test_get_gazettes_by_negation_operator(self):
+        _, gazettes = self._mapper.get_gazettes(querystring="-piraporinha")
+        self.assertEqual(
+            1,
+            len(gazettes),
+            msg="1 gazette should not contain the keyword 'piraporinha'",
+        )
+
+        _, gazettes = self._mapper.get_gazettes(querystring="-gazette")
+        self.assertEqual(
+            0, len(gazettes), msg="0 gazettes should not contain the keyword 'gazette'",
+        )
+
+    def test_get_gazettes_by_prefix_operator(self):
+        _, gazettes = self._mapper.get_gazettes(querystring="gaz*")
+        self.assertEqual(
+            4, len(gazettes), msg="4 gazettes should contain words with prefix 'gaz'",
+        )
+
+        _, gazettes = self._mapper.get_gazettes(querystring="gazz*")
+        self.assertEqual(
+            0, len(gazettes), msg="0 gazettes should contain words with prefix 'gazz'",
+        )
+
+    def test_get_gazettes_by_fuzzy_operator(self):
+        _, gazettes = self._mapper.get_gazettes(querystring="foobiz~2")
+        self.assertEqual(
+            1,
+            len(gazettes),
+            msg="1 gazette should contain words similar to 'foobiz' at a maximum edit distance of 2",
+        )
+
+        _, gazettes = self._mapper.get_gazettes(querystring="foobiz~1")
+        self.assertEqual(
+            0,
+            len(gazettes),
+            msg="0 gazettes should contain words similar to 'foobiz' at a maximum edit distance of 1",
+        )
+
+    def test_get_gazettes_by_slop_operator(self):
+        _, gazettes = self._mapper.get_gazettes(
+            querystring='"prefeitura piraporinha"~1'
+        )
+        self.assertEqual(
+            1,
+            len(gazettes),
+            msg="1 gazette should contain the words 'prefeitura' and 'piraporinha' with 1 word between them at maximum",
+        )
+
+        _, gazettes = self._mapper.get_gazettes(
+            querystring='"prefeitura piraporinha"~2'
+        )
+        self.assertEqual(
+            2,
+            len(gazettes),
+            msg="2 gazettes should contain the words 'prefeitura' and 'piraporinha' with 2 words between them at maximum",
+        )
+
+    def test_get_gazettes_by_and_operator(self):
+        _, gazettes = self._mapper.get_gazettes(querystring="prefeitura + cafundo")
+        self.assertEqual(
+            1,
+            len(gazettes),
+            msg="1 gazette should contain both the keywords 'prefeitura' and 'cafundo'",
+        )
+
+    def test_get_gazettes_by_or_operator(self):
+        _, gazettes = self._mapper.get_gazettes(
+            querystring="(prefeitura + cafundo) | foobar"
+        )
+        self.assertEqual(
+            2,
+            len(gazettes),
+            msg="2 gazettes should contain both the keywords 'prefeitura' and 'cafundo' or the keyword 'foobar'",
+        )
+
+    def test_get_gazettes_by_precedence_operator(self):
+        _, gazettes = self._mapper.get_gazettes(
+            querystring="(prefeitura + xpto) | cafundo"
+        )
+        self.assertEqual(
+            3,
+            len(gazettes),
+            msg="3 gazettes should contain both the keywords 'prefeitura' and 'xpto' or the keyword 'cafundo'",
+        )
+
+        _, gazettes = self._mapper.get_gazettes(
+            querystring="prefeitura + (xpto | cafundo)"
+        )
+        self.assertEqual(
+            2,
+            len(gazettes),
+            msg="2 gazettes should contain the keyword 'prefeitura' and the keywords 'cafundo' or 'xpto'",
+        )
 
 
 class Elasticsearch(TestCase):

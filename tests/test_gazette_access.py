@@ -65,16 +65,16 @@ class GazetteAccessInterfacesTest(TestCase):
         territory_id = "1234"
         since = date.today()
         until = date.today() - timedelta(days=1)
-        keywords = ["cnpj", "bla", "foo", "bar"]
+        querystring = "cnpj bla foo bar"
         offset = 10
         size = 100
-        request = GazetteRequest(territory_id, since, until, keywords, offset, size)
+        request = GazetteRequest(territory_id, since, until, querystring, offset, size)
         self.assertEqual(
             territory_id, request.territory_id, msg="Territory ID is invalid"
         )
         self.assertEqual(since, request.since, msg="'Since' date is invalid")
         self.assertEqual(until, request.until, msg="'Until' date is invalid")
-        self.assertEqual(keywords, request.keywords, msg="Keywords are invalid")
+        self.assertEqual(querystring, request.querystring, msg="Querystring is invalid")
         self.assertEqual(offset, request.offset, msg="Offset are invalid")
         self.assertEqual(size, request.size, msg="Invalid number of items")
 
@@ -235,14 +235,14 @@ class GazetteAccessTest(TestCase):
             territory_id="4205902",
             since=None,
             until=None,
-            keywords=None,
+            querystring=None,
             offset=0,
             size=10,
             fragment_size=150,
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
-            sort_by="descending_date",
+            sort_by="relevance",
         )
 
     def test_should_foward_since_date_filter_to_gateway(self):
@@ -258,14 +258,14 @@ class GazetteAccessTest(TestCase):
             since=date.today(),
             until=None,
             territory_id=None,
-            keywords=None,
+            querystring=None,
             offset=0,
             size=10,
             fragment_size=150,
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
-            sort_by="descending_date",
+            sort_by="relevance",
         )
 
     def test_should_foward_until_date_filter_to_gateway(self):
@@ -281,38 +281,38 @@ class GazetteAccessTest(TestCase):
             until=date.today(),
             since=None,
             territory_id=None,
-            keywords=None,
+            querystring=None,
             offset=0,
             size=10,
             fragment_size=150,
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
-            sort_by="descending_date",
+            sort_by="relevance",
         )
 
-    def test_should_foward_keywords_filter_to_gateway(self):
+    def test_should_forward_querystring_filter_to_gateway(self):
         gazette_access = GazetteAccess(
             self.mock_data_gateway, self.mock_database_gateway
         )
-        keywords = ["foo", "bar", "zpto"]
+        querystring = "foo bar zpto"
         list(
-            self.gazette_access.get_gazettes(filters=GazetteRequest(keywords=keywords))[
-                1
-            ]
+            self.gazette_access.get_gazettes(
+                filters=GazetteRequest(querystring=querystring)
+            )[1]
         )
         self.mock_data_gateway.get_gazettes.assert_called_once_with(
             until=None,
             since=None,
             territory_id=None,
-            keywords=keywords,
+            querystring=querystring,
             offset=0,
             size=10,
             fragment_size=150,
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
-            sort_by="descending_date",
+            sort_by="relevance",
         )
 
     def test_should_foward_page_fields_filter_to_gateway(self):
@@ -328,14 +328,14 @@ class GazetteAccessTest(TestCase):
             until=None,
             since=None,
             territory_id=None,
-            keywords=None,
+            querystring=None,
             offset=10,
             size=100,
             fragment_size=150,
             number_of_fragments=1,
             pre_tags=[""],
             post_tags=[""],
-            sort_by="descending_date",
+            sort_by="relevance",
         )
 
 
