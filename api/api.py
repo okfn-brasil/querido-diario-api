@@ -158,7 +158,7 @@ async def get_gazettes(
     querystring: Optional[str] = Query(
         None,
         title="Content should be present in the gazette according to querystring",
-        description="Search for content in gazettes using Apache Lucene query syntax",
+        description="Search for content in gazettes using ElasticSearch's 'simple query string syntax'",
     ),
     offset: Optional[int] = Query(
         0, title="Offset", description="Number of item to skip in the result search",
@@ -232,7 +232,7 @@ async def get_gazettes_by_territory_id(
     querystring: Optional[str] = Query(
         None,
         title="Content should be present in the gazette according to querystring",
-        description="Search for content in gazettes using Apache Lucene query syntax",
+        description="Search for content in gazettes using ElasticSearch's 'simple query string syntax'",
     ),
     offset: Optional[int] = Query(
         0, title="Offset", description="Number of item to skip in the result search",
