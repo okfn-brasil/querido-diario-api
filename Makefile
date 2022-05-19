@@ -14,6 +14,14 @@ ELASTICSEARCH_PORT2 ?= 9300
 POD_NAME ?= querido-diario-api
 DATABASE_CONTAINER_NAME ?= $(POD_NAME)-db
 ELASTICSEARCH_CONTAINER_NAME ?= $(POD_NAME)-elasticsearch
+# Database info user to run the tests
+POSTGRES_USER ?= companies
+POSTGRES_PASSWORD ?= companies
+POSTGRES_DB ?= companiesdb
+POSTGRES_HOST ?= localhost
+POSTGRES_PORT ?= 5432
+POSTGRES_IMAGE ?= docker.io/postgres:10
+DATABASE_RESTORE_FILE ?= contrib/data/queridodiariodb.tar
 # Run integration tests. Run local elasticsearch to validate the iteration
 RUN_INTEGRATION_TESTS ?= 0
 
@@ -21,9 +29,6 @@ API_PORT := 8080
 
 run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--pod $(POD_NAME) \
-	--env QUERIDO_DIARIO_ELASTICSEARCH_INDEX=$(QUERIDO_DIARIO_ELASTICSEARCH_INDEX) \
-	--env QUERIDO_DIARIO_ELASTICSEARCH_HOST=$(QUERIDO_DIARIO_ELASTICSEARCH_HOST) \
-	--env QUERIDO_DIARIO_DATABASE_CSV=$(QUERIDO_DIARIO_DATABASE_CSV) \
 	--env PYTHONPATH=/mnt/code \
 	--env RUN_INTEGRATION_TESTS=$(RUN_INTEGRATION_TESTS) \
 	--env-file config/current.env \
@@ -71,9 +76,10 @@ destroy-pod:
 create-pod: destroy-pod
 	cp --no-clobber config/sample.env config/current.env
 	podman pod create --publish $(API_PORT):$(API_PORT) \
-		--publish $(ELASTICSEARCH_PORT1):$(ELASTICSEARCH_PORT1) \
-		--publish $(ELASTICSEARCH_PORT2):$(ELASTICSEARCH_PORT2) \
-		--name $(POD_NAME)
+	  --publish $(ELASTICSEARCH_PORT1):$(ELASTICSEARCH_PORT1) \
+	  --publish $(ELASTICSEARCH_PORT2):$(ELASTICSEARCH_PORT2) \
+	  --publish $(POSTGRES_PORT):$(POSTGRES_PORT) \
+	  --name $(POD_NAME)
 
 set-test-variables:
 	$(eval POD_NAME=test-$(POD_NAME))
@@ -95,14 +101,14 @@ retest: set-test-variables black
 	$(call run-command,  python -m unittest discover tests)
 
 .PHONY: test-all
-test-all: set-integration-test-variables create-pod elasticsearch retest
+test-all: set-integration-test-variables create-pod elasticsearch database retest
 
 .PHONY: test-shell
 test-shell: set-test-variables
 	$(call run-command, bash)
 
 .PHONY: coverage
-coverage: set-test-variables create-pod elasticsearch
+coverage: set-test-variables create-pod elasticsearch database
 	$(call run-command, coverage erase)
 	$(call run-command, coverage run -m unittest tests)
 	$(call run-command, coverage report -m)
@@ -115,7 +121,7 @@ shell:
 		bash
 
 .PHONY: run
-run: create-pod elasticsearch load-data rerun
+run: create-pod elasticsearch database load-data rerun
 
 .PHONY:load-data
 load-data:
@@ -123,7 +129,7 @@ load-data:
 
 
 .PHONY: rerun
-rerun: wait-elasticsearch
+rerun: wait-elasticsearch wait-database
 	$(call run-command, python main)
 
 .PHONY: runshell
@@ -145,3 +151,31 @@ stop-elasticsearch:
 
 wait-elasticsearch:
 	$(call wait-for, localhost:9200)
+
+.PHONY: stop-database
+stop-database:
+	podman rm --force --ignore $(DATABASE_CONTAINER_NAME)
+
+.PHONY: database
+database: stop-database start-database wait-database
+
+start-database:
+	podman run -d --rm -ti \
+		--name $(DATABASE_CONTAINER_NAME) \
+		--pod $(POD_NAME) \
+		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+		-e POSTGRES_USER=$(POSTGRES_USER) \
+		-e POSTGRES_DB=$(POSTGRES_DB) \
+		$(POSTGRES_IMAGE)
+
+wait-database:
+	$(call wait-for, localhost:5432)
+
+load-database:
+ifneq ("$(wildcard $(DATABASE_RESTORE_FILE))","")
+	podman cp $(DATABASE_RESTORE_FILE) $(DATABASE_CONTAINER_NAME):/mnt/dump_file
+	podman exec $(DATABASE_CONTAINER_NAME) bash -c "pg_restore -v -c -h localhost -U $(POSTGRES_USER) -d $(POSTGRES_DB) /mnt/dump_file || true"
+else
+	@echo "cannot restore because file does not exists '$(DATABASE_RESTORE_FILE)'"
+	@exit 1
+endif

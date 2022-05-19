@@ -45,6 +45,11 @@ class Configuration:
         self.suggestion_mailjet_custom_id = os.environ.get(
             "QUERIDO_DIARIO_SUGGESTION_MAILJET_CUSTOM_ID", ""
         )
+        self.companies_database_host = os.environ.get("POSTGRES_HOST", "")
+        self.companies_database_db = os.environ.get("POSTGRES_DB", "")
+        self.companies_database_user = os.environ.get("POSTGRES_USER", "")
+        self.companies_database_pass = os.environ.get("POSTGRES_PASSWORD", "")
+        self.companies_database_port = os.environ.get("POSTGRES_PORT", "")
 
     @classmethod
     def _load_list(cls, key, default=[]):

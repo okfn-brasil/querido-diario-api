@@ -10,7 +10,7 @@ from gazettes import (
     OpennessLevel,
     GazetteRequest,
     GazetteDataGateway,
-    DatabaseInterface,
+    CitiesDatabaseInterface,
     Gazette,
     create_gazettes_interface,
 )
@@ -21,7 +21,7 @@ class DummyDataGateway:
     pass
 
 
-@DatabaseInterface.register
+@CitiesDatabaseInterface.register
 class DummyDatabaseGateway:
     pass
 

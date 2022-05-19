@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from api import app, configure_api_app
 from gazettes import GazetteAccessInterface, GazetteRequest
 from suggestions import Suggestion, SuggestionSent, SuggestionServiceInterface
+from companies import CompaniesAccessInterface
 
 
 @GazetteAccessInterface.register
@@ -16,6 +17,11 @@ class MockGazetteAccessInterface:
 
 @SuggestionServiceInterface.register
 class MockSuggestionService:
+    pass
+
+
+@CompaniesAccessInterface.register
+class MockCompaniesAccessInterface:
     pass
 
 
@@ -31,14 +37,22 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_api_should_fail_when_try_to_set_any_object_as_gazettes_interface(self):
         with self.assertRaises(Exception):
-            configure_api_app(MagicMock(), MockSuggestionService())
+            configure_api_app(
+                MagicMock(), MockSuggestionService(), MockCompaniesAccessInterface()
+            )
 
     def test_api_should_not_fail_when_try_to_set_any_object_as_gazettes_interface(self):
-        configure_api_app(MockGazetteAccessInterface(), MockSuggestionService())
+        configure_api_app(
+            MockGazetteAccessInterface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
 
     def test_gazettes_endpoint_should_accept_territory_id_in_the_path(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/gazettes/4205902")
         self.assertEqual(response.status_code, 200)
@@ -52,7 +66,11 @@ class ApiGazettesEndpointTests(TestCase):
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].size)
 
     def test_gazettes_endpoint_should_accept_query_since_date(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get(
             "/gazettes/4205902", params={"since": date.today().strftime("%Y-%m-%d")}
@@ -60,7 +78,11 @@ class ApiGazettesEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_gazettes_endpoint_should_accept_query_until_date(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get(
             "/gazettes/4205902", params={"until": date.today().strftime("%Y-%m-%d")}
@@ -68,19 +90,31 @@ class ApiGazettesEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_gazettes_endpoint_should_fail_with_invalid_since_value(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get("/gazettes/4205902", params={"since": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
     def test_gazettes_endpoint_should_fail_with_invalid_until_value(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get("/gazettes/4205902", params={"until": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
     def test_gazettes_endpoint_should_fail_with_invalid_pagination_data(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get(
             "/gazettes/4205902", params={"offset": "asfasdasd", "size": "10"}
@@ -97,7 +131,9 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_get_gazettes_without_territory_id_should_be_fine(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/gazettes/")
         self.assertEqual(response.status_code, 200)
@@ -110,7 +146,9 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_get_gazettes_should_request_gazettes_to_interface_object(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/gazettes/4205902")
         self.assertEqual(response.status_code, 200)
@@ -118,7 +156,9 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_get_gazettes_should_forward_gazettes_filters_to_interface_object(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get(
             "/gazettes/4205902",
@@ -160,7 +200,9 @@ class ApiGazettesEndpointTests(TestCase):
                 ],
             )
         )
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/gazettes/4205902")
         interface.get_gazettes.assert_called_once()
@@ -190,7 +232,9 @@ class ApiGazettesEndpointTests(TestCase):
     def test_get_gazettes_should_return_empty_list_when_no_gazettes_is_found(self):
         today = date.today()
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/gazettes/4205902")
         interface.get_gazettes.assert_called_once()
@@ -203,7 +247,11 @@ class ApiGazettesEndpointTests(TestCase):
         )
 
     def test_gazettes_endpoint_should_accept_query_querystring_date(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get(
             "/gazettes/4205902", params={"querystring": "keyword1 keyword2"}
@@ -214,7 +262,9 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_get_gazettes_should_forward_querystring_to_interface_object(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
 
         response = client.get(
@@ -226,19 +276,27 @@ class ApiGazettesEndpointTests(TestCase):
         )
 
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         response = client.get("/gazettes/4205902", params={"querystring": None})
         interface.get_gazettes.assert_called_once()
         self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
 
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         response = client.get("/gazettes/4205902", params={"querystring": ""})
         interface.get_gazettes.assert_called_once()
         self.assertEqual(interface.get_gazettes.call_args.args[0].querystring, "")
 
     def test_gazettes_without_territory_endpoint__should_accept_query_since_date(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get(
             "/gazettes", params={"since": date.today().strftime("%Y-%m-%d")}
@@ -246,7 +304,11 @@ class ApiGazettesEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_gazettes_without_territory_endpoint__should_accept_query_until_date(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get(
             "/gazettes", params={"until": date.today().strftime("%Y-%m-%d")}
@@ -256,7 +318,11 @@ class ApiGazettesEndpointTests(TestCase):
     def test_gazettes_without_territory_endpoint__should_fail_with_invalid_since_value(
         self,
     ):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get("/gazettes", params={"since": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
@@ -264,7 +330,11 @@ class ApiGazettesEndpointTests(TestCase):
     def test_gazettes_without_territory_endpoint__should_fail_with_invalid_until_value(
         self,
     ):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get("/gazettes", params={"until": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
@@ -273,7 +343,9 @@ class ApiGazettesEndpointTests(TestCase):
         self,
     ):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get(
             "/gazettes",
@@ -296,7 +368,9 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_api_should_forward_the_result_offset(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/gazettes", params={"offset": 0,},)
         self.assertEqual(response.status_code, 200)
@@ -306,13 +380,17 @@ class ApiGazettesEndpointTests(TestCase):
     @expectedFailure
     def test_configure_api_should_failed_with_invalid_root_path(self):
         configure_api_app(
-            MockGazetteAccessInterface(), MockSuggestionService(), api_root_path=1
+            MockGazetteAccessInterface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+            api_root_path=1,
         )
 
     def test_configure_api_root_path(self):
         configure_api_app(
             MockGazetteAccessInterface(),
             MockSuggestionService(),
+            MockCompaniesAccessInterface(),
             api_root_path="/api/v1",
         )
         self.assertEqual("/api/v1", app.root_path)
@@ -345,7 +423,9 @@ class ApiGazettesEndpointTests(TestCase):
                 ],
             )
         )
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/gazettes/4205902")
         interface.get_gazettes.assert_called_once()
@@ -410,7 +490,9 @@ class ApiGazettesEndpointTests(TestCase):
                 ],
             )
         )
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/gazettes/4205902")
         interface.get_gazettes.assert_called_once()
@@ -446,19 +528,31 @@ class ApiGazettesEndpointTests(TestCase):
         )
 
     def test_cities_endpoint_should_reject_request_without_partial_city_name(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get("/cities")
         self.assertNotEqual(response.status_code, 200)
 
     def test_cities_endpoint_should_accept_request_without_partial_city_name(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get("/cities", params={"city_name": "pirapo"})
         self.assertEqual(response.status_code, 200)
 
     def test_cities_should_return_some_city_info(self):
-        configure_api_app(self.create_mock_gazette_interface(), MockSuggestionService())
+        configure_api_app(
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
+        )
         client = TestClient(app)
         response = client.get("/cities", params={"city_name": "pirapo"})
         self.assertEqual(response.status_code, 200)
@@ -468,7 +562,9 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_cities_should_request_data_from_gazette_interface(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(interface, MockSuggestionService())
+        configure_api_app(
+            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        )
         client = TestClient(app)
         response = client.get("/cities", params={"city_name": "pirapo"})
         interface.get_cities.assert_called_once()
@@ -487,6 +583,7 @@ class ApiGazettesEndpointTests(TestCase):
                 ]
             ),
             MockSuggestionService(),
+            MockCompaniesAccessInterface(),
         )
         client = TestClient(app)
         response = client.get("/cities", params={"city_name": "pirapo"})
@@ -518,6 +615,7 @@ class ApiGazettesEndpointTests(TestCase):
                 }
             ),
             MockSuggestionService(),
+            MockCompaniesAccessInterface(),
         )
         client = TestClient(app)
         response = client.get("/cities/1234")
@@ -525,7 +623,9 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_city_endpoint_should_return_404_with_city_id_not_found(self):
         configure_api_app(
-            self.create_mock_gazette_interface(), MockSuggestionService(),
+            self.create_mock_gazette_interface(),
+            MockSuggestionService(),
+            MockCompaniesAccessInterface(),
         )
         client = TestClient(app)
         response = client.get("/cities/1234")
@@ -542,7 +642,7 @@ class ApiGazettesEndpointTests(TestCase):
             }
         )
         configure_api_app(
-            interface, MockSuggestionService(),
+            interface, MockSuggestionService(), MockCompaniesAccessInterface(),
         )
         client = TestClient(app)
         response = client.get("/cities/1234")
@@ -560,6 +660,7 @@ class ApiGazettesEndpointTests(TestCase):
                 }
             ),
             MockSuggestionService(),
+            MockCompaniesAccessInterface(),
         )
         client = TestClient(app)
         response = client.get("/cities/1234")
@@ -580,7 +681,11 @@ class ApiGazettesEndpointTests(TestCase):
 class ApiSuggestionsEndpointTests(TestCase):
     def setUp(self):
         self.suggestion_service = MockSuggestionService()
-        configure_api_app(MockGazetteAccessInterface(), self.suggestion_service)
+        configure_api_app(
+            MockGazetteAccessInterface(),
+            self.suggestion_service,
+            MockCompaniesAccessInterface(),
+        )
         self.client = TestClient(app)
 
     def test_suggestion_endpoint_should_send_email(self):
@@ -602,7 +707,11 @@ class ApiSuggestionsEndpointTests(TestCase):
         self,
     ):
         with self.assertRaises(Exception):
-            configure_api_app(MockGazetteAccessInterface(), MagicMock())
+            configure_api_app(
+                MockGazetteAccessInterface(),
+                MagicMock(),
+                MockCompaniesAccessInterface(),
+            )
 
     def test_suggestion_endpoint_should_fail_send_email(self):
         suggestion_sent = SuggestionSent(

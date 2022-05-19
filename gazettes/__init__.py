@@ -1,6 +1,6 @@
 from .gazette_access import (
     City,
-    DatabaseInterface,
+    CitiesDatabaseInterface,
     Gazette,
     GazetteAccess,
     GazetteAccessInterface,

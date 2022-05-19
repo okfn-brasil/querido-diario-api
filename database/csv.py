@@ -1,10 +1,10 @@
 import csv
 import os
 
-from gazettes import DatabaseInterface, City, OpennessLevel
+from gazettes import CitiesDatabaseInterface, City, OpennessLevel
 
 
-class CSVDatabase(DatabaseInterface):
+class CSVDatabase(CitiesDatabaseInterface):
     """
     A simple database interface implementation to allow load data from file.
     This is not intent to be used in production. But it can be used to avoid blocking
