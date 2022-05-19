@@ -86,9 +86,9 @@ class GazetteAccessInterface(abc.ABC):
         """
 
 
-class DatabaseInterface(abc.ABC):
+class CitiesDatabaseInterface(abc.ABC):
     """
-    Interface to access data from databases.
+    Interface to access cities' data from databases.
     """
 
     @abc.abstractmethod
@@ -253,14 +253,14 @@ class Gazette:
 
 
 def create_gazettes_interface(
-    index_gateway: GazetteDataGateway, database_gateway: DatabaseInterface
+    index_gateway: GazetteDataGateway, database_gateway: CitiesDatabaseInterface
 ):
     if not isinstance(index_gateway, GazetteDataGateway):
         raise Exception(
             "Data gateway should implement the GazetteDataGateway interface"
         )
 
-    if not isinstance(database_gateway, DatabaseInterface):
+    if not isinstance(database_gateway, CitiesDatabaseInterface):
         raise Exception(
             "Database gateway should implement the DatabaseInterface interface"
         )

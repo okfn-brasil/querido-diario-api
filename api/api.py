@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from gazettes import GazetteAccessInterface, GazetteRequest
 from suggestions import Suggestion, SuggestionServiceInterface
+from companies import InvalidCNPJException, CompaniesAccessInterface
 from config.config import load_configuration
 
 config = load_configuration()
@@ -94,6 +95,77 @@ class CreateSuggestionBody(BaseModel):
 
 class CreatedSuggestionResponse(BaseModel):
     status: str
+
+
+class Company(BaseModel):
+    cnpj_basico: str
+    cnpj_ordem: str
+    cnpj_dv: str
+    cnpj_completo: str
+    cnpj_completo_apenas_numeros: str
+    identificador_matriz_filial: Optional[str]
+    nome_fantasia: Optional[str]
+    situacao_cadastral: Optional[str]
+    data_situacao_cadastral: Optional[str]
+    motivo_situacao_cadastral: Optional[str]
+    nome_cidade_exterior: Optional[str]
+    data_inicio_atividade: Optional[str]
+    cnae_fiscal_secundario: Optional[str]
+    tipo_logradouro: Optional[str]
+    logradouro: Optional[str]
+    numero: Optional[str]
+    complemento: Optional[str]
+    bairro: Optional[str]
+    cep: Optional[str]
+    uf: Optional[str]
+    ddd_telefone_1: Optional[str]
+    ddd_telefone_2: Optional[str]
+    ddd_telefone_fax: Optional[str]
+    correio_eletronico: Optional[str]
+    situacao_especial: Optional[str]
+    data_situacao_especial: Optional[str]
+    pais: Optional[str]
+    municipio: Optional[str]
+    razao_social: Optional[str]
+    natureza_juridica: Optional[str]
+    qualificacao_do_responsavel: Optional[str]
+    capital_social: Optional[str]
+    porte: Optional[str]
+    ente_federativo_responsavel: Optional[str]
+    opcao_pelo_simples: Optional[str]
+    data_opcao_pelo_simples: Optional[str]
+    data_exclusao_pelo_simples: Optional[str]
+    opcao_pelo_mei: Optional[str]
+    data_opcao_pelo_mei: Optional[str]
+    data_exclusao_pelo_mei: Optional[str]
+    cnae: Optional[str]
+
+
+class CompanySearchResponse(BaseModel):
+    cnpj_info: Company
+
+
+class Partner(BaseModel):
+    cnpj_basico: str
+    cnpj_ordem: str
+    cnpj_dv: str
+    cnpj_completo: str
+    cnpj_completo_apenas_numeros: str
+    identificador_socio: Optional[str]
+    razao_social: Optional[str]
+    cnpj_cpf_socio: Optional[str]
+    qualificacao_socio: Optional[str]
+    data_entrada_sociedade: Optional[str]
+    pais_socio_estrangeiro: Optional[str]
+    numero_cpf_representante_legal: Optional[str]
+    nome_representante_legal: Optional[str]
+    qualificacao_representante_legal: Optional[str]
+    faixa_etaria: Optional[str]
+
+
+class PartnersSearchResponse(BaseModel):
+    total_partners: int
+    partners: List[Partner]
 
 
 def trigger_gazettes_search(
@@ -333,21 +405,67 @@ async def add_suggestion(response: Response, body: CreateSuggestionBody):
     return {"status": suggestion_sent.status}
 
 
+@app.get(
+    "/company/info/{cnpj:path}",
+    response_model=CompanySearchResponse,
+    name="Get company info by CNPJ number",
+    description="Get info from specific company by its CNPJ number.",
+    responses={
+        404: {"model": HTTPExceptionMessage, "description": "Company can't be found"},
+        400: {"model": HTTPExceptionMessage, "description": "CNPJ is not valid"},
+    },
+)
+async def get_company(cnpj: str = Path(..., description="Company's CNPJ number")):
+    try:
+        company_info = app.companies.get_company(cnpj)
+    except InvalidCNPJException as exc:
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+    if company_info is None:
+        return JSONResponse(status_code=404, content={"detail": "Company not found."})
+
+    return {"cnpj_info": company_info}
+
+
+@app.get(
+    "/company/partners/{cnpj:path}",
+    response_model=PartnersSearchResponse,
+    name="Get company's partners infos by CNPJ number",
+    description="Get info of partners of a company by its CNPJ number.",
+    responses={
+        400: {"model": HTTPExceptionMessage, "description": "CNPJ is not valid"},
+    },
+)
+async def get_partners(cnpj: str = Path(..., description="Company's CNPJ number")):
+    try:
+        total_partners, partners = app.companies.get_partners(cnpj)
+    except InvalidCNPJException as exc:
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+    return {"total_partners": total_partners, "partners": partners}
+
+
 def configure_api_app(
     gazettes: GazetteAccessInterface,
     suggestion_service: SuggestionServiceInterface,
+    companies: CompaniesAccessInterface,
     api_root_path=None,
 ):
     if not isinstance(gazettes, GazetteAccessInterface):
         raise Exception(
             "Only GazetteAccessInterface object are accepted for gazettes parameter"
         )
-    if api_root_path is not None and type(api_root_path) != str:
-        raise Exception("Invalid api_root_path")
     if not isinstance(suggestion_service, SuggestionServiceInterface):
         raise Exception(
             "Only SuggestionServiceInterface object are accepted for suggestion_service parameter"
         )
+    if not isinstance(companies, CompaniesAccessInterface):
+        raise Exception(
+            "Only CompaniesAccessInterface object are accepted for companies parameter"
+        )
+    if api_root_path is not None and type(api_root_path) != str:
+        raise Exception("Invalid api_root_path")
     app.gazettes = gazettes
     app.suggestion_service = suggestion_service
+    app.companies = companies
     app.root_path = api_root_path
