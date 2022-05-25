@@ -1,1 +1,1 @@
-from .elasticsearch import ElasticSearchDataMapper, create_elasticsearch_data_mapper
+from .elasticsearch import create_search_engine_interface, SearchEngineInterface

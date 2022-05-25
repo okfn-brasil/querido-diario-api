@@ -8,9 +8,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from gazettes import GazetteAccessInterface, GazetteRequest
+from cities import CityAccessInterface
 from suggestions import Suggestion, SuggestionServiceInterface
 from companies import InvalidCNPJException, CompaniesAccessInterface
 from config.config import load_configuration
+from themed_excerpts import ThemedExcerptAccessInterface, ThemedExcerptAccessInterface
+from themed_excerpts.themed_excerpt_access import ThemedExcerptRequest
 
 config = load_configuration()
 
@@ -35,15 +38,52 @@ class GazetteItem(BaseModel):
     url: str
     territory_name: str
     state_code: str
-    highlight_texts: List[str]
+    excerpts: List[str]
     edition: Optional[str]
     is_extra_edition: Optional[bool]
-    file_raw_txt: Optional[str]
+    txt_url: Optional[str]
 
 
 class GazetteSearchResponse(BaseModel):
     total_gazettes: int
     gazettes: List[GazetteItem]
+
+
+class ThemedExcerptItem(BaseModel):
+    territory_id: str
+    date: date
+    url: str
+    territory_name: str
+    state_code: str
+    excerpt: str
+    subthemes: List[str]
+    entities: Optional[List[str]]
+    edition: Optional[str]
+    is_extra_edition: Optional[bool]
+    txt_url: Optional[str]
+
+
+class ThemedExcerptSearchResponse(BaseModel):
+    total_excerpts: int
+    excerpts: List[ThemedExcerptItem]
+
+
+class ThemesSearchResponse(BaseModel):
+    themes: List[str]
+
+
+class SubthemesSearchResponse(BaseModel):
+    subthemes: List[str]
+
+
+class Entity(BaseModel):
+    entity_type: str
+    entity_type_description: str
+    entities: List[str]
+
+
+class EntitiesSearchResponse(BaseModel):
+    entities: List[Entity]
 
 
 @unique
@@ -86,10 +126,12 @@ class CreateSuggestionBody(BaseModel):
         title="Email address", description="Email address who is sending email"
     )
     name: str = Field(
-        title="Name", description="Name who is sending email",
+        title="Name",
+        description="Name who is sending email",
     )
     content: str = Field(
-        title="Email content", description="Email content with suggestion",
+        title="Email content",
+        description="Email content with suggestion",
     )
 
 
@@ -168,219 +210,258 @@ class PartnersSearchResponse(BaseModel):
     partners: List[Partner]
 
 
-def trigger_gazettes_search(
-    territory_id: str = None,
-    since: date = None,
-    until: date = None,
-    querystring: str = None,
-    offset: int = 0,
-    size: int = 10,
-    fragment_size: int = 150,
-    number_of_fragments: int = 1,
-    pre_tags: List[str] = [""],
-    post_tags: List[str] = [""],
-    sort_by: SortBy = SortBy.RELEVANCE,
-):
-    gazettes_count, gazettes = app.gazettes.get_gazettes(
-        GazetteRequest(
-            territory_id,
-            since=since,
-            until=until,
-            querystring=querystring,
-            offset=offset,
-            size=size,
-            fragment_size=fragment_size,
-            number_of_fragments=number_of_fragments,
-            pre_tags=pre_tags,
-            post_tags=post_tags,
-            sort_by=sort_by.value,
-        )
-    )
-    response = {
-        "total_gazettes": 0,
-        "gazettes": [],
-    }
-    if gazettes_count > 0 and gazettes:
-        response["gazettes"] = gazettes
-        response["total_gazettes"] = gazettes_count
-    return response
-
-
 @app.get(
-    "/gazettes/",
+    "/gazettes",
     response_model=GazetteSearchResponse,
-    name="Get gazettes",
-    description="Get gazettes by date and keyword",
+    name="Search for content in gazettes",
+    description="Search for content in published gazettes from available cities. Each search result is an individual gazette.",
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
 async def get_gazettes(
-    since: Optional[date] = Query(
+    territory_ids: List[str] = Query(
+        [],
+        description="Search in gazettes published by cities with the given 7-digit IBGE IDs (an empty field searches in all available cities).",
+    ),
+    since: date = Query(
         None,
-        title="Since date",
-        description="YYYY-MM-DD. Look for gazettes where the date is greater or equal than given date ",
-        # remove long description sin is not visible in swagger
+        description="Search in gazettes published on given date or after (format: YYYY-MM-DD).",
     ),
-    until: Optional[date] = Query(
+    until: date = Query(
         None,
-        title="Until date",
-        description="YYYY-MM-DD. Look for gazettes where the date is less or equal than given date",
-        # remove long description sin is not visible in swagger
+        description="Search in gazettes published on given date or before (format: YYYY-MM-DD).",
     ),
-    querystring: Optional[str] = Query(
-        None,
-        title="Content should be present in the gazette according to querystring",
-        description="Search for content in gazettes using ElasticSearch's 'simple query string syntax'",
+    querystring: str = Query(
+        "",
+        description='Search in gazettes using ElasticSearch\'s "simple query string syntax" (an empty field returns no excerpts, only the results metadata).',
     ),
-    offset: Optional[int] = Query(
-        0, title="Offset", description="Number of item to skip in the result search",
+    excerpt_size: int = Query(
+        500,
+        description="Maximum number of characters that an excerpt should display (use with caution).",
     ),
-    size: Optional[int] = Query(
-        10,
-        title="Number of item to return",
-        description="Define the number of item should be returned",
-    ),
-    fragment_size: Optional[int] = Query(
-        150,
-        title="Size of fragments (characters) of highlight to return.",
-        description="Define the fragments (characters) of highlight of the item should be returned",
-    ),
-    number_of_fragments: Optional[int] = Query(
+    number_of_excerpts: int = Query(
         1,
-        title="Number of fragments (blocks) of highlight to return.",
-        description="Define the number of fragments (blocks) of highlight should be returned",
+        description="Maximum number of excerpts of a gazette to be returned (use with caution).",
     ),
     pre_tags: List[str] = Query(
         [""],
-        title="Pre tags of fragments of highlight",
-        description="Pre tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear before the text which matches the query",
+        description="List of strings (usually HTML tags) to be inserted before the text which matches the query in the excerpts.",
     ),
     post_tags: List[str] = Query(
         [""],
-        title="Post tags of fragments of highlight.",
-        description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
+        description="List of strings (usually HTML tags) to be inserted after the text which matches the query in the excerpts.",
     ),
-    sort_by: Optional[SortBy] = Query(
+    size: int = Query(
+        10,
+        description="Maximum number of results to be returned in the response (use with caution).",
+    ),
+    offset: int = Query(
+        default=0,
+        description="Number of search results to be skipped in the response.",
+    ),
+    sort_by: SortBy = Query(
         SortBy.RELEVANCE,
-        title="Allow the user to define the order of the search results.",
-        description="Allow the user to define the order of the search results. The API should allow 3 types: relevance, descending_date, ascending_date",
+        description="How to sort the search results.",
     ),
 ):
-    return trigger_gazettes_search(
-        None,
-        since,
-        until,
-        querystring,
-        offset,
-        size,
-        fragment_size,
-        number_of_fragments,
-        pre_tags,
-        post_tags,
-        sort_by,
+    gazette_request = GazetteRequest(
+        territory_ids=territory_ids,
+        since=since,
+        until=until,
+        querystring=querystring,
+        excerpt_size=excerpt_size,
+        number_of_excerpts=number_of_excerpts,
+        pre_tags=pre_tags,
+        post_tags=post_tags,
+        size=size,
+        offset=offset,
+        sort_by=sort_by.value,
     )
+    gazettes_count, gazettes = app.gazettes.get_gazettes(gazette_request)
+    return {
+        "total_gazettes": gazettes_count,
+        "gazettes": gazettes,
+    }
 
 
 @app.get(
-    "/gazettes/{territory_id}",
-    response_model=GazetteSearchResponse,
-    name="Get gazettes by territory ID",
-    description="Get gazettes from specific city by date and querystring",
+    "/gazettes/by_theme/{theme}",
+    response_model=ThemedExcerptSearchResponse,
+    name="Search for content in gazette excerpts associated with a theme",
+    description="Search for content in excerpts from available cities that are related to an available theme. Each search result is an excerpt from a gazette.",
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses={
+        404: {"model": HTTPExceptionMessage, "description": "Theme not found."},
+    },
+)
+async def get_themed_excerpts(
+    theme: str = Path(
+        ...,
+        description="Search in excerpts from gazettes that are associated to the given theme.",
+    ),
+    entities: List[str] = Query(
+        [],
+        description="Search in excerpts which contains any of the given entities (entities are theme-specific).",
+    ),
+    subthemes: List[str] = Query(
+        [],
+        description="Search in excerpts which contains any of the given subthemes (subthemes are theme-specific).",
+    ),
+    territory_ids: List[str] = Query(
+        [],
+        description="Search in excerpts from gazettes published by cities with the given 7-digit IBGE IDs (an empty field searches in all available cities).",
+    ),
+    since: date = Query(
+        None,
+        description="Search in excerpts from gazettes published on given date or after (format: YYYY-MM-DD).",
+    ),
+    until: date = Query(
+        None,
+        description="Search in excerpts from gazettes published on given date or before (format: YYYY-MM-DD).",
+    ),
+    querystring: str = Query(
+        "",
+        description='Search in excerpts using ElasticSearch\'s "simple query string syntax".',
+    ),
+    pre_tags: List[str] = Query(
+        [""],
+        description="List of strings (usually HTML tags) to be inserted before the text which matches the query in the excerpts.",
+    ),
+    post_tags: List[str] = Query(
+        [""],
+        description="List of strings (usually HTML tags) to be inserted after the text which matches the query in the excerpts.",
+    ),
+    size: int = Query(
+        10,
+        description="Maximum number of results to be returned in the response (use with caution).",
+    ),
+    offset: int = Query(
+        default=0,
+        description="Number of search results to be skipped in the response.",
+    ),
+    sort_by: SortBy = Query(
+        SortBy.RELEVANCE,
+        description="How to sort the search results.",
+    ),
+):
+    themed_excerpt_request = ThemedExcerptRequest(
+        theme=theme,
+        entities=entities,
+        subthemes=subthemes,
+        territory_ids=territory_ids,
+        since=since,
+        until=until,
+        querystring=querystring,
+        pre_tags=pre_tags,
+        post_tags=post_tags,
+        size=size,
+        offset=offset,
+        sort_by=sort_by.value,
+    )
+    try:
+        excerpts_count, excerpts = app.themed_excerpts.get_themed_excerpts(
+            themed_excerpt_request
+        )
+    except Exception as exc:
+        return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+    return {
+        "total_excerpts": excerpts_count,
+        "excerpts": excerpts,
+    }
+
+
+@app.get(
+    "/gazettes/by_theme/themes/",
+    response_model=ThemesSearchResponse,
+    name="Get all available themes",
+    description="Get all available themes that can be used to search in gazettes by theme.",
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_gazettes_by_territory_id(
-    territory_id: str = Path(..., description="City's IBGE ID"),
-    since: Optional[date] = Query(
-        None,
-        title="Since date",
-        description="YYYY-MM-DD. Look for gazettes where the date is greater or equal than given date",
-    ),
-    until: Optional[date] = Query(
-        None,
-        title="Until date",
-        description="YYYY-MM-DD. Look for gazettes where the date is less or equal than given date",
-    ),
-    querystring: Optional[str] = Query(
-        None,
-        title="Content should be present in the gazette according to querystring",
-        description="Search for content in gazettes using ElasticSearch's 'simple query string syntax'",
-    ),
-    offset: Optional[int] = Query(
-        0, title="Offset", description="Number of item to skip in the result search",
-    ),
-    size: Optional[int] = Query(
-        10,
-        title="Number of item to return",
-        description="Define the number of item should be returned",
-    ),
-    fragment_size: Optional[int] = Query(
-        150,
-        title="Size of fragments (characters) of highlight to return.",
-        description="Define the fragments (characters)  of highlight of the item should be returned",
-    ),
-    number_of_fragments: Optional[int] = Query(
-        1,
-        title="Number of fragments (blocks) of highlight to return.",
-        description="Define the number of fragments (blocks) of highlight should be returned",
-    ),
-    pre_tags: List[str] = Query(
-        [""],
-        title="Pre tags of fragments of highlight",
-        description="Pre tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear before the text which matches the query",
-    ),
-    post_tags: List[str] = Query(
-        [""],
-        title="Post tags of fragments of highlight.",
-        description="Post tags of fragments of highlight. This is a list of strings (usually HTML tags) that will appear after the text which matches the query",
-    ),
-    sort_by: Optional[SortBy] = Query(
-        SortBy.RELEVANCE,
-        title="Allow the user to define the order of the search results.",
-        description="Allow the user to define the order of the search results. The API should allow 3 types: relevance, descending_date, ascending_date",
-    ),
-):
-    return trigger_gazettes_search(
-        territory_id,
-        since,
-        until,
-        querystring,
-        offset,
-        size,
-        fragment_size,
-        number_of_fragments,
-        pre_tags,
-        post_tags,
-        sort_by,
-    )
+async def get_available_themes():
+    themes = app.themed_excerpts.get_available_themes()
+    return {"themes": themes}
 
 
 @app.get(
-    "/cities/",
+    "/gazettes/by_theme/subthemes/{theme}",
+    response_model=SubthemesSearchResponse,
+    name="Get all available subthemes of a theme",
+    description="Get all available subthemes of a theme that can be used to search in gazettes by theme and further filtering by subthemes.",
+    responses={
+        404: {"model": HTTPExceptionMessage, "description": "Theme not found."},
+    },
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def get_available_subthemes(
+    theme: str = Path(
+        ...,
+        description="Theme that can be used to search in gazettes by theme.",
+    ),
+):
+    subthemes = app.themed_excerpts.get_available_subthemes(theme)
+    if subthemes is None:
+        return JSONResponse(status_code=404, content={"detail": "Theme not found."})
+    return {"subthemes": subthemes}
+
+
+@app.get(
+    "/gazettes/by_theme/entities/{theme}",
+    response_model=EntitiesSearchResponse,
+    name="Get all available entities of a theme",
+    description="Get all available entities of a theme that can be used to search in gazettes by theme and further filtering by entities.",
+    responses={
+        404: {"model": HTTPExceptionMessage, "description": "Theme not found."},
+    },
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def get_available_entities(
+    theme: str = Path(
+        ...,
+        description="Theme that can be used to search in gazettes by theme.",
+    ),
+):
+    entities = app.themed_excerpts.get_available_entities(theme)
+    if entities is None:
+        return JSONResponse(status_code=404, content={"detail": "Theme not found."})
+    return {"entities": entities}
+
+
+@app.get(
+    "/cities",
     response_model=CitiesSearchResponse,
-    name="Search for cities with name similar to the city_name query.",
-    description="Search for cities with name similar to the city_name query.",
+    name="Search for cities by name.",
+    description="Search for cities with a name similar to the city_name query.",
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_cities(city_name: str):
-    cities = app.gazettes.get_cities(city_name)
+async def get_cities(
+    city_name: Optional[str] = Query(
+        "",
+        description="Search for cities with a similar name (empty field returns all cities).",
+    )
+):
+    cities = app.cities.get_cities(city_name)
     return {"cities": cities}
 
 
 @app.get(
     "/cities/{territory_id}",
     response_model=CitySearchResponse,
-    name="Get city by territory ID",
-    description="Get general info from specific city by territory 7-digit IBGE ID.",
+    name="Get city by IBGE ID",
+    description="Get general info from specific city with 7-digit IBGE ID.",
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
-    responses={
-        404: {"model": HTTPExceptionMessage, "description": "City can't be found"}
-    },
+    responses={404: {"model": HTTPExceptionMessage, "description": "City not found"}},
 )
-async def get_city(territory_id: str = Path(..., description="City's IBGE ID")):
-    city_info = app.gazettes.get_city(territory_id)
+async def get_city(
+    territory_id: str = Path(..., description="City's 7-digit IBGE ID.")
+):
+    city_info = app.cities.get_city(territory_id)
     if city_info is None:
         return JSONResponse(status_code=404, content={"detail": "City not found."})
     return {"city": city_info}
@@ -396,7 +477,9 @@ async def get_city(territory_id: str = Path(..., description="City's IBGE ID")):
 )
 async def add_suggestion(response: Response, body: CreateSuggestionBody):
     suggestion = Suggestion(
-        email_address=body.email_address, name=body.name, content=body.content,
+        email_address=body.email_address,
+        name=body.name,
+        content=body.content,
     )
     suggestion_sent = app.suggestion_service.add_suggestion(suggestion)
     response.status_code = (
@@ -411,11 +494,15 @@ async def add_suggestion(response: Response, body: CreateSuggestionBody):
     name="Get company info by CNPJ number",
     description="Get info from specific company by its CNPJ number.",
     responses={
-        404: {"model": HTTPExceptionMessage, "description": "Company can't be found"},
-        400: {"model": HTTPExceptionMessage, "description": "CNPJ is not valid"},
+        404: {"model": HTTPExceptionMessage, "description": "Company not found."},
+        400: {"model": HTTPExceptionMessage, "description": "CNPJ is not valid."},
     },
 )
-async def get_company(cnpj: str = Path(..., description="Company's CNPJ number")):
+async def get_company(
+    cnpj: str = Path(
+        ..., description="Company's CNPJ number (may include non-digit characters)."
+    )
+):
     try:
         company_info = app.companies.get_company(cnpj)
     except InvalidCNPJException as exc:
@@ -430,13 +517,17 @@ async def get_company(cnpj: str = Path(..., description="Company's CNPJ number")
 @app.get(
     "/company/partners/{cnpj:path}",
     response_model=PartnersSearchResponse,
-    name="Get company's partners infos by CNPJ number",
+    name="Get company partners infos by CNPJ number",
     description="Get info of partners of a company by its CNPJ number.",
     responses={
-        400: {"model": HTTPExceptionMessage, "description": "CNPJ is not valid"},
+        400: {"model": HTTPExceptionMessage, "description": "CNPJ is not valid."},
     },
 )
-async def get_partners(cnpj: str = Path(..., description="Company's CNPJ number")):
+async def get_partners(
+    cnpj: str = Path(
+        ..., description="Company's CNPJ number (may include non-digit characters)."
+    )
+):
     try:
         total_partners, partners = app.companies.get_partners(cnpj)
     except InvalidCNPJException as exc:
@@ -447,6 +538,8 @@ async def get_partners(cnpj: str = Path(..., description="Company's CNPJ number"
 
 def configure_api_app(
     gazettes: GazetteAccessInterface,
+    themed_excerpts: ThemedExcerptAccessInterface,
+    cities: CityAccessInterface,
     suggestion_service: SuggestionServiceInterface,
     companies: CompaniesAccessInterface,
     api_root_path=None,
@@ -454,6 +547,14 @@ def configure_api_app(
     if not isinstance(gazettes, GazetteAccessInterface):
         raise Exception(
             "Only GazetteAccessInterface object are accepted for gazettes parameter"
+        )
+    if not isinstance(themed_excerpts, ThemedExcerptAccessInterface):
+        raise Exception(
+            "Only ThemedExcerptAccessInterface object are accepted for themed_excerpts parameter"
+        )
+    if not isinstance(cities, CityAccessInterface):
+        raise Exception(
+            "Only CityAccessInterface object are accepted for cities parameter"
         )
     if not isinstance(suggestion_service, SuggestionServiceInterface):
         raise Exception(
@@ -466,6 +567,8 @@ def configure_api_app(
     if api_root_path is not None and type(api_root_path) != str:
         raise Exception("Invalid api_root_path")
     app.gazettes = gazettes
+    app.themed_excerpts = themed_excerpts
+    app.cities = cities
     app.suggestion_service = suggestion_service
     app.companies = companies
     app.root_path = api_root_path

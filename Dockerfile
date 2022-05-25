@@ -12,5 +12,7 @@ ENV PYTHONPATH=/mnt/code
 
 ADD https://querido-diario.nyc3.cdn.digitaloceanspaces.com/censo/censo.csv censo.csv
 RUN chmod 644 censo.csv
+ADD https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json themes_config.json
+RUN chmod 644 themes_config.json
 
 USER gazette

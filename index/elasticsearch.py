@@ -1,181 +1,216 @@
-from datetime import date, datetime
-import json
-from typing import Dict, List
+import abc
+import re
+from datetime import date
+from enum import Enum, unique
+from typing import Dict, List, Union
 
 import elasticsearch
 
-from gazettes import GazetteDataGateway, Gazette
+
+class SearchEngineInterface(abc.ABC):
+    """
+    Interface to abstract the interaction with the index system
+    """
+
+    @abc.abstractmethod
+    def search(self, query: Dict, index: str = "", timeout: int = 30) -> Dict:
+        """
+        Searches the index with the provided elasticsearch_dsl.Search
+        """
+
+    @abc.abstractmethod
+    def index_exists(self, index: str) -> bool:
+        """
+        Checks if a specific index exists
+        """
 
 
-class ElasticSearchDataMapper(GazetteDataGateway):
-
-    GAZETTE_CONTENT_FIELD = "source_text"
-
-    def __init__(self, host: str, index: str):
-        self._index = index
+class ElasticSearch(SearchEngineInterface):
+    def __init__(self, host: str, default_index: str = ""):
         self._es = elasticsearch.Elasticsearch(hosts=[host])
-        if not self._es.indices.exists(index=self._index):
-            raise Exception("Index does not exist")
+        self._default_index = default_index
 
-    def build_date_query(self, query, since=None, until=None):
-        if since is None and until is None:
+    def search(self, query: Dict, index: str = "", timeout: int = 30) -> Dict:
+        index_name = self._get_index_name(index)
+        response = self._es.search(
+            index=index_name, body=query, request_timeout=timeout
+        )
+        return response
+
+    def index_exists(self, index: str) -> bool:
+        return self._es.indices.exists(index=index)
+
+    def _get_index_name(self, index: str) -> str:
+        index_name = index if self._is_valid_index_name(index) else self._default_index
+        if not self.index_exists(index_name):
+            raise Exception(f'Index "{index_name}" does not exist')
+        return index_name
+
+    def _is_valid_index_name(self, index: str) -> bool:
+        return isinstance(index, str) and len(index) > 0
+
+
+class QueryBuilderInterface(abc.ABC):
+    @abc.abstractmethod
+    def build_query(self, **kwargs) -> Dict:
+        """
+        Method to build queries using functionalities provided by the adequate mixins
+        """
+
+
+class BoolQueryMixin:
+    def build_bool_query(
+        self,
+        must: List[Dict] = [],
+        should: List[Dict] = [],
+        filter: List[Dict] = [],
+        must_not: List[Dict] = [],
+    ) -> Union[Dict, None]:
+        if must == should == filter == must_not == []:
             return
-        date_query = {"date": {}}
-        if since is not None:
-            date_query["date"]["gte"] = since.strftime("%Y-%m-%d")
-        if until is not None:
-            date_query["date"]["lte"] = until.strftime("%Y-%m-%d")
-        query["filter"].append({"range": date_query})
 
-    def build_territory_query(self, query, territory_id=None):
-        if territory_id is not None:
-            query["filter"].append({"term": {"territory_id": territory_id}})
-
-    def build_simple_query_string_query(self, query, querystring=None):
-        if querystring is not None:
-            query["must"].append(
-                {
-                    "simple_query_string": {
-                        "query": querystring,
-                        "fields": [self.GAZETTE_CONTENT_FIELD],
-                    }
-                }
-            )
-
-    def build_sort_query(self, query, order):
-        query["sort"] = [{"date": {"order": order}}]
-
-    def build_filter_query(self, query, territory_id=None, since=None, until=None):
-        self.build_date_query(query, since, until)
-        self.build_territory_query(query, territory_id)
-
-    def build_must_query(self, query, querystring=None):
-        self.build_simple_query_string_query(query, querystring)
-
-    def add_pagination_fields(self, query, offset, size):
-        query["from"] = offset
-        query["size"] = size
-
-    def add_highlight(
-        self, query, fragment_size, number_of_fragments, pre_tags, post_tags
-    ):
-        query["highlight"] = {
-            "fields": {
-                "source_text": {
-                    "fragment_size": fragment_size,
-                    "number_of_fragments": number_of_fragments,
-                    "type": "unified",
-                    "pre_tags": pre_tags,
-                    "post_tags": post_tags,
-                }
+        return {
+            "bool": {
+                "must": must,
+                "should": should,
+                "filter": filter,
+                "must_not": must_not,
             }
         }
 
-    def build_query(
-        self,
-        territory_id: str = None,
-        since: date = None,
-        until: date = None,
-        querystring: str = None,
-        offset: int = 0,
-        size: int = 10,
-        fragment_size: int = 150,
-        number_of_fragments: int = 1,
-        pre_tags: List[str] = [""],
-        post_tags: List[str] = [""],
-        sort_by: str = "relevance",
-    ):
-        if (
-            territory_id is None
-            and since is None
-            and until is None
-            and querystring is None
-        ):
-            return {"query": {"match_none": {}}}
 
-        query = {
-            "filter": [],
-            "must": [],
+class MatchNoneQueryMixin:
+    def build_match_none_query(self) -> Dict:
+        return {"match_none": {}}
+
+
+class MatchAllQueryMixin:
+    def build_match_all_query(self) -> Dict:
+        return {"match_all": {}}
+
+
+class DateRangeQueryMixin:
+    def build_date_range_query(
+        self,
+        field: str,
+        since: Union[date, None] = None,
+        until: Union[date, None] = None,
+    ) -> Union[Dict, None]:
+        if since is None and until is None:
+            return
+
+        date_range_query = {field: {}}
+        if since is not None:
+            date_range_query[field]["gte"] = since.strftime("%Y-%m-%d")
+        if until is not None:
+            date_range_query[field]["lte"] = until.strftime("%Y-%m-%d")
+
+        return {"range": date_range_query}
+
+
+class TermsQueryMixin:
+    def build_terms_query(self, field: str, terms: List[str] = []) -> Union[Dict, None]:
+        if terms != []:
+            return {"terms": {field: terms}}
+
+
+class SimpleStringQueryMixin:
+    def build_simple_query_string_query(
+        self, querystring: str, fields: List[str] = []
+    ) -> Union[Dict, None]:
+        if querystring == "":
+            return
+
+        clean_querystring = self._preprocess_querystring(querystring)
+        return {"simple_query_string": {"query": clean_querystring, "fields": fields}}
+
+    def _preprocess_querystring(self, querystring: str) -> str:
+        return self._translate_curly_text_to_straight(querystring)
+
+    def _translate_curly_text_to_straight(self, text: str) -> str:
+        translated_double = re.sub(r"[“”]", r'"', text)
+        translated_single = re.sub(r"[‘’]", r"'", translated_double)
+        return translated_single
+
+
+class RankFeatureQueryMixin:
+    def build_rank_feature_query(self, field: str):
+        return {"rank_feature": {"field": field}}
+
+
+@unique
+class FieldSortOrder(str, Enum):
+    DESCENDING = "desc"
+    ASCENDING = "asc"
+
+
+class SortMixin:
+    def add_sorts(self, query: Dict, sorts: List[Dict] = []) -> None:
+        if sorts != []:
+            query["sort"] = sorts
+
+    def build_sort(self, field: str, order: FieldSortOrder) -> Dict:
+        return {field: {"order": order.value}}
+
+
+class PaginationMixin:
+    def add_pagination_fields(
+        self,
+        query: Dict,
+        offset: Union[int, None] = None,
+        size: Union[int, None] = None,
+    ) -> None:
+        if offset is not None:
+            query["from"] = offset
+
+        if size is not None:
+            query["size"] = size
+
+
+class HighlightMixin:
+    def add_highlight(
+        self,
+        query: Dict,
+        fields_highlights: List[Dict] = [],
+    ) -> None:
+        if fields_highlights == []:
+            return
+
+        highlight = {"highlight": {"fields": {}}}
+        for field_highlight in fields_highlights:
+            highlight["highlight"]["fields"].update(field_highlight)
+
+        query.update(highlight)
+
+    def build_field_highlight(
+        self,
+        field: str,
+        fragment_size: Union[int, None] = None,
+        number_of_fragments: Union[int, None] = None,
+        pre_tags: List[str] = [],
+        post_tags: List[str] = [],
+        type: str = "unified",
+    ) -> Dict:
+        field_highlight = {
+            "pre_tags": pre_tags,
+            "post_tags": post_tags,
+            "type": type,
         }
-        self.build_filter_query(query, territory_id, since, until)
-        self.build_must_query(query, querystring)
-        query = {"query": {"bool": query}}
-        self.add_pagination_fields(query, offset, size)
 
-        if sort_by == "descending_date" or querystring is None:
-            self.build_sort_query(query, "desc")
-        elif sort_by == "ascending_date":
-            self.build_sort_query(query, "asc")
-        # or else sort by relevance (score)
+        if fragment_size is not None:
+            field_highlight["fragment_size"] = fragment_size
 
-        self.add_highlight(
-            query, fragment_size, number_of_fragments, pre_tags, post_tags
-        )
+        if number_of_fragments is not None:
+            field_highlight["number_of_fragments"] = number_of_fragments
 
-        return query
-
-    def _assemble_gazette_object(self, gazette):
-        return Gazette(
-            gazette["_source"]["territory_id"],
-            datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
-            gazette["_source"]["url"],
-            gazette["_source"]["file_checksum"],
-            gazette["_source"]["territory_name"],
-            gazette["_source"]["state_code"],
-            gazette["highlight"].get("source_text", [])
-            if "highlight" in gazette
-            else [],
-            gazette["_source"].get("edition_number", None),
-            gazette["_source"].get("is_extra_edition", None),
-            gazette["_source"].get("file_raw_txt", None),
-        )
-
-    def create_list_with_gazette_objects(self, gazette_hits: List[Dict]):
-        return [self._assemble_gazette_object(gazette) for gazette in gazette_hits]
-
-    def get_total_number_items(self, search_response_json: Dict):
-        return search_response_json["hits"]["total"]["value"]
-
-    def get_gazettes(
-        self,
-        territory_id: str = None,
-        since: date = None,
-        until: date = None,
-        querystring: str = None,
-        offset: int = 0,
-        size: int = 10,
-        fragment_size: int = 150,
-        number_of_fragments: int = 1,
-        pre_tags: List[str] = [""],
-        post_tags: List[str] = [""],
-        sort_by: str = "descending_date",
-    ):
-        query = self.build_query(
-            territory_id,
-            since,
-            until,
-            querystring,
-            offset,
-            size,
-            fragment_size,
-            number_of_fragments,
-            pre_tags,
-            post_tags,
-            sort_by,
-        )
-        gazettes = self._es.search(body=query, index=self._index)
-
-        return (
-            self.get_total_number_items(gazettes),
-            self.create_list_with_gazette_objects(gazettes["hits"]["hits"]),
-        )
+        return {field: field_highlight}
 
 
-def create_elasticsearch_data_mapper(
-    host: str = None, index: str = None
-) -> GazetteDataGateway:
-    if host is None or len(host.strip()) == 0:
+def create_search_engine_interface(
+    host: str = "", default_index: str = ""
+) -> SearchEngineInterface:
+    if not isinstance(host, str) or len(host.strip()) == 0:
         raise Exception("Missing host")
-    if index is None or len(index.strip()) == 0:
-        raise Exception("Missing index name")
-    return ElasticSearchDataMapper(host.strip(), index.strip())
+    if not isinstance(default_index, str):
+        raise Exception("Invalid index name")
+    return ElasticSearch(host.strip(), default_index=default_index.strip())

@@ -9,7 +9,6 @@ VALID_BOOLEAN_VALUES = VALID_BOOLEAN_TRUE_VALUES + VALID_BOOLEAN_FALSE_VALUES
 class Configuration:
     def __init__(self):
         self.host = os.environ.get("QUERIDO_DIARIO_ELASTICSEARCH_HOST", "")
-        self.index = os.environ.get("QUERIDO_DIARIO_ELASTICSEARCH_INDEX", "")
         self.root_path = os.environ.get("QUERIDO_DIARIO_API_ROOT_PATH", "")
         self.url_prefix = os.environ.get("QUERIDO_DIARIO_URL_PREFIX", "")
         self.cors_allow_origins = Configuration._load_list(
@@ -44,6 +43,43 @@ class Configuration:
         )
         self.suggestion_mailjet_custom_id = os.environ.get(
             "QUERIDO_DIARIO_SUGGESTION_MAILJET_CUSTOM_ID", ""
+        )
+        self.city_database_file = os.environ["CITY_DATABASE_CSV"]
+        self.gazette_index = os.environ.get("GAZETTE_ELASTICSEARCH_INDEX", "")
+        self.gazette_content_field = os.environ.get("GAZETTE_CONTENT_FIELD", "")
+        self.gazette_publication_date_field = os.environ.get(
+            "GAZETTE_PUBLICATION_DATE_FIELD", ""
+        )
+        self.gazette_territory_id_field = os.environ.get(
+            "GAZETTE_TERRITORY_ID_FIELD", ""
+        )
+        self.themes_database_file = os.environ["THEMES_DATABASE_JSON"]
+        self.themed_excerpt_content_field = os.environ.get(
+            "THEMED_EXCERPT_CONTENT_FIELD", ""
+        )
+        self.themed_excerpt_publication_date_field = os.environ.get(
+            "THEMED_EXCERPT_PUBLICATION_DATE_FIELD", ""
+        )
+        self.themed_excerpt_territory_id_field = os.environ.get(
+            "THEMED_EXCERPT_TERRITORY_ID_FIELD", ""
+        )
+        self.themed_excerpt_entities_field = os.environ.get(
+            "THEMED_EXCERPT_ENTITIES_FIELD", ""
+        )
+        self.themed_excerpt_subthemes_field = os.environ.get(
+            "THEMED_EXCERPT_SUBTHEMES_FIELD", ""
+        )
+        self.themed_excerpt_embedding_score_field = os.environ.get(
+            "THEMED_EXCERPT_EMBEDDING_SCORE_FIELD", ""
+        )
+        self.themed_excerpt_tfidf_score_field = os.environ.get(
+            "THEMED_EXCERPT_TFIDF_SCORE_FIELD", ""
+        )
+        self.themed_excerpt_fragment_size = int(
+            os.environ.get("THEMED_EXCERPT_FRAGMENT_SIZE", 10000)
+        )
+        self.themed_excerpt_number_of_fragments = int(
+            os.environ.get("THEMED_EXCERPT_NUMBER_OF_FRAGMENTS", 1)
         )
         self.companies_database_host = os.environ.get("POSTGRES_HOST", "")
         self.companies_database_db = os.environ.get("POSTGRES_DB", "")

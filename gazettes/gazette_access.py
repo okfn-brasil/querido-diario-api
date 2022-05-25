@@ -1,7 +1,20 @@
 import abc
-from datetime import date
-from typing import List
-from enum import Enum, unique
+from datetime import date, datetime
+from typing import Dict, List, Union
+
+from index import SearchEngineInterface
+from index.elasticsearch import (
+    QueryBuilderInterface,
+    DateRangeQueryMixin,
+    SimpleStringQueryMixin,
+    SortMixin,
+    TermsQueryMixin,
+    BoolQueryMixin,
+    MatchNoneQueryMixin,
+    FieldSortOrder,
+    PaginationMixin,
+    HighlightMixin,
+)
 
 
 class GazetteRequest:
@@ -9,33 +22,94 @@ class GazetteRequest:
     Object containing the data to filter gazettes
     """
 
-    territory_id = None
-
     def __init__(
         self,
-        territory_id: str = None,
-        since: date = None,
-        until: date = None,
-        querystring: str = None,
-        offset: int = 0,
-        size: int = 10,
-        fragment_size: int = 150,
-        number_of_fragments: int = 1,
-        pre_tags: List[str] = [""],
-        post_tags: List[str] = [""],
-        sort_by: str = "relevance",
+        territory_ids: List[str],
+        since: Union[date, None],
+        until: Union[date, None],
+        querystring: str,
+        excerpt_size: int,
+        number_of_excerpts: int,
+        pre_tags: List[str],
+        post_tags: List[str],
+        size: int,
+        offset: int,
+        sort_by: str,
     ):
-        self.territory_id = territory_id
+        self.territory_ids = territory_ids
         self.since = since
         self.until = until
         self.querystring = querystring
-        self.offset = offset
-        self.size = size
-        self.fragment_size = fragment_size
-        self.number_of_fragments = number_of_fragments
+        self.excerpt_size = excerpt_size
+        self.number_of_excerpts = number_of_excerpts
         self.pre_tags = pre_tags
         self.post_tags = post_tags
+        self.size = size
+        self.offset = offset
         self.sort_by = sort_by
+
+
+class GazetteSearchResult:
+    """
+    Item to represent a gazette search result in memory inside the module
+    """
+
+    def __init__(
+        self,
+        territory_id,
+        date,
+        url,
+        checksum,
+        territory_name,
+        state_code,
+        excerpts,
+        edition=None,
+        is_extra_edition=None,
+        txt_url=None,
+    ):
+        self.territory_id = territory_id
+        self.date = date
+        self.url = url
+        self.territory_name = territory_name
+        self.state_code = state_code
+        self.excerpts = excerpts
+        self.edition = edition
+        self.is_extra_edition = is_extra_edition
+        self.file_checksum = checksum
+        self.txt_url = txt_url
+
+    def __hash__(self):
+        return hash(
+            (
+                self.territory_id,
+                self.date,
+                self.url,
+                self.territory_name,
+                self.state_code,
+                str(self.excerpts),
+                self.edition,
+                self.is_extra_edition,
+                self.file_checksum,
+                self.txt_url,
+            )
+        )
+
+    def __eq__(self, other):
+        return (
+            self.file_checksum == other.file_checksum
+            and self.territory_id == other.territory_id
+            and self.date == other.date
+            and self.url == other.url
+            and self.territory_name == other.territory_name
+            and self.state_code == other.state_code
+            and str(self.excerpts) == str(other.excerpts)
+            and self.edition == other.edition
+            and self.is_extra_edition == other.is_extra_edition
+            and self.txt_url == other.txt_url
+        )
+
+    def __repr__(self):
+        return f"GazetteSearchResult({self.file_checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.excerpts}, {self.edition}, {self.is_extra_edition}, {self.txt_url})"
 
 
 class GazetteDataGateway(abc.ABC):
@@ -46,16 +120,17 @@ class GazetteDataGateway(abc.ABC):
     @abc.abstractmethod
     def get_gazettes(
         self,
-        territory_id=None,
-        since=None,
-        until=None,
-        page: int = 0,
-        size: int = 10,
-        fragment_size: int = 150,
-        number_of_fragments: int = 1,
-        pre_tags: List[str] = [""],
-        post_tags: List[str] = [""],
-        sort_by: str = "relevance",
+        territory_ids: List[str],
+        since: Union[date, None],
+        until: Union[date, None],
+        querystring: str,
+        excerpt_size: int,
+        number_of_excerpts: int,
+        pre_tags: List[str],
+        post_tags: List[str],
+        size: int,
+        offset: int,
+        sort_by: str,
     ):
         """
         Method to get the gazette from storage
@@ -68,200 +143,227 @@ class GazetteAccessInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_gazettes(self, filters: GazetteRequest = None):
+    def get_gazettes(self, filters: GazetteRequest):
         """
         Method to get the gazettes
         """
 
-    @abc.abstractmethod
-    def get_cities(self, city_name: str = ""):
-        """
-        Method to get information about the cities
-        """
 
-    @abc.abstractmethod
-    def get_city(self, territory_id: str = ""):
-        """
-        Method to get information about a specific city
-        """
+class GazetteQueryBuilder(
+    DateRangeQueryMixin,
+    TermsQueryMixin,
+    SimpleStringQueryMixin,
+    SortMixin,
+    MatchNoneQueryMixin,
+    BoolQueryMixin,
+    PaginationMixin,
+    HighlightMixin,
+    QueryBuilderInterface,
+):
+    def __init__(
+        self,
+        text_content_field: str,
+        publication_date_field: str,
+        territory_id_field: str,
+    ):
+        self.text_content_field = text_content_field
+        self.publication_date_field = publication_date_field
+        self.territory_id_field = territory_id_field
+
+    def build_query(
+        self,
+        territory_ids: List[str],
+        since: Union[date, None],
+        until: Union[date, None],
+        querystring: str,
+        excerpt_size: int,
+        number_of_excerpts: int,
+        pre_tags: List[str],
+        post_tags: List[str],
+        size: int,
+        offset: int,
+        sort_by: str,
+    ) -> Dict:
+        query = {"query": {}}
+
+        if (
+            territory_ids == []
+            and since is None
+            and until is None
+            and querystring == ""
+        ):
+            query["query"] = self.build_match_none_query()
+            return query
+
+        order = None
+        if sort_by == "ascending_date":
+            order = FieldSortOrder.ASCENDING
+        elif sort_by == "descending_date" or querystring is None:
+            order = FieldSortOrder.DESCENDING
+        # or else sort by relevance (score)
+
+        if order is not None:
+            self.add_sorts(
+                query=query,
+                sorts=[
+                    self.build_sort(
+                        field=self.publication_date_field,
+                        order=order,
+                    )
+                ],
+            )
+
+        self.add_pagination_fields(query=query, offset=offset, size=size)
+
+        querystring_query = self.build_simple_query_string_query(
+            querystring=querystring, fields=[self.text_content_field]
+        )
+        must_query = [querystring_query] if querystring_query is not None else []
+
+        territory_query = self.build_terms_query(
+            field=self.territory_id_field, terms=territory_ids
+        )
+        date_query = self.build_date_range_query(
+            field=self.publication_date_field, since=since, until=until
+        )
+        filter_query = [q for q in [territory_query, date_query] if q is not None]
+
+        query["query"] = self.build_bool_query(must=must_query, filter=filter_query)
+
+        text_highlight = self.build_field_highlight(
+            field=self.text_content_field,
+            fragment_size=excerpt_size,
+            number_of_fragments=number_of_excerpts,
+            pre_tags=pre_tags,
+            post_tags=post_tags,
+        )
+        self.add_highlight(
+            query=query,
+            fields_highlights=[text_highlight],
+        )
+
+        return query
 
 
-class CitiesDatabaseInterface(abc.ABC):
-    """
-    Interface to access cities' data from databases.
-    """
+class GazetteSearchEngineGateway(GazetteDataGateway):
+    def __init__(
+        self,
+        search_engine: SearchEngineInterface,
+        query_builder: QueryBuilderInterface,
+        index: str,
+    ):
+        self._engine = search_engine
+        self._query_builder = query_builder
+        self._index = index
+        if not self._engine.index_exists(index):
+            raise Exception(f'Index "{index}" does not exist')
 
-    @abc.abstractmethod
-    def get_cities(self, city_name: str = None):
-        """
-        Get the cities and their openness level.
-        """
-
-    @abc.abstractmethod
-    def get_city(self, territory_id: str = ""):
-        """
-        Method to get information about a specific city
-        """
-
-
-class GazetteAccess(GazetteAccessInterface):
-
-    _index_gateway = None
-    _database_gateway = None
-
-    def __init__(self, gazette_data_gateway=None, database_gateway=None):
-        self._index_gateway = gazette_data_gateway
-        self._database_gateway = database_gateway
-
-    def get_gazettes(self, filters: GazetteRequest = None):
-        territory_id = filters.territory_id if filters is not None else None
-        since = filters.since if filters is not None else None
-        until = filters.until if filters is not None else None
-        querystring = filters.querystring if filters is not None else ""
-        offset = filters.offset if filters is not None else 0
-        size = filters.size if filters is not None else 10
-        fragment_size = filters.fragment_size if filters is not None else 150
-        number_of_fragments = filters.number_of_fragments if filters is not None else 1
-        pre_tags = filters.pre_tags if filters is not None else [""]
-        post_tags = filters.post_tags if filters is not None else [""]
-        sort_by = filters.sort_by if filters is not None else "relevance"
-        total_number_gazettes, gazettes = self._index_gateway.get_gazettes(
-            territory_id=territory_id,
+    def get_gazettes(
+        self,
+        territory_ids: List[str],
+        since: Union[date, None],
+        until: Union[date, None],
+        querystring: str,
+        excerpt_size: int,
+        number_of_excerpts: int,
+        pre_tags: List[str],
+        post_tags: List[str],
+        size: int,
+        offset: int,
+        sort_by: str,
+    ):
+        query = self._query_builder.build_query(
+            territory_ids=territory_ids,
             since=since,
             until=until,
             querystring=querystring,
-            offset=offset,
-            size=size,
-            fragment_size=fragment_size,
-            number_of_fragments=number_of_fragments,
+            excerpt_size=excerpt_size,
+            number_of_excerpts=number_of_excerpts,
             pre_tags=pre_tags,
             post_tags=post_tags,
+            size=size,
+            offset=offset,
             sort_by=sort_by,
+        )
+        gazettes = self._engine.search(query=query, index=self._index)
+
+        return (
+            self.get_total_number_items(gazettes),
+            self.create_list_with_gazette_objects(gazettes["hits"]["hits"]),
+        )
+
+    def get_total_number_items(self, search_response_json: Dict):
+        return search_response_json["hits"]["total"]["value"]
+
+    def create_list_with_gazette_objects(self, gazette_hits: List[Dict]):
+        return [self._assemble_gazette_object(gazette) for gazette in gazette_hits]
+
+    def _assemble_gazette_object(self, gazette):
+        highlight = (
+            gazette["highlight"].get("source_text", [])
+            if "highlight" in gazette
+            else []
+        )
+        return GazetteSearchResult(
+            gazette["_source"]["territory_id"],
+            datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
+            gazette["_source"]["url"],
+            gazette["_source"]["file_checksum"],
+            gazette["_source"]["territory_name"],
+            gazette["_source"]["state_code"],
+            highlight,
+            gazette["_source"].get("edition_number", None),
+            gazette["_source"].get("is_extra_edition", None),
+            gazette["_source"].get("file_raw_txt", None),
+        )
+
+
+class GazetteAccess(GazetteAccessInterface):
+    def __init__(self, data_gateway: GazetteDataGateway):
+        self._data_gateway = data_gateway
+
+    def get_gazettes(self, filters: GazetteRequest):
+        total_number_gazettes, gazettes = self._data_gateway.get_gazettes(
+            **vars(filters)
         )
         return (total_number_gazettes, [vars(gazette) for gazette in gazettes])
 
-    def get_cities(self, city_name: str = ""):
-        return [vars(city) for city in self._database_gateway.get_cities(city_name)]
 
-    def get_city(self, territory_id: str = ""):
-        city = self._database_gateway.get_city(territory_id)
-        return vars(city) if city is not None else None
-
-
-@unique
-class OpennessLevel(str, Enum):
-    ZERO = "0"
-    ONE = "1"
-    TWO = "2"
-    THREE = "3"
+def create_gazettes_query_builder(
+    gazette_content_field: str,
+    gazette_publication_date_field: str,
+    gazette_territory_id_field: str,
+) -> QueryBuilderInterface:
+    return GazetteQueryBuilder(
+        gazette_content_field,
+        gazette_publication_date_field,
+        gazette_territory_id_field,
+    )
 
 
-class City:
-    def __init__(
-        self,
-        name: str,
-        ibge_id: str,
-        uf: str,
-        openness_level: OpennessLevel,
-        gazettes_urls: List[str],
-    ):
-        self.publication_urls = gazettes_urls
-        self.territory_id = ibge_id
-        self.territory_name = name
-        self.level = openness_level
-        self.state_code = uf
-
-    def __eq__(self, other):
-        return (
-            self.territory_id == other.territory_id
-            and self.territory_name == other.territory_name
-            and self.level == other.level
-            and self.state_code == other.state_code
-            and self.publication_urls == other.publication_urls
+def create_gazettes_data_gateway(
+    search_engine: SearchEngineInterface,
+    query_builder: QueryBuilderInterface,
+    index: str,
+) -> GazetteDataGateway:
+    if not isinstance(search_engine, SearchEngineInterface):
+        raise Exception(
+            "Search engine should implement the SearchEngineInterface interface"
+        )
+    if not isinstance(query_builder, QueryBuilderInterface):
+        raise Exception(
+            "Query builder should implement the QueryBuilderInterface interface"
         )
 
-    def __repr__(self):
-        return f"City({self.territory_name}, {self.territory_id}, {self.level}, {self.state_code}, {self.publication_urls})"
-
-    def __hash__(self):
-        return hash(
-            (self.territory_id, self.territory_name, self.state_code, self.level,)
-        )
-
-
-class Gazette:
-    """
-    Item to represent a gazette in memory inside the module
-    """
-
-    def __init__(
-        self,
-        territory_id,
-        date,
-        url,
-        checksum,
-        territory_name,
-        state_code,
-        highlight_texts,
-        edition=None,
-        is_extra_edition=None,
-        file_raw_txt=None,
-    ):
-        self.territory_id = territory_id
-        self.date = date
-        self.url = url
-        self.territory_name = territory_name
-        self.state_code = state_code
-        self.highlight_texts = highlight_texts
-        self.edition = edition
-        self.is_extra_edition = is_extra_edition
-        self.checksum = checksum
-        self.file_raw_txt = file_raw_txt
-
-    def __hash__(self):
-        return hash(
-            (
-                self.territory_id,
-                self.date,
-                self.url,
-                self.territory_name,
-                self.state_code,
-                str(self.highlight_texts),
-                self.edition,
-                self.is_extra_edition,
-                self.checksum,
-                self.file_raw_txt,
-            )
-        )
-
-    def __eq__(self, other):
-        return (
-            self.checksum == other.checksum
-            and self.territory_id == other.territory_id
-            and self.date == other.date
-            and self.url == other.url
-            and self.territory_name == other.territory_name
-            and self.state_code == other.state_code
-            and str(self.highlight_texts) == str(other.highlight_texts)
-            and self.edition == other.edition
-            and self.is_extra_edition == other.is_extra_edition
-            and self.file_raw_txt == other.file_raw_txt
-        )
-
-    def __repr__(self):
-        return f"Gazette({self.checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.highlight_texts}, {self.edition}, {self.is_extra_edition}, {self.file_raw_txt})"
+    return GazetteSearchEngineGateway(search_engine, query_builder, index)
 
 
 def create_gazettes_interface(
-    index_gateway: GazetteDataGateway, database_gateway: CitiesDatabaseInterface
-):
-    if not isinstance(index_gateway, GazetteDataGateway):
+    data_gateway: GazetteDataGateway,
+) -> GazetteAccessInterface:
+    if not isinstance(data_gateway, GazetteDataGateway):
         raise Exception(
             "Data gateway should implement the GazetteDataGateway interface"
         )
 
-    if not isinstance(database_gateway, CitiesDatabaseInterface):
-        raise Exception(
-            "Database gateway should implement the DatabaseInterface interface"
-        )
-    return GazetteAccess(index_gateway, database_gateway)
+    return GazetteAccess(data_gateway)

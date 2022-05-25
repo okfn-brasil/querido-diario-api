@@ -5,8 +5,6 @@ IMAGE_FORMAT ?= docker
 
 # Elasticsearch ports
 # Variables used to connect the app to the ElasticSearch
-QUERIDO_DIARIO_ELASTICSEARCH_HOST ?= localhost
-QUERIDO_DIARIO_ELASTICSEARCH_INDEX ?= gazettes
 QUERIDO_DIARIO_DATABASE_CSV ?= censo.csv
 ELASTICSEARCH_PORT1 ?= 9200
 ELASTICSEARCH_PORT2 ?= 9300
