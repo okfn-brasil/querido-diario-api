@@ -163,10 +163,12 @@ class GazetteQueryBuilder(
     def __init__(
         self,
         text_content_field: str,
+        text_content_exact_field_suffix: str,
         publication_date_field: str,
         territory_id_field: str,
     ):
         self.text_content_field = text_content_field
+        self.text_content_exact_field_suffix = text_content_exact_field_suffix
         self.publication_date_field = publication_date_field
         self.territory_id_field = territory_id_field
 
@@ -216,7 +218,9 @@ class GazetteQueryBuilder(
         self.add_pagination_fields(query=query, offset=offset, size=size)
 
         querystring_query = self.build_simple_query_string_query(
-            querystring=querystring, fields=[self.text_content_field]
+            querystring=querystring,
+            fields=[self.text_content_field],
+            exact_field_suffix=self.text_content_exact_field_suffix,
         )
         must_query = [querystring_query] if querystring_query is not None else []
 
@@ -230,12 +234,19 @@ class GazetteQueryBuilder(
 
         query["query"] = self.build_bool_query(must=must_query, filter=filter_query)
 
+        matched_fields = [self.text_content_field]
+        if self.text_content_exact_field_suffix:
+            matched_fields.append(
+                f"{self.text_content_field}{self.text_content_exact_field_suffix}"
+            )
         text_highlight = self.build_field_highlight(
             field=self.text_content_field,
             fragment_size=excerpt_size,
             number_of_fragments=number_of_excerpts,
             pre_tags=pre_tags,
             post_tags=post_tags,
+            type="fvh",
+            matched_fields=matched_fields,
         )
         self.add_highlight(
             query=query,
@@ -331,11 +342,13 @@ class GazetteAccess(GazetteAccessInterface):
 
 def create_gazettes_query_builder(
     gazette_content_field: str,
+    gazette_content_exact_field_suffix: str,
     gazette_publication_date_field: str,
     gazette_territory_id_field: str,
 ) -> QueryBuilderInterface:
     return GazetteQueryBuilder(
         gazette_content_field,
+        gazette_content_exact_field_suffix,
         gazette_publication_date_field,
         gazette_territory_id_field,
     )

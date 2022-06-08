@@ -47,6 +47,9 @@ class Configuration:
         self.city_database_file = os.environ["CITY_DATABASE_CSV"]
         self.gazette_index = os.environ.get("GAZETTE_ELASTICSEARCH_INDEX", "")
         self.gazette_content_field = os.environ.get("GAZETTE_CONTENT_FIELD", "")
+        self.gazette_content_exact_field_suffix = os.environ.get(
+            "GAZETTE_CONTENT_EXACT_FIELD_SUFFIX", ""
+        )
         self.gazette_publication_date_field = os.environ.get(
             "GAZETTE_PUBLICATION_DATE_FIELD", ""
         )
@@ -56,6 +59,9 @@ class Configuration:
         self.themes_database_file = os.environ["THEMES_DATABASE_JSON"]
         self.themed_excerpt_content_field = os.environ.get(
             "THEMED_EXCERPT_CONTENT_FIELD", ""
+        )
+        self.themed_excerpt_content_exact_field_suffix = os.environ.get(
+            "THEMED_EXCERPT_CONTENT_EXACT_FIELD_SUFFIX", ""
         )
         self.themed_excerpt_publication_date_field = os.environ.get(
             "THEMED_EXCERPT_PUBLICATION_DATE_FIELD", ""

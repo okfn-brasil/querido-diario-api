@@ -231,6 +231,7 @@ class ThemedExcerptQueryBuilder(
     def __init__(
         self,
         text_content_field: str,
+        text_content_exact_field_suffix: str,
         publication_date_field: str,
         territory_id_field: str,
         entities_field: str,
@@ -241,6 +242,7 @@ class ThemedExcerptQueryBuilder(
         number_of_fragments: int,
     ):
         self.text_content_field = text_content_field
+        self.text_content_exact_field_suffix = text_content_exact_field_suffix
         self.publication_date_field = publication_date_field
         self.territory_id_field = territory_id_field
         self.entities_field = entities_field
@@ -298,7 +300,9 @@ class ThemedExcerptQueryBuilder(
             return query
 
         querystring_query = self.build_simple_query_string_query(
-            querystring=querystring, fields=[self.text_content_field]
+            querystring=querystring,
+            fields=[self.text_content_field],
+            exact_field_suffix=self.text_content_exact_field_suffix,
         )
         must_query = [querystring_query] if querystring_query is not None else []
 
@@ -330,13 +334,19 @@ class ThemedExcerptQueryBuilder(
             must=must_query, should=should_query, filter=filter_query
         )
 
+        matched_fields = [self.text_content_field]
+        if self.text_content_exact_field_suffix:
+            matched_fields.append(
+                f"{self.text_content_field}{self.text_content_exact_field_suffix}"
+            )
         text_highlight = self.build_field_highlight(
             field=self.text_content_field,
             fragment_size=self.fragment_size,
             number_of_fragments=self.number_of_fragments,
             pre_tags=pre_tags,
             post_tags=post_tags,
-            type="fvh",  # Works best to not break the original text further
+            type="fvh",
+            matched_fields=matched_fields,
         )
         self.add_highlight(
             query=query,
@@ -532,6 +542,7 @@ class ThemedExcerptAccess(ThemedExcerptAccessInterface):
 
 def create_themed_excerpts_query_builder(
     themed_excerpt_text_content_field: str,
+    themed_excerpt_content_exact_field_suffix: str,
     themed_excerpt_publication_date_field: str,
     themed_excerpt_territory_id_field: str,
     themed_excerpt_entities_field: str,
@@ -543,6 +554,7 @@ def create_themed_excerpts_query_builder(
 ) -> QueryBuilderInterface:
     return ThemedExcerptQueryBuilder(
         themed_excerpt_text_content_field,
+        themed_excerpt_content_exact_field_suffix,
         themed_excerpt_publication_date_field,
         themed_excerpt_territory_id_field,
         themed_excerpt_entities_field,

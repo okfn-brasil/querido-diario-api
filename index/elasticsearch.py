@@ -116,13 +116,19 @@ class TermsQueryMixin:
 
 class SimpleStringQueryMixin:
     def build_simple_query_string_query(
-        self, querystring: str, fields: List[str] = []
+        self, querystring: str, fields: List[str] = [], exact_field_suffix: str = ""
     ) -> Union[Dict, None]:
         if querystring == "":
             return
 
         clean_querystring = self._preprocess_querystring(querystring)
-        return {"simple_query_string": {"query": clean_querystring, "fields": fields}}
+        return {
+            "simple_query_string": {
+                "query": clean_querystring,
+                "fields": fields,
+                "quote_field_suffix": exact_field_suffix,
+            }
+        }
 
     def _preprocess_querystring(self, querystring: str) -> str:
         return self._translate_curly_text_to_straight(querystring)
@@ -190,6 +196,7 @@ class HighlightMixin:
         pre_tags: List[str] = [],
         post_tags: List[str] = [],
         type: str = "unified",
+        matched_fields: List[str] = [],
     ) -> Dict:
         field_highlight = {
             "pre_tags": pre_tags,
@@ -202,6 +209,9 @@ class HighlightMixin:
 
         if number_of_fragments is not None:
             field_highlight["number_of_fragments"] = number_of_fragments
+
+        if type == "fvh" and matched_fields:
+            field_highlight["matched_fields"] = matched_fields
 
         return {field: field_highlight}
 
