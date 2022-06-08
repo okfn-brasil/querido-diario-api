@@ -48,9 +48,9 @@ class PostgreSQLDatabase(CompaniesDatabaseInterface):
 
         cnpj_basico, cnpj_ordem, cnpj_dv = self._split_cnpj(cnpj)
         data = {
-            "cnpj_basico": str(int(cnpj_basico)),
-            "cnpj_ordem": str(int(cnpj_ordem)),
-            "cnpj_dv": str(int(cnpj_dv)),
+            "cnpj_basico": cnpj_basico,
+            "cnpj_ordem": cnpj_ordem,
+            "cnpj_dv": cnpj_dv,
         }
         result = list(self._select(command, data))
         if result == []:
@@ -73,7 +73,7 @@ class PostgreSQLDatabase(CompaniesDatabaseInterface):
 
         cnpj_basico, *_ = self._split_cnpj(cnpj)
         data = {
-            "cnpj_basico": str(int(cnpj_basico)),
+            "cnpj_basico": cnpj_basico,
         }
         results = list(self._select(command, data))
         return (
