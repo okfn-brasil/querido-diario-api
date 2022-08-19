@@ -1,5 +1,5 @@
 from enum import Enum, unique
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, Query, Path, Response, status
@@ -35,6 +35,7 @@ app.add_middleware(
 class GazetteItem(BaseModel):
     territory_id: str
     date: date
+    scraped_at: datetime
     url: str
     territory_name: str
     state_code: str
@@ -52,6 +53,7 @@ class GazetteSearchResponse(BaseModel):
 class ThemedExcerptItem(BaseModel):
     territory_id: str
     date: date
+    scraped_at: datetime
     url: str
     territory_name: str
     state_code: str

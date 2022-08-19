@@ -64,6 +64,7 @@ class ThemedExcerptSearchResult:
         excerpt_id,
         territory_id,
         date,
+        scraped_at,
         url,
         territory_name,
         state_code,
@@ -78,6 +79,7 @@ class ThemedExcerptSearchResult:
         self.excerpt_id = excerpt_id
         self.territory_id = territory_id
         self.date = date
+        self.scraped_at = scraped_at
         self.url = url
         self.territory_name = territory_name
         self.state_code = state_code
@@ -95,6 +97,7 @@ class ThemedExcerptSearchResult:
                 self.excerpt_id,
                 self.territory_id,
                 self.date,
+                self.scraped_at,
                 self.url,
                 self.territory_name,
                 self.state_code,
@@ -113,6 +116,7 @@ class ThemedExcerptSearchResult:
             self.excerpt_id == other.excerpt_id
             and self.territory_id == other.territory_id
             and self.date == other.date
+            and self.scraped_at == other.scraped_at
             and self.url == other.url
             and self.territory_name == other.territory_name
             and self.state_code == other.state_code
@@ -126,7 +130,7 @@ class ThemedExcerptSearchResult:
         )
 
     def __repr__(self):
-        return f"ThemedExcerptSearchResult({self.excerpt_id}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.subthemes}, {self.excerpt}, {self.theme}, {self.edition}, {self.is_extra_edition}, {self.txt_url}, {self.entities})"
+        return f"ThemedExcerptSearchResult({self.excerpt_id}, {self.territory_id}, {self.date}, {self.scraped_at}, {self.url}, {self.territory_name}, {self.state_code}, {self.subthemes}, {self.excerpt}, {self.theme}, {self.edition}, {self.is_extra_edition}, {self.txt_url}, {self.entities})"
 
 
 class ThemedExcerptDataGateway(abc.ABC):
@@ -424,6 +428,7 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
             excerpt["_source"]["excerpt_id"],
             excerpt["_source"]["source_territory_id"],
             datetime.strptime(excerpt["_source"]["source_date"], "%Y-%m-%d").date(),
+            datetime.fromisoformat(excerpt["_source"]["source_scraped_at"]),
             excerpt["_source"]["source_url"],
             excerpt["_source"]["source_territory_name"],
             excerpt["_source"]["source_state_code"],
