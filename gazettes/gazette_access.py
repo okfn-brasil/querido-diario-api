@@ -58,6 +58,7 @@ class GazetteSearchResult:
         self,
         territory_id,
         date,
+        scraped_at,
         url,
         checksum,
         territory_name,
@@ -69,6 +70,7 @@ class GazetteSearchResult:
     ):
         self.territory_id = territory_id
         self.date = date
+        self.scraped_at = scraped_at
         self.url = url
         self.territory_name = territory_name
         self.state_code = state_code
@@ -83,6 +85,7 @@ class GazetteSearchResult:
             (
                 self.territory_id,
                 self.date,
+                self.scraped_at,
                 self.url,
                 self.territory_name,
                 self.state_code,
@@ -99,6 +102,7 @@ class GazetteSearchResult:
             self.file_checksum == other.file_checksum
             and self.territory_id == other.territory_id
             and self.date == other.date
+            and self.scraped_at == other.scraped_at
             and self.url == other.url
             and self.territory_name == other.territory_name
             and self.state_code == other.state_code
@@ -109,7 +113,7 @@ class GazetteSearchResult:
         )
 
     def __repr__(self):
-        return f"GazetteSearchResult({self.file_checksum}, {self.territory_id}, {self.date}, {self.url}, {self.territory_name}, {self.state_code}, {self.excerpts}, {self.edition}, {self.is_extra_edition}, {self.txt_url})"
+        return f"GazetteSearchResult({self.file_checksum}, {self.territory_id}, {self.date}, {self.scraped_at}, {self.url}, {self.territory_name}, {self.state_code}, {self.excerpts}, {self.edition}, {self.is_extra_edition}, {self.txt_url})"
 
 
 class GazetteDataGateway(abc.ABC):
@@ -318,6 +322,7 @@ class GazetteSearchEngineGateway(GazetteDataGateway):
         return GazetteSearchResult(
             gazette["_source"]["territory_id"],
             datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
+            datetime.fromisoformat(gazette["_source"]["scraped_at"]),
             gazette["_source"]["url"],
             gazette["_source"]["file_checksum"],
             gazette["_source"]["territory_name"],

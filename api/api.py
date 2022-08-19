@@ -1,5 +1,5 @@
 from enum import Enum, unique
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, Query, Path, Response, status
@@ -35,6 +35,7 @@ app.add_middleware(
 class GazetteItem(BaseModel):
     territory_id: str
     date: date
+    scraped_at: datetime
     url: str
     territory_name: str
     state_code: str
@@ -52,6 +53,7 @@ class GazetteSearchResponse(BaseModel):
 class ThemedExcerptItem(BaseModel):
     territory_id: str
     date: date
+    scraped_at: datetime
     url: str
     territory_name: str
     state_code: str
@@ -88,6 +90,7 @@ class EntitiesSearchResponse(BaseModel):
 
 @unique
 class CityLevel(str, Enum):
+    ALL = ""
     ZERO = "0"
     ONE = "1"
     TWO = "2"
@@ -443,9 +446,13 @@ async def get_cities(
     city_name: Optional[str] = Query(
         "",
         description="Search for cities with a similar name (empty field returns all cities).",
-    )
+    ),
+    levels: Optional[List[CityLevel]] = Query(
+        [CityLevel.ALL],
+        description="Search for cities within the same openness level (empty field returns from all levels)",
+    ),
 ):
-    cities = app.cities.get_cities(city_name)
+    cities = app.cities.get_cities(city_name, levels)
     return {"cities": cities}
 
 
