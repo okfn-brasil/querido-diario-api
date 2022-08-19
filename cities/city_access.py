@@ -57,7 +57,7 @@ class CityDataGateway(abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_cities(self, city_name: str):
+    def get_cities(self, city_name: str, levels: List[str]):
         """
         Method to get information about the cities from storage
         """
@@ -75,7 +75,7 @@ class CityAccessInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_cities(self, city_name: str):
+    def get_cities(self, city_name: str, levels: List[str]):
         """
         Method to get information about the cities
         """
@@ -99,12 +99,15 @@ class CitiesCSVDatabaseGateway(CityDataGateway):
         if not os.path.exists(self._database_file):
             raise Exception("Missing databasefile")
 
-    def get_cities(self, city_name: str):
+    def get_cities(self, city_name: str, levels: List[str]):
         results = []
         with open(self._database_file) as database:
             reader = csv.DictReader(database)
             for row in reader:
-                if city_name.lower() in row["city_name"].lower():
+                if city_name.lower() not in row["city_name"].lower():
+                    continue
+
+                if levels == [""] or levels == [] or row["openness_level"] in levels:
                     city = CitySearchResult(
                         row["city_name"],
                         row["ibge_id"],
@@ -140,8 +143,8 @@ class CityAccess(CityAccessInterface):
     def __init__(self, data_gateway: CityDataGateway):
         self._data_gateway = data_gateway
 
-    def get_cities(self, city_name: str):
-        return [vars(city) for city in self._data_gateway.get_cities(city_name)]
+    def get_cities(self, city_name: str, levels: List[str]):
+        return [vars(city) for city in self._data_gateway.get_cities(city_name, levels)]
 
     def get_city(self, territory_id: str):
         city = self._data_gateway.get_city(territory_id)

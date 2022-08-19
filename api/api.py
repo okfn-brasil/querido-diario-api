@@ -90,6 +90,7 @@ class EntitiesSearchResponse(BaseModel):
 
 @unique
 class CityLevel(str, Enum):
+    ALL = ""
     ZERO = "0"
     ONE = "1"
     TWO = "2"
@@ -445,9 +446,13 @@ async def get_cities(
     city_name: Optional[str] = Query(
         "",
         description="Search for cities with a similar name (empty field returns all cities).",
-    )
+    ),
+    levels: Optional[List[CityLevel]] = Query(
+        [CityLevel.ALL],
+        description="Search for cities within the same openness level (empty field returns from all levels)",
+    ),
 ):
-    cities = app.cities.get_cities(city_name)
+    cities = app.cities.get_cities(city_name, levels)
     return {"cities": cities}
 
 
