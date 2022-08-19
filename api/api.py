@@ -20,7 +20,7 @@ config = load_configuration()
 app = FastAPI(
     title="Querido Diário",
     description="API to access the gazettes from all Brazilian cities",
-    version="0.15.2",
+    version="0.16.0",
 )
 
 app.add_middleware(
