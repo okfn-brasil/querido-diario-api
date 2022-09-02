@@ -31,6 +31,7 @@ gazettes_query_builder = create_gazettes_query_builder(
     configuration.gazette_content_field,
     configuration.gazette_content_exact_field_suffix,
     configuration.gazette_publication_date_field,
+    configuration.gazette_scraped_at_field,
     configuration.gazette_territory_id_field,
 )
 gazettes_search_engine_gateway = create_gazettes_data_gateway(
@@ -42,6 +43,7 @@ themed_excerpts_query_builder = create_themed_excerpts_query_builder(
     configuration.themed_excerpt_content_field,
     configuration.themed_excerpt_content_exact_field_suffix,
     configuration.themed_excerpt_publication_date_field,
+    configuration.themed_excerpt_scraped_at_field,
     configuration.themed_excerpt_territory_id_field,
     configuration.themed_excerpt_entities_field,
     configuration.themed_excerpt_subthemes_field,

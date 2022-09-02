@@ -226,13 +226,21 @@ async def get_gazettes(
         [],
         description="Search in gazettes published by cities with the given 7-digit IBGE IDs (an empty field searches in all available cities).",
     ),
-    since: date = Query(
+    published_since: date = Query(
         None,
         description="Search in gazettes published on given date or after (format: YYYY-MM-DD).",
     ),
-    until: date = Query(
+    published_until: date = Query(
         None,
         description="Search in gazettes published on given date or before (format: YYYY-MM-DD).",
+    ),
+    scraped_since: datetime = Query(
+        None,
+        description="Search in gazettes scraped on given datetime or after (format: YYYY-MM-DDTHH:MM:SS).",
+    ),
+    scraped_until: datetime = Query(
+        None,
+        description="Search in gazettes scraped on given datetime or before (format: YYYY-MM-DDTHH:MM:SS).",
     ),
     querystring: str = Query(
         "",
@@ -269,8 +277,10 @@ async def get_gazettes(
 ):
     gazette_request = GazetteRequest(
         territory_ids=territory_ids,
-        since=since,
-        until=until,
+        published_since=published_since,
+        published_until=published_until,
+        scraped_since=scraped_since,
+        scraped_until=scraped_until,
         querystring=querystring,
         excerpt_size=excerpt_size,
         number_of_excerpts=number_of_excerpts,
@@ -315,13 +325,21 @@ async def get_themed_excerpts(
         [],
         description="Search in excerpts from gazettes published by cities with the given 7-digit IBGE IDs (an empty field searches in all available cities).",
     ),
-    since: date = Query(
+    published_since: date = Query(
         None,
         description="Search in excerpts from gazettes published on given date or after (format: YYYY-MM-DD).",
     ),
-    until: date = Query(
+    published_until: date = Query(
         None,
         description="Search in excerpts from gazettes published on given date or before (format: YYYY-MM-DD).",
+    ),
+    scraped_since: datetime = Query(
+        None,
+        description="Search in excerpts from gazettes scraped on given datetime or after (format: YYYY-MM-DDTHH:MM:SS).",
+    ),
+    scraped_until: datetime = Query(
+        None,
+        description="Search in excerpts from gazettes scraped on given datetime or before (format: YYYY-MM-DDTHH:MM:SS).",
     ),
     querystring: str = Query(
         "",
@@ -353,8 +371,10 @@ async def get_themed_excerpts(
         entities=entities,
         subthemes=subthemes,
         territory_ids=territory_ids,
-        since=since,
-        until=until,
+        published_since=published_since,
+        published_until=published_until,
+        scraped_since=scraped_since,
+        scraped_until=scraped_until,
         querystring=querystring,
         pre_tags=pre_tags,
         post_tags=post_tags,

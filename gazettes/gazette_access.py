@@ -25,8 +25,10 @@ class GazetteRequest:
     def __init__(
         self,
         territory_ids: List[str],
-        since: Union[date, None],
-        until: Union[date, None],
+        published_since: Union[date, None],
+        published_until: Union[date, None],
+        scraped_since: Union[datetime, None],
+        scraped_until: Union[datetime, None],
         querystring: str,
         excerpt_size: int,
         number_of_excerpts: int,
@@ -37,8 +39,10 @@ class GazetteRequest:
         sort_by: str,
     ):
         self.territory_ids = territory_ids
-        self.since = since
-        self.until = until
+        self.published_since = published_since
+        self.published_until = published_until
+        self.scraped_since = scraped_since
+        self.scraped_until = scraped_until
         self.querystring = querystring
         self.excerpt_size = excerpt_size
         self.number_of_excerpts = number_of_excerpts
@@ -125,8 +129,10 @@ class GazetteDataGateway(abc.ABC):
     def get_gazettes(
         self,
         territory_ids: List[str],
-        since: Union[date, None],
-        until: Union[date, None],
+        published_since: Union[date, None],
+        published_until: Union[date, None],
+        scraped_since: Union[datetime, None],
+        scraped_until: Union[datetime, None],
         querystring: str,
         excerpt_size: int,
         number_of_excerpts: int,
@@ -169,18 +175,22 @@ class GazetteQueryBuilder(
         text_content_field: str,
         text_content_exact_field_suffix: str,
         publication_date_field: str,
+        scraped_at_field: str,
         territory_id_field: str,
     ):
         self.text_content_field = text_content_field
         self.text_content_exact_field_suffix = text_content_exact_field_suffix
         self.publication_date_field = publication_date_field
+        self.scraped_at_field = scraped_at_field
         self.territory_id_field = territory_id_field
 
     def build_query(
         self,
         territory_ids: List[str],
-        since: Union[date, None],
-        until: Union[date, None],
+        published_since: Union[date, None],
+        published_until: Union[date, None],
+        scraped_since: Union[datetime, None],
+        scraped_until: Union[datetime, None],
         querystring: str,
         excerpt_size: int,
         number_of_excerpts: int,
@@ -194,8 +204,10 @@ class GazetteQueryBuilder(
 
         if (
             territory_ids == []
-            and since is None
-            and until is None
+            and published_since is None
+            and published_until is None
+            and scraped_since is None
+            and scraped_until is None
             and querystring == ""
         ):
             query["query"] = self.build_match_none_query()
@@ -231,10 +243,13 @@ class GazetteQueryBuilder(
         territory_query = self.build_terms_query(
             field=self.territory_id_field, terms=territory_ids
         )
-        date_query = self.build_date_range_query(
-            field=self.publication_date_field, since=since, until=until
+        published_date_query = self.build_date_range_query(
+            field=self.publication_date_field, since=published_since, until=published_until
         )
-        filter_query = [q for q in [territory_query, date_query] if q is not None]
+        scraped_at_query = self.build_date_range_query(
+            field=self.scraped_at_field, since=scraped_since, until=scraped_until
+        )
+        filter_query = [q for q in [territory_query, published_date_query, scraped_at_query] if q is not None]
 
         query["query"] = self.build_bool_query(must=must_query, filter=filter_query)
 
@@ -276,8 +291,10 @@ class GazetteSearchEngineGateway(GazetteDataGateway):
     def get_gazettes(
         self,
         territory_ids: List[str],
-        since: Union[date, None],
-        until: Union[date, None],
+        published_since: Union[date, None],
+        published_until: Union[date, None],
+        scraped_since: Union[datetime, None],
+        scraped_until: Union[datetime, None],
         querystring: str,
         excerpt_size: int,
         number_of_excerpts: int,
@@ -289,8 +306,10 @@ class GazetteSearchEngineGateway(GazetteDataGateway):
     ):
         query = self._query_builder.build_query(
             territory_ids=territory_ids,
-            since=since,
-            until=until,
+            published_since=published_since,
+            published_until=published_until,
+            scraped_since=scraped_since,
+            scraped_until=scraped_until,
             querystring=querystring,
             excerpt_size=excerpt_size,
             number_of_excerpts=number_of_excerpts,
@@ -349,12 +368,14 @@ def create_gazettes_query_builder(
     gazette_content_field: str,
     gazette_content_exact_field_suffix: str,
     gazette_publication_date_field: str,
+    gazette_scraped_at_field: str,
     gazette_territory_id_field: str,
 ) -> QueryBuilderInterface:
     return GazetteQueryBuilder(
         gazette_content_field,
         gazette_content_exact_field_suffix,
         gazette_publication_date_field,
+        gazette_scraped_at_field,
         gazette_territory_id_field,
     )
 
