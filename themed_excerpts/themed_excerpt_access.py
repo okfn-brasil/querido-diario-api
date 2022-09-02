@@ -31,8 +31,10 @@ class ThemedExcerptRequest:
         entities: List[str],
         subthemes: List[str],
         territory_ids: List[str],
-        since: Union[date, None],
-        until: Union[date, None],
+        published_since: Union[date, None],
+        published_until: Union[date, None],
+        scraped_since: Union[datetime, None],
+        scraped_until: Union[datetime, None],
         querystring: str,
         pre_tags: List[str],
         post_tags: List[str],
@@ -44,8 +46,10 @@ class ThemedExcerptRequest:
         self.entities = entities
         self.subthemes = subthemes
         self.territory_ids = territory_ids
-        self.since = since
-        self.until = until
+        self.published_since = published_since
+        self.published_until = published_until
+        self.scraped_since = scraped_since
+        self.scraped_until = scraped_until
         self.querystring = querystring
         self.offset = offset
         self.size = size
@@ -146,8 +150,10 @@ class ThemedExcerptDataGateway(abc.ABC):
         entities: List[str],
         subthemes: List[str],
         territory_ids: List[str],
-        since: Union[date, None],
-        until: Union[date, None],
+        published_since: Union[date, None],
+        published_until: Union[date, None],
+        scraped_since: Union[datetime, None],
+        scraped_until: Union[datetime, None],
         querystring: str,
         pre_tags: List[str],
         post_tags: List[str],
@@ -237,6 +243,7 @@ class ThemedExcerptQueryBuilder(
         text_content_field: str,
         text_content_exact_field_suffix: str,
         publication_date_field: str,
+        scraped_at_field: str,
         territory_id_field: str,
         entities_field: str,
         subthemes_field: str,
@@ -248,6 +255,7 @@ class ThemedExcerptQueryBuilder(
         self.text_content_field = text_content_field
         self.text_content_exact_field_suffix = text_content_exact_field_suffix
         self.publication_date_field = publication_date_field
+        self.scraped_at_field = scraped_at_field
         self.territory_id_field = territory_id_field
         self.entities_field = entities_field
         self.subthemes_field = subthemes_field
@@ -261,8 +269,10 @@ class ThemedExcerptQueryBuilder(
         entities: List[str],
         subthemes: List[str],
         territory_ids: List[str],
-        since: Union[date, None],
-        until: Union[date, None],
+        published_since: Union[date, None],
+        published_until: Union[date, None],
+        scraped_since: Union[datetime, None],
+        scraped_until: Union[datetime, None],
         querystring: str,
         pre_tags: List[str],
         post_tags: List[str],
@@ -296,8 +306,10 @@ class ThemedExcerptQueryBuilder(
             territory_ids == []
             and entities == []
             and subthemes == []
-            and since is None
-            and until is None
+            and published_since is None
+            and published_until is None
+            and scraped_since is None
+            and scraped_until is None
             and querystring == ""
         ):
             query["query"] = self.build_match_all_query()
@@ -313,8 +325,11 @@ class ThemedExcerptQueryBuilder(
         territory_query = self.build_terms_query(
             field=self.territory_id_field, terms=territory_ids
         )
-        date_query = self.build_date_range_query(
-            field=self.publication_date_field, since=since, until=until
+        published_date_query = self.build_date_range_query(
+            field=self.publication_date_field, since=published_since, until=published_until
+        )
+        scraped_at_query = self.build_date_range_query(
+            field=self.scraped_at_field, since=scraped_since, until=scraped_until
         )
         entities_query = self.build_terms_query(
             field=self.entities_field, terms=entities
@@ -324,7 +339,7 @@ class ThemedExcerptQueryBuilder(
         )
         filter_query = [
             q
-            for q in [territory_query, date_query, entities_query, subthemes_query]
+            for q in [territory_query, published_date_query, scraped_at_query, entities_query, subthemes_query]
             if q is not None
         ]
 
@@ -376,8 +391,10 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
         entities: List[str],
         subthemes: List[str],
         territory_ids: List[str],
-        since: Union[date, None],
-        until: Union[date, None],
+        published_since: Union[date, None],
+        published_until: Union[date, None],
+        scraped_since: Union[datetime, None],
+        scraped_until: Union[datetime, None],
         querystring: str,
         pre_tags: List[str],
         post_tags: List[str],
@@ -389,8 +406,10 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
             entities=entities,
             subthemes=subthemes,
             territory_ids=territory_ids,
-            since=since,
-            until=until,
+            published_since=published_since,
+            published_until=published_until,
+            scraped_since=scraped_since,
+            scraped_until=scraped_until,
             querystring=querystring,
             pre_tags=pre_tags,
             post_tags=post_tags,
@@ -549,6 +568,7 @@ def create_themed_excerpts_query_builder(
     themed_excerpt_text_content_field: str,
     themed_excerpt_content_exact_field_suffix: str,
     themed_excerpt_publication_date_field: str,
+    themed_excerpt_scraped_at_field: str,
     themed_excerpt_territory_id_field: str,
     themed_excerpt_entities_field: str,
     themed_excerpt_subthemes_field: str,
@@ -561,6 +581,7 @@ def create_themed_excerpts_query_builder(
         themed_excerpt_text_content_field,
         themed_excerpt_content_exact_field_suffix,
         themed_excerpt_publication_date_field,
+        themed_excerpt_scraped_at_field,
         themed_excerpt_territory_id_field,
         themed_excerpt_entities_field,
         themed_excerpt_subthemes_field,

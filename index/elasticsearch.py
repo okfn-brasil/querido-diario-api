@@ -98,12 +98,12 @@ class DateRangeQueryMixin:
     ) -> Union[Dict, None]:
         if since is None and until is None:
             return
-
+        
         date_range_query = {field: {}}
         if since is not None:
-            date_range_query[field]["gte"] = since.strftime("%Y-%m-%d")
+            date_range_query[field]["gte"] = since.isoformat()
         if until is not None:
-            date_range_query[field]["lte"] = until.strftime("%Y-%m-%d")
+            date_range_query[field]["lte"] = until.isoformat()
 
         return {"range": date_range_query}
 
