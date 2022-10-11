@@ -36,7 +36,7 @@ wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--pod $(POD_NAME) \
 	--env PYTHONPATH=/mnt/code \
 	--user=$(UID):$(UID) \
-	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=30 $1)
+	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=40 $1)
 
 .PHONY: black
 black:
