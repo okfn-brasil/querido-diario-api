@@ -72,7 +72,7 @@ destroy-pod:
 	podman pod rm --force --ignore $(POD_NAME)
 
 create-pod: destroy-pod
-	cp --no-clobber config/sample.env config/current.env
+	rsync --ignore-existing config/sample.env config/current.env
 	podman pod create --publish $(API_PORT):$(API_PORT) \
 	  --publish $(ELASTICSEARCH_PORT1):$(ELASTICSEARCH_PORT1) \
 	  --publish $(ELASTICSEARCH_PORT2):$(ELASTICSEARCH_PORT2) \
