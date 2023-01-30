@@ -53,9 +53,7 @@ class Configuration:
         self.gazette_publication_date_field = os.environ.get(
             "GAZETTE_PUBLICATION_DATE_FIELD", ""
         )
-        self.gazette_scraped_at_field = os.environ.get(
-            "GAZETTE_SCRAPED_AT_FIELD", ""
-        )
+        self.gazette_scraped_at_field = os.environ.get("GAZETTE_SCRAPED_AT_FIELD", "")
         self.gazette_territory_id_field = os.environ.get(
             "GAZETTE_TERRITORY_ID_FIELD", ""
         )

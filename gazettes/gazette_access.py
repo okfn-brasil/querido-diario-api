@@ -224,10 +224,7 @@ class GazetteQueryBuilder(
             self.add_sorts(
                 query=query,
                 sorts=[
-                    self.build_sort(
-                        field=self.publication_date_field,
-                        order=order,
-                    )
+                    self.build_sort(field=self.publication_date_field, order=order,)
                 ],
             )
 
@@ -244,12 +241,18 @@ class GazetteQueryBuilder(
             field=self.territory_id_field, terms=territory_ids
         )
         published_date_query = self.build_date_range_query(
-            field=self.publication_date_field, since=published_since, until=published_until
+            field=self.publication_date_field,
+            since=published_since,
+            until=published_until,
         )
         scraped_at_query = self.build_date_range_query(
             field=self.scraped_at_field, since=scraped_since, until=scraped_until
         )
-        filter_query = [q for q in [territory_query, published_date_query, scraped_at_query] if q is not None]
+        filter_query = [
+            q
+            for q in [territory_query, published_date_query, scraped_at_query]
+            if q is not None
+        ]
 
         query["query"] = self.build_bool_query(must=must_query, filter=filter_query)
 
@@ -268,8 +271,7 @@ class GazetteQueryBuilder(
             matched_fields=matched_fields,
         )
         self.add_highlight(
-            query=query,
-            fields_highlights=[text_highlight],
+            query=query, fields_highlights=[text_highlight],
         )
 
         return query

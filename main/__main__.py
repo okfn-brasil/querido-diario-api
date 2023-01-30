@@ -4,9 +4,7 @@ from api import app, configure_api_app
 from cities import create_cities_data_gateway, create_cities_interface
 from config import load_configuration
 from companies import create_companies_interface
-from database import (
-    create_companies_database_interface,
-)
+from database import create_companies_database_interface
 from gazettes import (
     create_gazettes_interface,
     create_gazettes_data_gateway,

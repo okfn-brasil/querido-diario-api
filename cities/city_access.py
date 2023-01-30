@@ -42,12 +42,7 @@ class CitySearchResult:
 
     def __hash__(self):
         return hash(
-            (
-                self.territory_id,
-                self.territory_name,
-                self.state_code,
-                self.level,
-            )
+            (self.territory_id, self.territory_name, self.state_code, self.level,)
         )
 
 
@@ -155,9 +150,7 @@ def create_cities_data_gateway(city_database_file: str) -> CityDataGateway:
     return CitiesCSVDatabaseGateway(city_database_file)
 
 
-def create_cities_interface(
-    data_gateway: CityDataGateway,
-) -> CityAccessInterface:
+def create_cities_interface(data_gateway: CityDataGateway,) -> CityAccessInterface:
     if not isinstance(data_gateway, CityDataGateway):
         raise Exception("Data gateway should implement the CityDataGateway interface")
 
