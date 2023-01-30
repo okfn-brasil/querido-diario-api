@@ -98,7 +98,7 @@ class DateRangeQueryMixin:
     ) -> Union[Dict, None]:
         if since is None and until is None:
             return
-        
+
         date_range_query = {field: {}}
         if since is not None:
             date_range_query[field]["gte"] = since.isoformat()
@@ -174,11 +174,7 @@ class PaginationMixin:
 
 
 class HighlightMixin:
-    def add_highlight(
-        self,
-        query: Dict,
-        fields_highlights: List[Dict] = [],
-    ) -> None:
+    def add_highlight(self, query: Dict, fields_highlights: List[Dict] = [],) -> None:
         if fields_highlights == []:
             return
 

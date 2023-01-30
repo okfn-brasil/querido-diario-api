@@ -129,12 +129,10 @@ class CreateSuggestionBody(BaseModel):
         title="Email address", description="Email address who is sending email"
     )
     name: str = Field(
-        title="Name",
-        description="Name who is sending email",
+        title="Name", description="Name who is sending email",
     )
     content: str = Field(
-        title="Email content",
-        description="Email content with suggestion",
+        title="Email content", description="Email content with suggestion",
     )
 
 
@@ -271,8 +269,7 @@ async def get_gazettes(
         description="Number of search results to be skipped in the response.",
     ),
     sort_by: SortBy = Query(
-        SortBy.RELEVANCE,
-        description="How to sort the search results.",
+        SortBy.RELEVANCE, description="How to sort the search results.",
     ),
 ):
     gazette_request = GazetteRequest(
@@ -362,8 +359,7 @@ async def get_themed_excerpts(
         description="Number of search results to be skipped in the response.",
     ),
     sort_by: SortBy = Query(
-        SortBy.RELEVANCE,
-        description="How to sort the search results.",
+        SortBy.RELEVANCE, description="How to sort the search results.",
     ),
 ):
     themed_excerpt_request = ThemedExcerptRequest(
@@ -421,8 +417,7 @@ async def get_available_themes():
 )
 async def get_available_subthemes(
     theme: str = Path(
-        ...,
-        description="Theme that can be used to search in gazettes by theme.",
+        ..., description="Theme that can be used to search in gazettes by theme.",
     ),
 ):
     subthemes = app.themed_excerpts.get_available_subthemes(theme)
@@ -444,8 +439,7 @@ async def get_available_subthemes(
 )
 async def get_available_entities(
     theme: str = Path(
-        ...,
-        description="Theme that can be used to search in gazettes by theme.",
+        ..., description="Theme that can be used to search in gazettes by theme.",
     ),
 ):
     entities = app.themed_excerpts.get_available_entities(theme)
@@ -504,9 +498,7 @@ async def get_city(
 )
 async def add_suggestion(response: Response, body: CreateSuggestionBody):
     suggestion = Suggestion(
-        email_address=body.email_address,
-        name=body.name,
-        content=body.content,
+        email_address=body.email_address, name=body.name, content=body.content,
     )
     suggestion_sent = app.suggestion_service.add_suggestion(suggestion)
     response.status_code = (

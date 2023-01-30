@@ -293,10 +293,7 @@ class ThemedExcerptQueryBuilder(
             self.add_sorts(
                 query=query,
                 sorts=[
-                    self.build_sort(
-                        field=self.publication_date_field,
-                        order=order,
-                    )
+                    self.build_sort(field=self.publication_date_field, order=order,)
                 ],
             )
 
@@ -326,7 +323,9 @@ class ThemedExcerptQueryBuilder(
             field=self.territory_id_field, terms=territory_ids
         )
         published_date_query = self.build_date_range_query(
-            field=self.publication_date_field, since=published_since, until=published_until
+            field=self.publication_date_field,
+            since=published_since,
+            until=published_until,
         )
         scraped_at_query = self.build_date_range_query(
             field=self.scraped_at_field, since=scraped_since, until=scraped_until
@@ -339,7 +338,13 @@ class ThemedExcerptQueryBuilder(
         )
         filter_query = [
             q
-            for q in [territory_query, published_date_query, scraped_at_query, entities_query, subthemes_query]
+            for q in [
+                territory_query,
+                published_date_query,
+                scraped_at_query,
+                entities_query,
+                subthemes_query,
+            ]
             if q is not None
         ]
 
@@ -368,8 +373,7 @@ class ThemedExcerptQueryBuilder(
             matched_fields=matched_fields,
         )
         self.add_highlight(
-            query=query,
-            fields_highlights=[text_highlight],
+            query=query, fields_highlights=[text_highlight],
         )
 
         return query
@@ -546,8 +550,7 @@ class ThemedExcerptAccess(ThemedExcerptAccessInterface):
             raise Exception(f"Theme not found.")
 
         total_number_excerpts, excerpts = self._data_gateway.get_themed_excerpts(
-            theme_index=theme_index,
-            **vars(filters),
+            theme_index=theme_index, **vars(filters),
         )
         return (total_number_excerpts, [vars(excerpt) for excerpt in excerpts])
 
@@ -593,8 +596,7 @@ def create_themed_excerpts_query_builder(
 
 
 def create_themed_excerpts_data_gateway(
-    search_engine: SearchEngineInterface,
-    query_builder: QueryBuilderInterface,
+    search_engine: SearchEngineInterface, query_builder: QueryBuilderInterface,
 ) -> ThemedExcerptDataGateway:
     if not isinstance(search_engine, SearchEngineInterface):
         raise Exception(
