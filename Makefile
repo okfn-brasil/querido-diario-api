@@ -36,7 +36,7 @@ wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--pod $(POD_NAME) \
 	--env PYTHONPATH=/mnt/code \
 	--user=$(UID):$(UID) \
-	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=30 $1)
+	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=40 $1)
 
 .PHONY: black
 black:
@@ -72,7 +72,7 @@ destroy-pod:
 	podman pod rm --force --ignore $(POD_NAME)
 
 create-pod: destroy-pod
-	cp --no-clobber config/sample.env config/current.env
+	rsync --ignore-existing config/sample.env config/current.env
 	podman pod create --publish $(API_PORT):$(API_PORT) \
 	  --publish $(ELASTICSEARCH_PORT1):$(ELASTICSEARCH_PORT1) \
 	  --publish $(ELASTICSEARCH_PORT2):$(ELASTICSEARCH_PORT2) \
