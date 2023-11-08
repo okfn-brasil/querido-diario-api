@@ -6,56 +6,55 @@ import unittest
 import uuid
 import time
 
-import elasticsearch
+import opensearchpy
 
-from index import ElasticSearchDataMapper, create_elasticsearch_data_mapper
+from index import OpenSearchDataMapper, create_opensearch_data_mapper
 from gazettes import GazetteDataGateway, Gazette
 
 
 FILE_ENDPOINT = "http://test.com"
 
 
-class ElasticSearchInterfaceTest(TestCase):
-    @patch("elasticsearch.Elasticsearch")
-    def test_create_elasticsearch_mapper(self, es_mock):
-        mapper = create_elasticsearch_data_mapper("localhost", "gazettes")
+class OpenSearchInterfaceTest(TestCase):
+    @patch("opensearchpy.OpenSearch")
+    def test_create_opensearch_mapper(self, os_mock):
+        mapper = create_opensearch_data_mapper("localhost", "gazettes")
         self.assertIsInstance(mapper, GazetteDataGateway)
 
-    @patch("elasticsearch.Elasticsearch")
+    @patch("opensearchpy.OpenSearch")
     @unittest.expectedFailure
-    def test_create_elasticsearch_mapper_should_fail_without_host(self, es_mock):
-        create_elasticsearch_data_mapper()
+    def test_create_opensearch_mapper_should_fail_without_host(self, os_mock):
+        create_opensearch_data_mapper()
 
-    @patch("elasticsearch.Elasticsearch")
-    def test_create_elasticsearch_mapper_without_host(self, es_mock):
+    @patch("opensearchpy.OpenSearch")
+    def test_create_opensearch_mapper_without_host(self, os_mock):
         with self.assertRaisesRegex(Exception, "Missing host") as cm:
-            mapper = create_elasticsearch_data_mapper("", "gazettes")
+            mapper = create_opensearch_data_mapper("", "gazettes")
 
-    @patch("elasticsearch.Elasticsearch")
-    def test_create_elasticsearch_mapper_without_index_name(self, es_mock):
+    @patch("opensearchpy.OpenSearch")
+    def test_create_opensearch_mapper_without_index_name(self, os_mock):
         with self.assertRaisesRegex(Exception, "Missing index name") as cm:
-            mapper = create_elasticsearch_data_mapper("localhost")
+            mapper = create_opensearch_data_mapper("localhost")
 
-    def configure_es_mock_to_return_itself_in_the_es_constructor(
-        self, es_mock, indices_mock
+    def configure_search_engine_mock_to_return_itself_in_the_search_engine_constructor(
+        self, os_mock, indices_mock
     ):
-        es_mock.indices = indices_mock
-        es_mock.return_value = es_mock
+        os_mock.indices = indices_mock
+        os_mock.return_value = os_mock
 
-    @patch("elasticsearch.Elasticsearch")
-    @patch("elasticsearch.client.IndicesClient")
-    def test_create_elasticsearch_mapper_using_non_existing_index_should_fail(
-        self, indices_mock, es_mock
+    @patch("opensearchpy.OpenSearch")
+    def test_create_opensearch_mapper_using_non_existing_index_should_fail(
+        self, indices_mock, os_mock
     ):
         indices_mock.exists.return_value = False
-        self.configure_es_mock_to_return_itself_in_the_es_constructor(
-            es_mock, indices_mock
+        self.configure_search_engine_mock_to_return_itself_in_the_search_engine_constructor(
+            os_mock, indices_mock
         )
         with self.assertRaisesRegex(Exception, "Index does not exist") as cm:
-            create_elasticsearch_data_mapper("localhost", "zpto")
+            create_opensearch_data_mapper("localhost", "zpto")
 
 
-class ElasticSearchBaseTestCase(TestCase):
+class OpenSearchBaseTestCase(TestCase):
 
     INDEX = "gazettes"
     _data = []
@@ -113,11 +112,11 @@ class ElasticSearchBaseTestCase(TestCase):
         return query
 
     def setUp(self):
-        self.es_mock = self.create_patch("elasticsearch.Elasticsearch")
-        self.indices_mock = self.create_patch("elasticsearch.client.IndicesClient")
+        self.os_mock = self.create_patch("opensearchpy.OpenSearch")
+        self.indices_mock = self.create_patch("opensearchpy.client.IndicesClient")
         self.generate_data()
-        self._mapper = ElasticSearchDataMapper("localhost", self.INDEX)
-        self.configure_es_mock_to_return_itself_in_the_es_constructor()
+        self._mapper = OpenSearchDataMapper("localhost", self.INDEX)
+        self.configure_search_engine_mock_to_return_itself_in_the_search_engine_constructor()
         self.set_mock_search_return()
 
     def create_patch(self, name):
@@ -125,9 +124,9 @@ class ElasticSearchBaseTestCase(TestCase):
         self.addCleanup(patcher.stop)
         return patcher.start()
 
-    def configure_es_mock_to_return_itself_in_the_es_constructor(self):
-        self.es_mock.indices = self.indices_mock
-        self.es_mock = self.es_mock.return_value
+    def configure_search_engine_mock_to_return_itself_in_the_search_engine_constructor(self):
+        self.os_mock.indices = self.indices_mock
+        self.os_mock = self.os_mock.return_value
 
     def set_mock_search_return(self):
         hits = [
@@ -141,7 +140,7 @@ class ElasticSearchBaseTestCase(TestCase):
             }
             for hit in self._data
         ]
-        self.es_mock.search.return_value = {
+        self.os_mock.search.return_value = {
             "took": 4,
             "timed_out": False,
             "_shards": {"total": 1, "successful": 1, "skipped": 0, "failed": 0},
@@ -176,7 +175,7 @@ class ElasticSearchBaseTestCase(TestCase):
         return expected_gazettes[start_slice:end_slice]
 
 
-class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
+class OpenSearchDataMapperTest(OpenSearchBaseTestCase):
 
     TERRITORY_ID1 = "3304557"
     TERRITORY_ID2 = "4205902"
@@ -435,7 +434,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
             offset=offset,
             size=size,
         )
-        self.es_mock.search.assert_called_with(body=expected_query, index=self.INDEX)
+        self.os_mock.search.assert_called_with(body=expected_query, index=self.INDEX)
 
     def test_get_none_gazettes(self):
         self._data = []
@@ -485,7 +484,7 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         self.assertGreater(len(gazettes), 0)
         self.assertGreater(gazettes[0].date, gazettes[-1].date)
 
-    def set_empty_es_return(self):
+    def set_empty_search_engine_return(self):
         self._data = []
         self.set_mock_search_return()
 
@@ -564,13 +563,13 @@ class ElasticSearchDataMapperTest(ElasticSearchBaseTestCase):
         self.assertCountEqual(gazettes, expected_gazettes)
 
     def test_get_gazettes_by_invalid_since_date(self):
-        self.set_empty_es_return()
+        self.set_emptysearch_engine_return()
         two_months_future = date.today() + timedelta(weeks=8)
         gazettes = self._mapper.get_gazettes(since=two_months_future)[1]
         self.assertEqual(0, len(gazettes), msg="No gazettes should be return ")
 
     def test_get_gazettes_by_invalid_until_date(self):
-        self.set_empty_es_return()
+        self.set_emptysearch_engine_return()
         two_months_ago = date.today() - timedelta(weeks=8)
         gazettes = self._mapper.get_gazettes(until=two_months_ago)[1]
         self.assertEqual(0, len(gazettes), msg="No gazettes should be return ")
@@ -585,16 +584,16 @@ def is_running_integration_tests():
     return os.environ.get("RUN_INTEGRATION_TESTS", 0) == "1"
 
 
-class ElasticSearchIntegrationBaseTestCase(TestCase):
+class OpenSearchIntegrationBaseTestCase(TestCase):
     _data = []
 
     def delete_index(self):
         for attempt in range(3):
             try:
-                self._es.indices.delete(
-                    index=self.INDEX, ignore_unavailable=True, timeout="30s"
+                self.search_engine.indices.delete(
+                    index=self.INDEX, ignore_unavailable=True, timeout=30
                 )
-                self._es.indices.refresh()
+                self.search_engine.indices.refresh()
                 return
             except Exception as e:
                 time.sleep(10)
@@ -602,12 +601,12 @@ class ElasticSearchIntegrationBaseTestCase(TestCase):
     def create_index(self):
         for attempt in range(3):
             try:
-                self._es.indices.create(
+                self.search_engine.indices.create(
                     index=self.INDEX,
                     body={"mappings": {"properties": {"date": {"type": "date"}}}},
-                    timeout="30s",
+                    timeout=30,
                 )
-                self._es.indices.refresh()
+                self.search_engine.indices.refresh()
                 return
             except Exception as e:
                 time.sleep(10)
@@ -619,7 +618,7 @@ class ElasticSearchIntegrationBaseTestCase(TestCase):
     def try_push_data_to_index(self, bulk_data):
         for attempt in range(3):
             try:
-                self._es.bulk(bulk_data, index=self.INDEX, refresh=True, timeout="30s")
+                self.search_engine.bulk(bulk_data, index=self.INDEX, refresh=True, timeout=30)
                 return
             except Exception as e:
                 time.sleep(10)
@@ -634,14 +633,14 @@ class ElasticSearchIntegrationBaseTestCase(TestCase):
         self.try_push_data_to_index(bulk_data)
 
     def setUp(self):
-        self._es = elasticsearch.Elasticsearch(hosts=["localhost"])
+        self.search_engine = opensearchpy.OpenSearch(hosts=["localhost"])
         self.recreate_index()
         self.generate_data()
         self.add_data_on_index()
-        self._mapper = create_elasticsearch_data_mapper("localhost", self.INDEX)
+        self._mapper = create_opensearch_data_mapper("localhost", self.INDEX)
 
     def tearDown(self):
-        self._es.close()
+        self.search_engine.close()
 
     def get_latest_gazettes_files(self, gazettes_count):
         self._data.sort(reverse=True, key=lambda x: x["date"])
@@ -667,7 +666,7 @@ class ElasticSearchIntegrationBaseTestCase(TestCase):
 
 
 @skipUnless(is_running_integration_tests(), "Integration tests disable")
-class ElasticSearchDataMapperPaginationTest(ElasticSearchIntegrationBaseTestCase):
+class OpenSearchDataMapperPaginationTest(OpenSearchIntegrationBaseTestCase):
 
     INDEX = "gazettes_pagination"
     TERRITORY_ID = "3304557"
@@ -718,7 +717,7 @@ class ElasticSearchDataMapperPaginationTest(ElasticSearchIntegrationBaseTestCase
             offset=offset,
             size=size,
         )
-        self.es_mock.search.assert_called_with(body=expected_query, index=self.INDEX)
+        self.os_mock.search.assert_called_with(body=expected_query, index=self.INDEX)
 
     def test_page_size(self):
         gazettes = self._mapper.get_gazettes(
@@ -829,7 +828,7 @@ class ElasticSearchDataMapperPaginationTest(ElasticSearchIntegrationBaseTestCase
 
 
 @skipUnless(is_running_integration_tests(), "Integration tests disable")
-class ElasticSearchDataMapperQuerystringTest(ElasticSearchIntegrationBaseTestCase):
+class OpenSearchDataMapperQuerystringTest(OpenSearchIntegrationBaseTestCase):
 
     INDEX = "gazettes_querystring"
 
@@ -1059,7 +1058,7 @@ class ElasticSearchDataMapperQuerystringTest(ElasticSearchIntegrationBaseTestCas
         )
 
 
-class Elasticsearch(TestCase):
+class Opensearch(TestCase):
     def setUp(self):
         self.host = "localhost"
         self.index = "gazettes"
@@ -1267,22 +1266,21 @@ class Elasticsearch(TestCase):
             },
         }
 
-    def test_elasticsearch_data_mapper_creation(self):
-        with patch("elasticsearch.Elasticsearch") as es_mock:
-            es = ElasticSearchDataMapper(self.host, self.index)
-            es._es.indices.exists.assert_called_once()
+    def test_opensearch_data_mapper_creation(self):
+        with patch("opensearchpy.OpenSearch") as os_mock:
+            data_mapper = OpenSearchDataMapper(self.host, self.index)
+            data_mapper.search_engine.indices.exists.assert_called_once()
 
-    @patch("elasticsearch.Elasticsearch")
-    def test_get_total_number_items(self, es_mock):
-        es = ElasticSearchDataMapper(self.host, self.index)
-        total_items = es.get_total_number_items(self.search_result_json)
+    @patch("opensearchpy.OpenSearch")
+    def test_get_total_number_items(self, os_mock):
+        data_mapper = OpenSearchDataMapper(self.host, self.index)
+        total_items = data_mapper.get_total_number_items(self.search_result_json)
         self.assertEqual(total_items, 8)
 
-    @patch("elasticsearch.Elasticsearch")
-    def test_total_number_of_items_found_return(self, es_mock):
-        es_mock.search.return_value = self.search_result_json
-        es = ElasticSearchDataMapper(self.host, self.index)
-        es._es = es_mock
-
-        total_items, _ = es.get_gazettes("4205920", None, None, None, 1, 4)
+    @patch("opensearchpy.OpenSearch")
+    def test_total_number_of_items_found_return(self, os_mock):
+        os_mock.search.return_value = self.search_result_json
+        data_mapper = OpenSearchDataMapper(self.host, self.index)
+        data_mapper.search_engine = os_mock
+        total_items, _ = open_search.get_gazettes("4205920", None, None, None, 1, 4)
         self.assertEqual(total_items, 8)

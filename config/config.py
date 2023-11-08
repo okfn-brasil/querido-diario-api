@@ -8,7 +8,7 @@ VALID_BOOLEAN_VALUES = VALID_BOOLEAN_TRUE_VALUES + VALID_BOOLEAN_FALSE_VALUES
 
 class Configuration:
     def __init__(self):
-        self.host = os.environ.get("QUERIDO_DIARIO_ELASTICSEARCH_HOST", "")
+        self.host = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_HOST", "")
         self.root_path = os.environ.get("QUERIDO_DIARIO_API_ROOT_PATH", "")
         self.url_prefix = os.environ.get("QUERIDO_DIARIO_URL_PREFIX", "")
         self.cors_allow_origins = Configuration._load_list(
@@ -45,7 +45,7 @@ class Configuration:
             "QUERIDO_DIARIO_SUGGESTION_MAILJET_CUSTOM_ID", ""
         )
         self.city_database_file = os.environ["CITY_DATABASE_CSV"]
-        self.gazette_index = os.environ.get("GAZETTE_ELASTICSEARCH_INDEX", "")
+        self.gazette_index = os.environ.get("GAZETTE_OPENSEARCH_INDEX", "")
         self.gazette_content_field = os.environ.get("GAZETTE_CONTENT_FIELD", "")
         self.gazette_content_exact_field_suffix = os.environ.get(
             "GAZETTE_CONTENT_EXACT_FIELD_SUFFIX", ""
@@ -96,7 +96,8 @@ class Configuration:
         self.companies_database_user = os.environ.get("POSTGRES_USER", "")
         self.companies_database_pass = os.environ.get("POSTGRES_PASSWORD", "")
         self.companies_database_port = os.environ.get("POSTGRES_PORT", "")
-
+        self.opensearch_user = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_USER", "")
+        self.opensearch_pswd = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_PASSWORD", "")
     @classmethod
     def _load_list(cls, key, default=[]):
         value = os.environ.get(key, default)

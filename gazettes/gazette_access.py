@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Dict, List, Union
 
 from index import SearchEngineInterface
-from index.elasticsearch import (
+from index.opensearch import (
     QueryBuilderInterface,
     DateRangeQueryMixin,
     SimpleStringQueryMixin,
@@ -395,7 +395,6 @@ def create_gazettes_data_gateway(
         raise Exception(
             "Query builder should implement the QueryBuilderInterface interface"
         )
-
     return GazetteSearchEngineGateway(search_engine, query_builder, index)
 
 

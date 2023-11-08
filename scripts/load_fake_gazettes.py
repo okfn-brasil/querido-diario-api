@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 import time
 
-import elasticsearch
+import opensearchpy
 
 TERRITORY_ID1 = "3304557"
 TERRITORY_ID2 = "4205902"
@@ -10,11 +10,11 @@ TERRITORY_ID4 = "4205920"
 INDEX = "gazettes"
 
 
-def delete_index(es):
+def delete_index(search_engine):
     for attempt in range(3):
         try:
-            es.indices.delete(index=INDEX, ignore_unavailable=True, timeout="30s")
-            es.indices.refresh()
+            search_engine.indices.delete(index=INDEX, ignore_unavailable=True, timeout="30s")
+            search_engine.indices.refresh()
             print("Index deleted")
             return
         except Exception as e:
@@ -22,15 +22,15 @@ def delete_index(es):
             time.sleep(10)
 
 
-def create_index(es):
+def create_index(search_engine):
     for attempt in range(3):
         try:
-            es.indices.create(
+            search_engine.indices.create(
                 index=INDEX,
                 body={"mappings": {"properties": {"date": {"type": "date"}}}},
-                timeout="30s",
+                timeout=30,
             )
-            es.indices.refresh()
+            search_engine.indices.refresh()
             print(f"Index {INDEX} created")
             return
         except Exception as e:
@@ -38,26 +38,26 @@ def create_index(es):
             time.sleep(10)
 
 
-def recreate_index(es):
-    # delete_index(es)
-    create_index(es)
+def recreate_index(search_engine):
+    delete_index(search_engine)
+    create_index(search_engine)
 
 
-def try_push_data_to_index(es, bulk_data):
+def try_push_data_to_index(search_engine, bulk_data):
     for attempt in range(3):
         try:
-            es.bulk(bulk_data, index=INDEX, refresh=True, timeout="30s")
+            search_engine.bulk(bulk_data, index=INDEX, refresh=True, timeout="30s")
             return
         except Exception as e:
             time.sleep(10)
 
 
-def add_data_on_index(data, es):
+def add_data_on_index(data, search_engine):
     bulk_data = []
     for gazette in data:
         bulk_data.append({"index": {"_index": INDEX, "_id": gazette["file_checksum"]}})
         bulk_data.append(gazette)
-    try_push_data_to_index(es, bulk_data)
+    try_push_data_to_index(search_engine, bulk_data)
     print("Index populated")
 
 
@@ -300,9 +300,9 @@ def get_data():
 
 
 def main():
-    es = elasticsearch.Elasticsearch(hosts=["localhost"])
-    recreate_index(es)
-    add_data_on_index(get_data(), es)
+    search_engine = opensearchpy.OpenSearch(hosts=["localhost"], http_auth=("admin", "admin"))
+    recreate_index(search_engine)
+    add_data_on_index(get_data(), search_engine)
 
 
 if __name__ == "__main__":

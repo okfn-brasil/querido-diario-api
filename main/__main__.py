@@ -22,7 +22,7 @@ from themed_excerpts import (
 configuration = load_configuration()
 
 search_engine = create_search_engine_interface(
-    configuration.host, configuration.gazette_index
+    configuration.host, (configuration.opensearch_user, configuration.opensearch_pswd), configuration.gazette_index
 )
 
 gazettes_query_builder = create_gazettes_query_builder(

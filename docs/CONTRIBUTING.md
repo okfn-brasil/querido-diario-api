@@ -24,10 +24,10 @@ Já leu? Então vamos às informações específicas deste repositório:
 | Serviço   | [`themed_excerpts`](/themed_excerpts)              | Consultas ao índices de busca textual temáticos do QD.                                             | index                               |
 | Módulo    | [`database`](/database)                            | Classe de interação com bancos de dados Postgres.                                                  | Postgres                            |
 | Módulo    | [`config`](/config)                                | Configuração de variáveis de ambiente.                                                             |                                     |
-| Módulo    | [`index`](/index)                                  | Classe de interação com índices Elasticsearch.                                                     | Elasticsearch                       |
+| Módulo    | [`index`](/index)                                  | Classe de interação com índices Opensearch.                                                        | Opensearch                          |
 | Recurso   | Postgres                                           | Banco de dados de CNPJ. Contém informações sobre empresas e sócios cadastrados na Receita Federal. |                                     |
 | Recurso   | Banco de dados do [Censo](https://censo.ok.org.br) | Banco de dados de municípios. Contém metadados municipais.                                         |                                     |
-| Recurso   | Elasticsearch                                      | Índices de busca textual.                                                                          |                                     |
+| Recurso   | Opensearch                                         | Índices de busca textual.                                                                          |                                     |
 | Recurso   | Mailjet                                            | Serviço de envio de email.                                                                         |                                     |
 
 ## Como configurar o ambiente de desenvolvimento

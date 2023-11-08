@@ -1,10 +1,11 @@
 import abc
+import os
 import re
 from datetime import date
 from enum import Enum, unique
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
-import elasticsearch
+import opensearchpy
 
 
 class SearchEngineInterface(abc.ABC):
@@ -15,7 +16,7 @@ class SearchEngineInterface(abc.ABC):
     @abc.abstractmethod
     def search(self, query: Dict, index: str = "", timeout: int = 30) -> Dict:
         """
-        Searches the index with the provided elasticsearch_dsl.Search
+        Searches the index with the provided opensearch_dsl.Search
         """
 
     @abc.abstractmethod
@@ -25,20 +26,20 @@ class SearchEngineInterface(abc.ABC):
         """
 
 
-class ElasticSearch(SearchEngineInterface):
-    def __init__(self, host: str, default_index: str = ""):
-        self._es = elasticsearch.Elasticsearch(hosts=[host])
+class OpenSearch(SearchEngineInterface):
+    def __init__(self, host: str, credentials: Tuple[str, str]=("user", "pswd"), default_index: str = ""):
+        self._search_engine = opensearchpy.OpenSearch(hosts=[host], http_auth=credentials)
         self._default_index = default_index
 
     def search(self, query: Dict, index: str = "", timeout: int = 30) -> Dict:
         index_name = self._get_index_name(index)
-        response = self._es.search(
+        response = self._search_engine.search(
             index=index_name, body=query, request_timeout=timeout
         )
         return response
 
     def index_exists(self, index: str) -> bool:
-        return self._es.indices.exists(index=index)
+        return self._search_engine.indices.exists(index=index)
 
     def _get_index_name(self, index: str) -> str:
         index_name = index if self._is_valid_index_name(index) else self._default_index
@@ -48,7 +49,7 @@ class ElasticSearch(SearchEngineInterface):
 
     def _is_valid_index_name(self, index: str) -> bool:
         return isinstance(index, str) and len(index) > 0
-
+    
 
 class QueryBuilderInterface(abc.ABC):
     @abc.abstractmethod
@@ -213,10 +214,11 @@ class HighlightMixin:
 
 
 def create_search_engine_interface(
-    host: str = "", default_index: str = ""
+        host: str = "", credentials: Tuple[str, str]=("user", "pswd"), default_index: str = ""
 ) -> SearchEngineInterface:
     if not isinstance(host, str) or len(host.strip()) == 0:
         raise Exception("Missing host")
     if not isinstance(default_index, str):
         raise Exception("Invalid index name")
-    return ElasticSearch(host.strip(), default_index=default_index.strip())
+    return OpenSearch(host.strip(), credentials=credentials, default_index=default_index.strip())
+
