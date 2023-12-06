@@ -242,7 +242,7 @@ async def get_gazettes(
     ),
     querystring: str = Query(
         "",
-        description='Search in gazettes using ElasticSearch\'s "simple query string syntax" (an empty field returns no excerpts, only the results metadata).',
+        description='Search in gazettes using OpenSearch\'s "simple query string syntax" (an empty field returns no excerpts, only the results metadata).',
     ),
     excerpt_size: int = Query(
         500,
@@ -340,7 +340,7 @@ async def get_themed_excerpts(
     ),
     querystring: str = Query(
         "",
-        description='Search in excerpts using ElasticSearch\'s "simple query string syntax".',
+        description='Search in excerpts using OpenSearch\'s "simple query string syntax".',
     ),
     pre_tags: List[str] = Query(
         [""],

@@ -5,7 +5,7 @@ from datetime import date, datetime
 from typing import Dict, List, Tuple, Union
 
 from index import SearchEngineInterface
-from index.elasticsearch import (
+from index.opensearch import (
     QueryBuilderInterface,
     DateRangeQueryMixin,
     SimpleStringQueryMixin,
