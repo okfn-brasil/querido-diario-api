@@ -49,6 +49,8 @@ black:
 build:
 	podman build --format $(IMAGE_FORMAT) --tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
 		-f Dockerfile $(PWD)
+		podman cp $(shell podman create $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG)):/mnt/code/themes_config.json $(PWD)/themes_config.json
+		podman cp $(shell podman create $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG)):/mnt/code/censo.csv $(PWD)/censo.csv
 
 login:
 	podman login --username $(REGISTRY_USER) --password "$(REGISTRY_PASSWORD)" https://index.docker.io/v1/
