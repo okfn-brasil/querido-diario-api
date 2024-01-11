@@ -13,7 +13,7 @@ INDEX = "gazettes"
 def delete_index(search_engine):
     for attempt in range(3):
         try:
-            search_engine.indices.delete(index=INDEX, ignore_unavailable=True, timeout="30s")
+            search_engine.indices.delete(index=INDEX, ignore_unavailable=True, timeout=60)
             search_engine.indices.refresh()
             print("Index deleted")
             return
@@ -28,7 +28,7 @@ def create_index(search_engine):
             search_engine.indices.create(
                 index=INDEX,
                 body={"mappings": {"properties": {"date": {"type": "date"}}}},
-                timeout=30,
+                timeout=60,
             )
             search_engine.indices.refresh()
             print(f"Index {INDEX} created")
@@ -46,7 +46,7 @@ def recreate_index(search_engine):
 def try_push_data_to_index(search_engine, bulk_data):
     for attempt in range(3):
         try:
-            search_engine.bulk(bulk_data, index=INDEX, refresh=True, timeout="30s")
+            search_engine.bulk(bulk_data, index=INDEX, refresh=True, timeout=30)
             return
         except Exception as e:
             time.sleep(10)
