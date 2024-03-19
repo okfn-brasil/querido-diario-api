@@ -9,7 +9,7 @@ QUERIDO_DIARIO_DATABASE_CSV ?= censo.csv
 OPENSEARCH_PORT1 ?= 9200
 OPENSEARCH_PORT2 ?= 9300
 # Containers data
-POD_NAME ?= querido-diario-api
+POD_NAME ?= querido-diario
 DATABASE_CONTAINER_NAME ?= $(POD_NAME)-db
 OPENSEARCH_CONTAINER_NAME ?= $(POD_NAME)-opensearch
 # Database info user to run the tests
@@ -71,13 +71,18 @@ destroy:
 destroy-pod:
 	podman pod rm --force --ignore $(POD_NAME)
 
-create-pod: destroy-pod
-	-cp --no-clobber config/sample.env config/current.env
+create-pod: setup-environment destroy-pod
 	podman pod create --publish $(API_PORT):$(API_PORT) \
 	  --publish $(POSTGRES_PORT):$(POSTGRES_PORT) \
 	  --publish $(OPENSEARCH_PORT1):$(OPENSEARCH_PORT1) \
 	  --publish $(OPENSEARCH_PORT2):$(OPENSEARCH_PORT2) \
 	  --name $(POD_NAME)
+
+.PHONY: setup-environment
+setup-environment:
+	-cp --no-clobber config/sample.env config/current.env
+	test -f censo.csv || curl -s -O https://querido-diario.nyc3.cdn.digitaloceanspaces.com/censo/censo.csv
+	test -f themes_config.json || curl -s -O https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json
 
 set-test-variables:
 	$(eval POD_NAME=test-$(POD_NAME))
@@ -125,9 +130,8 @@ run: create-pod opensearch database rerun
 load-data:
 	$(call run-command, python scripts/load_fake_gazettes.py)
 
-
-.PHONY: rerun
-rerun: wait-opensearch wait-database
+.PHONY: re-run
+re-run: setup-environment wait-opensearch wait-database
 	$(call run-command, python main)
 
 .PHONY: runshell
