@@ -7,13 +7,13 @@ TERRITORY_ID1 = "3304557"
 TERRITORY_ID2 = "4205902"
 TERRITORY_ID3 = "4205919"
 TERRITORY_ID4 = "4205920"
-INDEX = "gazettes"
+INDEX = "querido-diario"
 
 
 def delete_index(search_engine):
     for attempt in range(3):
         try:
-            search_engine.indices.delete(index=INDEX, ignore_unavailable=True, timeout="30s")
+            search_engine.indices.delete(index=INDEX, ignore_unavailable=True, timeout=30)
             search_engine.indices.refresh()
             print("Index deleted")
             return
@@ -27,8 +27,78 @@ def create_index(search_engine):
         try:
             search_engine.indices.create(
                 index=INDEX,
-                body={"mappings": {"properties": {"date": {"type": "date"}}}},
                 timeout=30,
+                body={
+                    "mappings": {
+                        "properties": {
+                            "created_at": {"type": "date"},
+                            "date": {"type": "date"},
+                            "edition_number": {
+                                "type": "text",
+                                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+                            },
+                            "file_checksum": {"type": "keyword"},
+                            "file_path": {"type": "keyword"},
+                            "file_url": {"type": "keyword"},
+                            "id": {"type": "keyword"},
+                            "is_extra_edition": {"type": "boolean"},
+                            "power": {"type": "keyword"},
+                            "processed": {"type": "boolean"},
+                            "scraped_at": {"type": "date"},
+                            "source_text": {
+                                "type": "text",
+                                "analyzer": "brazilian",
+                                "index_options": "offsets",
+                                "term_vector": "with_positions_offsets",
+                                "fields": {
+                                    "with_stopwords": {
+                                        "type": "text",
+                                        "analyzer": "brazilian_with_stopwords",
+                                        "index_options": "offsets",
+                                        "term_vector": "with_positions_offsets",
+                                    },
+                                    "exact": {
+                                        "type": "text",
+                                        "analyzer": "exact",
+                                        "index_options": "offsets",
+                                        "term_vector": "with_positions_offsets",
+                                    }
+                                },
+                            },
+                            "state_code": {"type": "keyword"},
+                            "territory_id": {"type": "keyword"},
+                            "territory_name": {
+                                "type": "text",
+                                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+                            },
+                            "url": {"type": "keyword"},
+                        }
+                    },
+                    "settings": {
+                        "index": {
+                          "sort.field": ["territory_id", "date"],
+                          "sort.order": ["asc", "desc"]
+                        },
+                        "analysis": {
+                            "filter": {
+                                "brazilian_stemmer": {
+                                    "type": "stemmer",
+                                    "language": "brazilian",
+                                }
+                            },
+                            "analyzer": {
+                                "brazilian_with_stopwords": {
+                                    "tokenizer": "standard",
+                                    "filter": ["lowercase", "brazilian_stemmer"],
+                                },
+                                "exact": {
+                                    "tokenizer": "standard",
+                                    "filter": ["lowercase"],
+                                },
+                            },
+                        }
+                    },
+                },
             )
             search_engine.indices.refresh()
             print(f"Index {INDEX} created")
@@ -46,9 +116,10 @@ def recreate_index(search_engine):
 def try_push_data_to_index(search_engine, bulk_data):
     for attempt in range(3):
         try:
-            search_engine.bulk(bulk_data, index=INDEX, refresh=True, timeout="30s")
+            search_engine.bulk(bulk_data, index=INDEX, refresh=True, timeout=30)
             return
         except Exception as e:
+            print(f"Failed populating index: {e}")
             time.sleep(10)
 
 
