@@ -124,7 +124,7 @@ shell:
 		bash
 
 .PHONY: run
-run: create-pod opensearch database rerun
+run: create-pod opensearch database re-run
 
 .PHONY:load-data
 load-data:
