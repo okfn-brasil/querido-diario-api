@@ -124,7 +124,7 @@ shell:
 		bash
 
 .PHONY: run
-run: create-pod opensearch database re-run
+run: create-pod opensearch database load-data re-run
 
 .PHONY:load-data
 load-data:
@@ -132,7 +132,7 @@ load-data:
 
 .PHONY: re-run
 re-run: setup-environment wait-opensearch wait-database
-	$(call run-command, python main)
+	$(call run-command, opentelemetry-instrument --traces_exporter console --metrics_exporter console --logs_exporter console --service_name querido-diario-api python main)
 
 .PHONY: runshell
 runshell:
