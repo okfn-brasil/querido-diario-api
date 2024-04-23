@@ -10,7 +10,15 @@ processors:
   batch:
 service:
   pipelines:
+    logs:
+      receivers: [otlp]
+      exporters: [debug]
+      processors: [batch]
     traces:
+      receivers: [otlp]
+      exporters: [debug]
+      processors: [batch]
+    metrics:
       receivers: [otlp]
       exporters: [debug]
       processors: [batch]
