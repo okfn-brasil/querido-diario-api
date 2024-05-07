@@ -6,13 +6,15 @@ receivers:
 exporters:
   debug:
     verbosity: detailed
+  otlphttp:
+    endpoint: http://localhost:3100/otlp
 processors:
   batch:
 service:
   pipelines:
     logs:
       receivers: [otlp]
-      exporters: [debug]
+      exporters: [debug, otlphttp]
       processors: [batch]
     traces:
       receivers: [otlp]
