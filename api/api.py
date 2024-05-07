@@ -16,8 +16,10 @@ from config.config import load_configuration
 from themed_excerpts import ThemedExcerptAccessInterface, ThemedExcerptAccessInterface
 from themed_excerpts.themed_excerpt_access import ThemedExcerptRequest
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 config = load_configuration()
 
 app = FastAPI(

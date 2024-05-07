@@ -15,6 +15,4 @@ RUN chmod 644 censo.csv
 ADD https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json themes_config.json
 RUN chmod 644 themes_config.json
 
-RUN opentelemetry-bootstrap -a install
-
 USER gazette
