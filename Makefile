@@ -13,6 +13,8 @@ POD_NAME ?= querido-diario
 DATABASE_CONTAINER_NAME ?= $(POD_NAME)-db
 OPENSEARCH_CONTAINER_NAME ?= $(POD_NAME)-opensearch
 OTEL_COLLECTOR_CONTAINER_NAME ?= $(POD_NAME)-otel-collector
+LOKI_CONTAINER_NAME ?= $(POD_NAME)-loki
+GRAFANA_CONTAINER_NAME ?= $(POD_NAME)-grafana
 # Database info user to run the tests
 POSTGRES_USER ?= companies
 POSTGRES_PASSWORD ?= companies
@@ -25,6 +27,8 @@ DATABASE_RESTORE_FILE ?= contrib/data/queridodiariodb.tar
 RUN_INTEGRATION_TESTS ?= 0
 
 OTEL_COLLECTOR_PORT := 4317
+LOKI_PORT := 3100
+GRAFANA_PORT := 3000
 API_PORT := 8080
 
 run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
@@ -38,7 +42,7 @@ wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
 	--pod $(POD_NAME) \
 	--env PYTHONPATH=/mnt/code \
 	--user=$(UID):$(UID) \
-	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=30 $1)
+	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=60 $1)
 
 .PHONY: black
 black:
@@ -79,6 +83,8 @@ create-pod: setup-environment destroy-pod
 	  --publish $(OPENSEARCH_PORT1):$(OPENSEARCH_PORT1) \
 	  --publish $(OPENSEARCH_PORT2):$(OPENSEARCH_PORT2) \
 	  --publish $(OTEL_COLLECTOR_PORT):$(OTEL_COLLECTOR_PORT) \
+	  --publish $(LOKI_PORT):$(LOKI_PORT) \
+	  --publish $(GRAFANA_PORT):$(GRAFANA_PORT) \
 	  --name $(POD_NAME)
 
 .PHONY: setup-environment
@@ -127,7 +133,7 @@ shell:
 		bash
 
 .PHONY: run
-run: create-pod opensearch database otel-collector load-data re-run
+run: create-pod opensearch database otel-collector loki grafana load-data re-run
 
 .PHONY:load-data
 load-data:
@@ -205,3 +211,35 @@ wait-otel-collector:
 otel-auto-instrumentation-list:
 	@echo "These packages were detected and can be auto-instrumented (maybe add/update them in requirements.txt):"
 	@$(call run-command, opentelemetry-bootstrap -a requirements)
+
+.PHONY: loki
+loki: stop-loki start-loki wait-loki
+
+start-loki:
+	podman run -d --rm -ti \
+		--name $(LOKI_CONTAINER_NAME) \
+		--pod $(POD_NAME) \
+		--volume $(PWD)/config/loki-config.yaml:/mnt/config/loki-config.yaml \
+		docker.io/grafana/loki:3.0.0 "-config.file=/mnt/config/loki-config.yaml"
+
+stop-loki:
+	podman rm --force --ignore $(LOKI_CONTAINER_NAME)
+
+wait-loki:
+	$(call wait-for, localhost:3100)
+
+.PHONY: grafana
+grafana: stop-grafana start-grafana wait-grafana
+
+start-grafana:
+	podman run -d --rm -ti \
+		--name $(GRAFANA_CONTAINER_NAME) \
+		--pod $(POD_NAME) \
+		--volume $(PWD)/config/grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yml \
+		docker.io/grafana/grafana:10.4.2
+
+stop-grafana:
+	podman rm --force --ignore $(GRAFANA_CONTAINER_NAME)
+
+wait-grafana:
+	$(call wait-for, localhost:3000)
