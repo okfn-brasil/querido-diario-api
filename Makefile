@@ -201,3 +201,7 @@ stop-otel-collector:
 
 wait-otel-collector:
 	$(call wait-for, localhost:4317)
+
+otel-auto-instrumentation-list:
+	@echo "These packages were detected and can be auto-instrumented (maybe add/update them in requirements.txt):"
+	@$(call run-command, opentelemetry-bootstrap -a requirements)
