@@ -17,6 +17,8 @@ from themed_excerpts import ThemedExcerptAccessInterface, ThemedExcerptAccessInt
 from themed_excerpts.themed_excerpt_access import ThemedExcerptRequest
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 config = load_configuration()
 
 app = FastAPI(
