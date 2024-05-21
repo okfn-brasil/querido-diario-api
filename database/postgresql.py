@@ -249,21 +249,40 @@ class PostgreSQLDatabaseAggregates(AggregatesDatabaseInterface):
                 logging.debug(entry)
                 yield entry
             logging.debug(f"Finished query: {cursor.query}")
+    
+    def _always_str_or_none(self, data: Any) -> Union[str, None]:
+        if data == "None" or data == "" or data is None:
+            return None
+        elif not isinstance(data, str):
+            return str(data)
+        else:
+            return data
+        
+    def _format_aggregates_data(self, data: Tuple) -> Dict:
+        formatted_data = [self._always_str_or_none(value) for value in data]
+        return {
+            "territory_id": formatted_data[1],
+            "url_zip": formatted_data[2],
+            "year": formatted_data[3],
+            "last_updated": formatted_data[4],
+            "hash_info": formatted_data[5],
+            "file_size": formatted_data[6]
+        }
 
     def get_aggregates(self, territory_id: str = "", state_code: str = "") -> Union[Aggregates, None]:
-        if(state_code == ""):
+        if(territory_id == ""):
             command = """
                 SELECT
                     *
                 FROM
                     aggregates
-                INNERJOIN territories
+                INNER JOIN territories
                 ON aggregates.territory_id = territories.id
                 WHERE
-                    territory_id = %(territory_id)s
+                    state_code = %(state_code)s
             """
             data = {
-                "territory_id": territory_id
+                "state_code": state_code
             }
         else:
             command = """
@@ -271,7 +290,7 @@ class PostgreSQLDatabaseAggregates(AggregatesDatabaseInterface):
                     *
                 FROM
                     aggregates
-                INNERJOIN territories
+                INNER JOIN territories
                 ON aggregates.territory_id = territories.id
                 WHERE
                     territory_id = %(territory_id)s AND state_code = %(state_code)s
@@ -281,9 +300,12 @@ class PostgreSQLDatabaseAggregates(AggregatesDatabaseInterface):
                 "state_code": state_code
             }
 
-        print(result)
-        result = list(self._select(command, data))
-        if result == []:
-            return None
-        return result
+        results = list(self._select(command, data))
+        if not results:
+            return []
+        
+        return (
+            [self._format_aggregates_data(result) for result in results]
+        )
 
+    

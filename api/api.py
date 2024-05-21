@@ -88,6 +88,17 @@ class Entity(BaseModel):
 class EntitiesSearchResponse(BaseModel):
     entities: List[Entity]
 
+class Aggregates(BaseModel):
+    territory_id: str
+    state_code: str
+    url_zip: str
+    year: str
+    last_updated: datetime
+    hash_info: str
+    file_size: str
+
+class AggregatesSearchResponse(BaseModel):
+    aggregates: List[Aggregates]
 
 @unique
 class CityLevel(str, Enum):
@@ -555,6 +566,21 @@ async def get_partners(
 
     return {"total_partners": total_partners, "partners": partners}
 
+@app.get(
+        "/aggregate/{state_code}",
+        name="Get aggregates by state code and territory ID",
+        response_model=AggregatesSearchResponse,
+        description="Get information about a aggregate by state code and territory ID.",
+        responses={
+            400: {"model": HTTPExceptionMessage, "description": "City not found."},
+        },)
+async def get_aggregates(territory_id: str = Query("", description="City's 7-digit IBGE ID."), 
+                        state_code: str = Path(..., description="City's state code.")):
+    try:
+        aggregates = app.aggregates.get_aggregates(territory_id, state_code)
+        return JSONResponse(status_code=200, content=aggregates)
+    except Exception as exc:
+        return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 def configure_api_app(
     gazettes: GazetteAccessInterface,
@@ -585,6 +611,10 @@ def configure_api_app(
         raise Exception(
             "Only CompaniesAccessInterface object are accepted for companies parameter"
         )
+    if not isinstance(aggregates, AggregatesAccessInterface):
+        raise Exception(
+            "Only AggregatesAccessInterface object are accepted for aggregates parameter"
+        )
     if api_root_path is not None and type(api_root_path) != str:
         raise Exception("Invalid api_root_path")
     app.gazettes = gazettes
@@ -592,4 +622,5 @@ def configure_api_app(
     app.cities = cities
     app.suggestion_service = suggestion_service
     app.companies = companies
+    app.aggregates = aggregates
     app.root_path = api_root_path
