@@ -14,6 +14,7 @@ from companies import InvalidCNPJException, CompaniesAccessInterface
 from config.config import load_configuration
 from themed_excerpts import ThemedExcerptAccessInterface, ThemedExcerptAccessInterface
 from themed_excerpts.themed_excerpt_access import ThemedExcerptRequest
+from aggregates import AggregatesAccessInterface
 
 config = load_configuration()
 
@@ -561,6 +562,7 @@ def configure_api_app(
     cities: CityAccessInterface,
     suggestion_service: SuggestionServiceInterface,
     companies: CompaniesAccessInterface,
+    aggregates: AggregatesAccessInterface,
     api_root_path=None,
 ):
     if not isinstance(gazettes, GazetteAccessInterface):
