@@ -98,6 +98,11 @@ class Configuration:
         self.companies_database_port = os.environ.get("POSTGRES_PORT", "")
         self.opensearch_user = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_USER", "")
         self.opensearch_pswd = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_PASSWORD", "")
+        self.aggregates_database_host = os.environ.get("POSTGRES_AGGREGATES_HOST", "")
+        self.aggregates_database_db = os.environ.get("POSTGRES_AGGREGATES_DB", "")
+        self.aggregates_database_user = os.environ.get("POSTGRES_AGGREGATES_USER", "")
+        self.aggregates_database_pass = os.environ.get("POSTGRES_AGGREGATES_PASSWORD", "")
+        self.aggregates_database_port = os.environ.get("POSTGRES_AGGREGATES_PORT", "")
     @classmethod
     def _load_list(cls, key, default=[]):
         value = os.environ.get(key, default)
