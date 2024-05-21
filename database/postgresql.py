@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Tuple, Union
 import psycopg2
 
 from companies import Company, InvalidCNPJException, Partner, CompaniesDatabaseInterface
+from aggregates import AggregatesDatabaseInterface, Aggregates
 
 
 class PostgreSQLDatabase(CompaniesDatabaseInterface):
@@ -224,3 +225,65 @@ class PostgreSQLDatabase(CompaniesDatabaseInterface):
             cnpj_ordem=str(cnpj_ordem).zfill(4),
             cnpj_dv=str(cnpj_dv).zfill(2),
         )
+
+class PostgreSQLDatabaseAggregates(AggregatesDatabaseInterface):
+    def __init__(self, host, database, user, password, port):
+        self.host = host
+        self.database = database
+        self.user = user
+        self.password = password
+        self.port = port
+        
+    def _select(self, command: str, data: Dict = {}) -> Iterable[Tuple]:
+        connection = psycopg2.connect(
+            dbname=self.database,
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(command, data)
+            logging.debug(f"Starting query: {cursor.query}")
+            for entry in cursor:
+                logging.debug(entry)
+                yield entry
+            logging.debug(f"Finished query: {cursor.query}")
+
+    def get_aggregates(self, territory_id: str = "", state_code: str = "") -> Union[Aggregates, None]:
+        if(state_code == ""):
+            command = """
+                SELECT
+                    *
+                FROM
+                    aggregates
+                INNERJOIN territories
+                ON aggregates.territory_id = territories.id
+                WHERE
+                    territory_id = %(territory_id)s
+            """
+            data = {
+                "territory_id": territory_id
+            }
+        else:
+            command = """
+                SELECT
+                    *
+                FROM
+                    aggregates
+                INNERJOIN territories
+                ON aggregates.territory_id = territories.id
+                WHERE
+                    territory_id = %(territory_id)s AND state_code = %(state_code)s
+            """
+            data = {
+                "territory_id": territory_id,
+                "state_code": state_code
+            }
+
+        print(result)
+        result = list(self._select(command, data))
+        if result == []:
+            return None
+        return result
+
