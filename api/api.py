@@ -578,7 +578,7 @@ async def get_aggregates(territory_id: str = Query("", description="City's 7-dig
                         state_code: str = Path(..., description="City's state code.")):
     try:
         aggregates = app.aggregates.get_aggregates(territory_id, state_code)
-        return JSONResponse(status_code=200, content=aggregates)
+        return JSONResponse(status_code=200, content={"state_code":state_code,"territory_id":territory_id,"aggregates":aggregates})
     except Exception as exc:
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
