@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Tuple, Union, Optional
 
 import psycopg2
 
@@ -262,24 +262,25 @@ class PostgreSQLDatabaseAggregates(AggregatesDatabaseInterface):
         formatted_data = [self._always_str_or_none(value) for value in data]
         return {
             "territory_id": formatted_data[1],
-            "url_zip": formatted_data[2],
-            "year": formatted_data[3],
-            "last_updated": formatted_data[4],
-            "hash_info": formatted_data[5],
-            "file_size": formatted_data[6]
+            "state_code": formatted_data[2],
+            "url_zip": formatted_data[3],
+            "year": formatted_data[4],
+            "last_updated": formatted_data[5],
+            "hash_info": formatted_data[6],
+            "file_size": formatted_data[7]
         }
 
-    def get_aggregates(self, territory_id: str = "", state_code: str = "") -> Union[Aggregates, None]:
-        if(territory_id == ""):
+    def get_aggregates(self, territory_id: Optional[str] = None, state_code: str = "") -> Union[List[Aggregates], None]:
+        if territory_id is None:
             command = """
                 SELECT
                     *
                 FROM
                     aggregates
-                INNER JOIN territories
-                ON aggregates.territory_id = territories.id
                 WHERE
                     state_code = %(state_code)s
+                    AND
+                    territory_id IS NULL
             """
             data = {
                 "state_code": state_code
@@ -290,10 +291,10 @@ class PostgreSQLDatabaseAggregates(AggregatesDatabaseInterface):
                     *
                 FROM
                     aggregates
-                INNER JOIN territories
-                ON aggregates.territory_id = territories.id
                 WHERE
-                    territory_id = %(territory_id)s AND state_code = %(state_code)s
+                    territory_id = %(territory_id)s 
+                    AND 
+                    state_code = %(state_code)s
             """
             data = {
                 "territory_id": territory_id,
