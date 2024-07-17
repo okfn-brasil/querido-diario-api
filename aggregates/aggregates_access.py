@@ -1,4 +1,5 @@
 import abc
+from typing import Optional
 
 class AggregatesDatabaseInterface(abc.ABC):
     """
@@ -6,7 +7,7 @@ class AggregatesDatabaseInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_aggregates(self, territory_id: str = "", state_code: str = ""):
+    def get_aggregates(self, territory_id: Optional[str] = None, state_code: str = ""):
         """
         Get information about a aggregate.
         """
@@ -17,7 +18,7 @@ class AggregatesAccessInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def get_aggregates(self, territory_id: str = "", state_code: str = ""):
+    def get_aggregates(self, territory_id: Optional[str] = None, state_code: str = ""):
         """
         Get information about a aggregate.
         """
@@ -28,7 +29,7 @@ class AggregatesAccess(AggregatesAccessInterface):
     def __init__(self, database_gateway=None):
         self._database_gateway = database_gateway
 
-    def get_aggregates(self, territory_id: str = "", state_code: str = ""):
+    def get_aggregates(self, territory_id: Optional[str] = None, state_code: str = ""):
         aggregate_info = self._database_gateway.get_aggregates(territory_id, state_code)
         return aggregate_info
     
@@ -40,6 +41,7 @@ class Aggregates:
     def __init__(
         self,
         territory_id,
+        state_code,
         url_zip,
         year,
         last_updated,
@@ -47,6 +49,7 @@ class Aggregates:
         file_size,
     ):
         self.territory_id = territory_id
+        self.state_code = state_code
         self.url_zip = url_zip
         self.year = year
         self.last_updated = last_updated
@@ -54,7 +57,7 @@ class Aggregates:
         self.file_size = file_size
 
     def __repr__(self):
-        return f"Aggregates(territory_id={self.territory_id}, url_zip={self.url_zip}, year={self.year}, last_updated={self.last_updated}, hash_info={self.hash_info}, file_size={self.file_size})"
+        return f"Aggregates(territory_id={self.territory_id}, state_code={self.state_code}, url_zip={self.url_zip}, year={self.year}, last_updated={self.last_updated}, hash_info={self.hash_info}, file_size={self.file_size})"
     
 def create_aggregates_interface(database_gateway: AggregatesDatabaseInterface) -> AggregatesAccessInterface:
     if not isinstance(database_gateway, AggregatesDatabaseInterface):

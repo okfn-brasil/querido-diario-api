@@ -574,11 +574,16 @@ async def get_partners(
         responses={
             400: {"model": HTTPExceptionMessage, "description": "City not found."},
         },)
-async def get_aggregates(territory_id: str = Query("", description="City's 7-digit IBGE ID."), 
+async def get_aggregates(territory_id: Optional[str] = Query(None, description="City's 7-digit IBGE ID."), 
                         state_code: str = Path(..., description="City's state code.")):
     try:
-        aggregates = app.aggregates.get_aggregates(territory_id, state_code)
-        return JSONResponse(status_code=200, content={"state_code":state_code,"territory_id":territory_id,"aggregates":aggregates})
+        aggregates = app.aggregates.get_aggregates(territory_id, state_code.upper())
+        return JSONResponse(status_code=200, 
+                            content={
+                                "state_code":state_code.upper(),
+                                "territory_id":territory_id,
+                                "aggregates":aggregates}
+                            )
     except Exception as exc:
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
