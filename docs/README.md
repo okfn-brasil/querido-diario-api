@@ -59,9 +59,9 @@ make run
 
 Esse comando iniciará todos os contêineres necessários para executar a API. Ou seja, ele inicializa o banco de dados e o contêiner da API. Se tudo correr bem, você poderá fazer consultas à API em `localhost:8080/gazettes/<City IBGE Code>`
 
-> ATENÇÃO: Quando você precisar reiniciar a API, apenas interrompa o processo da API e execute o `make rerun` novamente. Não é necessário reiniciar o banco de dados.
+> ATENÇÃO: Quando você precisar reiniciar a API, apenas interrompa o processo da API e execute o `make re-run` novamente. Não é necessário reiniciar o banco de dados.
 
-Você pode checar toda a documentação interativa da API em  `localhost:8080/docs`. Nessa página, você pode fazer requisições à API diretamente. Mas, para vê-la funcionar, você precisa inserir dados no índice. Há outro comando, `make load-data`, que insere alguns exemplos de entrada no índice principal.
+Você pode checar toda a documentação interativa da API em  `localhost:8080/docs`. Nessa página, você pode fazer requisições à API diretamente.
 
 ## Usando o endpoint de ‘sugestões’
 
