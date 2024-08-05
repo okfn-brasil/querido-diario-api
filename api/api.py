@@ -91,11 +91,11 @@ class EntitiesSearchResponse(BaseModel):
 class Aggregates(BaseModel):
     territory_id: str
     state_code: str
-    url_zip: str
+    file_path: str
     year: str
     last_updated: datetime
     hash_info: str
-    file_size: str
+    file_size_mb: str
 
 class AggregatesSearchResponse(BaseModel):
     aggregates: List[Aggregates]
@@ -567,25 +567,27 @@ async def get_partners(
     return {"total_partners": total_partners, "partners": partners}
 
 @app.get(
-        "/aggregate/{state_code}",
-        name="Get aggregates by state code and territory ID",
+        "/aggregates/{state_code}",
+        name="Get aggregated data files by state code and optionally territory ID",
         response_model=AggregatesSearchResponse,
         description="Get information about a aggregate by state code and territory ID.",
         responses={
-            400: {"model": HTTPExceptionMessage, "description": "City not found."},
+            404: {"model": HTTPExceptionMessage, "description": "State and/or city not found."},
         },)
 async def get_aggregates(territory_id: Optional[str] = Query(None, description="City's 7-digit IBGE ID."), 
                         state_code: str = Path(..., description="City's state code.")):
-    try:
-        aggregates = app.aggregates.get_aggregates(territory_id, state_code.upper())
-        return JSONResponse(status_code=200, 
-                            content={
-                                "state_code":state_code.upper(),
-                                "territory_id":territory_id,
-                                "aggregates":aggregates}
-                            )
-    except Exception as exc:
-        return JSONResponse(status_code=404, content={"detail": str(exc)})
+    
+    aggregates = app.aggregates.get_aggregates(territory_id, state_code.upper())
+       
+    if not aggregates:
+        return JSONResponse(status_code=404, content={"detail":"No aggregate file was found for the data reported."})
+        
+    return JSONResponse(status_code=200, 
+                        content={
+                            "state_code":state_code.upper(),
+                            "territory_id":territory_id,
+                            "aggregates":aggregates}
+                        )
 
 def configure_api_app(
     gazettes: GazetteAccessInterface,
