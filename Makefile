@@ -13,12 +13,12 @@ POD_NAME ?= querido-diario
 DATABASE_CONTAINER_NAME ?= $(POD_NAME)-db
 OPENSEARCH_CONTAINER_NAME ?= $(POD_NAME)-opensearch
 # Database info user to run the tests
-POSTGRES_USER ?= companies
-POSTGRES_PASSWORD ?= companies
-POSTGRES_DB ?= companiesdb
-POSTGRES_HOST ?= localhost
-POSTGRES_PORT ?= 5432
-POSTGRES_IMAGE ?= docker.io/postgres:10
+POSTGRES_COMPANIES_USER ?= companies
+POSTGRES_COMPANIES_PASSWORD ?= companies
+POSTGRES_COMPANIES_DB ?= companiesdb
+POSTGRES_COMPANIES_HOST ?= localhost
+POSTGRES_COMPANIES_PORT ?= 5432
+POSTGRES_COMPANIES_IMAGE ?= docker.io/postgres:10
 DATABASE_RESTORE_FILE ?= contrib/data/queridodiariodb.tar
 # Run integration tests. Run local opensearch to validate the iteration
 RUN_INTEGRATION_TESTS ?= 0
@@ -73,7 +73,7 @@ destroy-pod:
 
 create-pod: setup-environment destroy-pod
 	podman pod create --publish $(API_PORT):$(API_PORT) \
-	  --publish $(POSTGRES_PORT):$(POSTGRES_PORT) \
+	  --publish $(POSTGRES_COMPANIES_PORT):$(POSTGRES_COMPANIES_PORT) \
 	  --publish $(OPENSEARCH_PORT1):$(OPENSEARCH_PORT1) \
 	  --publish $(OPENSEARCH_PORT2):$(OPENSEARCH_PORT2) \
 	  --name $(POD_NAME)
@@ -166,10 +166,10 @@ start-database:
 	podman run -d --rm -ti \
 		--name $(DATABASE_CONTAINER_NAME) \
 		--pod $(POD_NAME) \
-		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-		-e POSTGRES_USER=$(POSTGRES_USER) \
-		-e POSTGRES_DB=$(POSTGRES_DB) \
-		$(POSTGRES_IMAGE)
+		-e POSTGRES_COMPANIES_PASSWORD=$(POSTGRES_COMPANIES_PASSWORD) \
+		-e POSTGRES_COMPANIES_USER=$(POSTGRES_COMPANIES_USER) \
+		-e POSTGRES_COMPANIES_DB=$(POSTGRES_COMPANIES_DB) \
+		$(POSTGRES_COMPANIES_IMAGE)
 
 wait-database:
 	$(call wait-for, localhost:5432)
@@ -177,7 +177,7 @@ wait-database:
 load-database:
 ifneq ("$(wildcard $(DATABASE_RESTORE_FILE))","")
 	podman cp $(DATABASE_RESTORE_FILE) $(DATABASE_CONTAINER_NAME):/mnt/dump_file
-	podman exec $(DATABASE_CONTAINER_NAME) bash -c "pg_restore -v -c -h localhost -U $(POSTGRES_USER) -d $(POSTGRES_DB) /mnt/dump_file || true"
+	podman exec $(DATABASE_CONTAINER_NAME) bash -c "pg_restore -v -c -h localhost -U $(POSTGRES_COMPANIES_USER) -d $(POSTGRES_COMPANIES_DB) /mnt/dump_file || true"
 else
 	@echo "cannot restore because file does not exists '$(DATABASE_RESTORE_FILE)'"
 	@exit 1
