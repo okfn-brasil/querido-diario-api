@@ -4,7 +4,8 @@ from api import app, configure_api_app
 from cities import create_cities_data_gateway, create_cities_interface
 from config import load_configuration
 from companies import create_companies_interface
-from database import create_companies_database_interface
+from aggregates import create_aggregates_interface
+from database import create_companies_database_interface, create_aggregates_database_interface
 from gazettes import (
     create_gazettes_interface,
     create_gazettes_data_gateway,
@@ -80,13 +81,23 @@ companies_database = create_companies_database_interface(
     db_port=configuration.companies_database_port,
 )
 companies_interface = create_companies_interface(companies_database)
+aggregates_database = create_aggregates_database_interface(
+    db_host=configuration.aggregates_database_host,
+    db_name=configuration.aggregates_database_db,
+    db_user=configuration.aggregates_database_user,
+    db_pass=configuration.aggregates_database_pass,
+    db_port=configuration.aggregates_database_port,
+)
+aggregates_interface = create_aggregates_interface(aggregates_database)
+
 configure_api_app(
     gazettes_interface,
     themed_excerpts_interface,
     cities_interface,
     suggestion_service,
     companies_interface,
-    configuration.root_path,
+    aggregates_interface,
+    configuration.root_path
 )
 
 uvicorn.run(app, host="0.0.0.0", port=8080, root_path=configuration.root_path)

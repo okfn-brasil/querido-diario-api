@@ -14,6 +14,7 @@ from companies import InvalidCNPJException, CompaniesAccessInterface
 from config.config import load_configuration
 from themed_excerpts import ThemedExcerptAccessInterface, ThemedExcerptAccessInterface
 from themed_excerpts.themed_excerpt_access import ThemedExcerptRequest
+from aggregates import AggregatesAccessInterface
 
 config = load_configuration()
 
@@ -87,6 +88,17 @@ class Entity(BaseModel):
 class EntitiesSearchResponse(BaseModel):
     entities: List[Entity]
 
+class Aggregates(BaseModel):
+    territory_id: str
+    state_code: str
+    file_path: str
+    year: str
+    last_updated: datetime
+    hash_info: str
+    file_size_mb: str
+
+class AggregatesSearchResponse(BaseModel):
+    aggregates: List[Aggregates]
 
 @unique
 class CityLevel(str, Enum):
@@ -554,6 +566,28 @@ async def get_partners(
 
     return {"total_partners": total_partners, "partners": partners}
 
+@app.get(
+        "/aggregates/{state_code}",
+        name="Get aggregated data files by state code and optionally territory ID",
+        response_model=AggregatesSearchResponse,
+        description="Get information about a aggregate by state code and territory ID.",
+        responses={
+            404: {"model": HTTPExceptionMessage, "description": "State and/or city not found."},
+        },)
+async def get_aggregates(territory_id: Optional[str] = Query(None, description="City's 7-digit IBGE ID."), 
+                        state_code: str = Path(..., description="City's state code.")):
+    
+    aggregates = app.aggregates.get_aggregates(territory_id, state_code.upper())
+       
+    if not aggregates:
+        return JSONResponse(status_code=404, content={"detail":"No aggregate file was found for the data reported."})
+        
+    return JSONResponse(status_code=200, 
+                        content={
+                            "state_code":state_code.upper(),
+                            "territory_id":territory_id,
+                            "aggregates":aggregates}
+                        )
 
 def configure_api_app(
     gazettes: GazetteAccessInterface,
@@ -561,6 +595,7 @@ def configure_api_app(
     cities: CityAccessInterface,
     suggestion_service: SuggestionServiceInterface,
     companies: CompaniesAccessInterface,
+    aggregates: AggregatesAccessInterface,
     api_root_path=None,
 ):
     if not isinstance(gazettes, GazetteAccessInterface):
@@ -583,6 +618,10 @@ def configure_api_app(
         raise Exception(
             "Only CompaniesAccessInterface object are accepted for companies parameter"
         )
+    if not isinstance(aggregates, AggregatesAccessInterface):
+        raise Exception(
+            "Only AggregatesAccessInterface object are accepted for aggregates parameter"
+        )
     if api_root_path is not None and type(api_root_path) != str:
         raise Exception("Invalid api_root_path")
     app.gazettes = gazettes
@@ -590,4 +629,5 @@ def configure_api_app(
     app.cities = cities
     app.suggestion_service = suggestion_service
     app.companies = companies
+    app.aggregates = aggregates
     app.root_path = api_root_path
