@@ -251,6 +251,7 @@ class PostgreSQLDatabaseAggregates(PostgreSQLDatabase, AggregatesDatabaseInterfa
                 state_code = %(state_code)s
                 AND
                 territory_id {territory_id_query_statement}
+            ORDER BY year DESC
         """
         
         data = {
