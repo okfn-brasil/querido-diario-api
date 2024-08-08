@@ -234,11 +234,11 @@ class PostgreSQLDatabaseAggregates(PostgreSQLDatabase, AggregatesDatabaseInterfa
         return Aggregates(
             territory_id=formatted_data[1],
             state_code=formatted_data[2],
-            file_path=formatted_data[3],
-            year=formatted_data[4],
-            last_updated=formatted_data[5],
+            file_path=formatted_data[4],
+            year=formatted_data[3],
             hash_info=formatted_data[6],
-            file_size_mb=formatted_data[7]
+            file_size_mb=formatted_data[5],
+            last_updated=formatted_data[7]
         )
 
     def get_aggregates(self, territory_id: Optional[str] = None, state_code: str = "") -> Union[List[Aggregates], None]:
