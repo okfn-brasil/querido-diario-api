@@ -91,13 +91,18 @@ class Configuration:
         self.themed_excerpt_number_of_fragments = int(
             os.environ.get("THEMED_EXCERPT_NUMBER_OF_FRAGMENTS", 1)
         )
-        self.companies_database_host = os.environ.get("POSTGRES_HOST", "")
-        self.companies_database_db = os.environ.get("POSTGRES_DB", "")
-        self.companies_database_user = os.environ.get("POSTGRES_USER", "")
-        self.companies_database_pass = os.environ.get("POSTGRES_PASSWORD", "")
-        self.companies_database_port = os.environ.get("POSTGRES_PORT", "")
+        self.companies_database_host = os.environ.get("POSTGRES_COMPANIES_HOST", "")
+        self.companies_database_db = os.environ.get("POSTGRES_COMPANIES_DB", "")
+        self.companies_database_user = os.environ.get("POSTGRES_COMPANIES_USER", "")
+        self.companies_database_pass = os.environ.get("POSTGRES_COMPANIES_PASSWORD", "")
+        self.companies_database_port = os.environ.get("POSTGRES_COMPANIES_PORT", "")
         self.opensearch_user = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_USER", "")
         self.opensearch_pswd = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_PASSWORD", "")
+        self.aggregates_database_host = os.environ.get("POSTGRES_AGGREGATES_HOST", "")
+        self.aggregates_database_db = os.environ.get("POSTGRES_AGGREGATES_DB", "")
+        self.aggregates_database_user = os.environ.get("POSTGRES_AGGREGATES_USER", "")
+        self.aggregates_database_pass = os.environ.get("POSTGRES_AGGREGATES_PASSWORD", "")
+        self.aggregates_database_port = os.environ.get("POSTGRES_AGGREGATES_PORT", "")
     @classmethod
     def _load_list(cls, key, default=[]):
         value = os.environ.get(key, default)
