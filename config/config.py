@@ -1,5 +1,5 @@
 import os
-
+from typing import Optional, Union
 
 VALID_BOOLEAN_TRUE_VALUES = [True, "True", "TRUE"]
 VALID_BOOLEAN_FALSE_VALUES = [False, "False", "FALSE"]
@@ -44,7 +44,7 @@ class Configuration:
         self.suggestion_mailjet_custom_id = os.environ.get(
             "QUERIDO_DIARIO_SUGGESTION_MAILJET_CUSTOM_ID", ""
         )
-        self.city_database_file = os.environ["CITY_DATABASE_CSV"]
+        self.city_database_file = os.environ.get("CITY_DATABASE_CSV", "")
         self.gazette_index = os.environ.get("GAZETTE_OPENSEARCH_INDEX", "")
         self.gazette_content_field = os.environ.get("GAZETTE_CONTENT_FIELD", "")
         self.gazette_content_exact_field_suffix = os.environ.get(
@@ -57,7 +57,7 @@ class Configuration:
         self.gazette_territory_id_field = os.environ.get(
             "GAZETTE_TERRITORY_ID_FIELD", ""
         )
-        self.themes_database_file = os.environ["THEMES_DATABASE_JSON"]
+        self.themes_database_file = os.environ.get("THEMES_DATABASE_JSON","")
         self.themed_excerpt_content_field = os.environ.get(
             "THEMED_EXCERPT_CONTENT_FIELD", ""
         )
@@ -85,12 +85,8 @@ class Configuration:
         self.themed_excerpt_tfidf_score_field = os.environ.get(
             "THEMED_EXCERPT_TFIDF_SCORE_FIELD", ""
         )
-        self.themed_excerpt_fragment_size = int(
-            os.environ.get("THEMED_EXCERPT_FRAGMENT_SIZE", 10000)
-        )
-        self.themed_excerpt_number_of_fragments = int(
-            os.environ.get("THEMED_EXCERPT_NUMBER_OF_FRAGMENTS", 1)
-        )
+        self.themed_excerpt_fragment_size = Configuration._to_number("THEMED_EXCERPT_FRAGMENT_SIZE", 10000)
+        self.themed_excerpt_number_of_fragments = Configuration._to_number("THEMED_EXCERPT_NUMBER_OF_FRAGMENTS", 1)
         self.companies_database_host = os.environ.get("POSTGRES_COMPANIES_HOST", "")
         self.companies_database_db = os.environ.get("POSTGRES_COMPANIES_DB", "")
         self.companies_database_user = os.environ.get("POSTGRES_COMPANIES_USER", "")
@@ -101,31 +97,43 @@ class Configuration:
         self.aggregates_database_host = os.environ.get("POSTGRES_AGGREGATES_HOST", "")
         self.aggregates_database_db = os.environ.get("POSTGRES_AGGREGATES_DB", "")
         self.aggregates_database_user = os.environ.get("POSTGRES_AGGREGATES_USER", "")
-        self.aggregates_database_pass = os.environ.get("POSTGRES_AGGREGATES_PASSWORD", "")
+        self.aggregates_database_pass = os.environ.get(
+            "POSTGRES_AGGREGATES_PASSWORD", ""
+        )
         self.aggregates_database_port = os.environ.get("POSTGRES_AGGREGATES_PORT", "")
+
     @classmethod
-    def _load_list(cls, key, default=[]):
+    def _load_list(cls, key:str, default:list=[]) -> list:
         value = os.environ.get(key, default)
         if isinstance(value, list):
             return value
         return value.split(",")
 
     @classmethod
-    def _is_true(cls, value):
+    def _is_true(cls, value: Union[str, bool]) -> bool:
         return value in VALID_BOOLEAN_TRUE_VALUES
 
     @classmethod
-    def _is_false(cls, value):
+    def _is_false(cls, value: Union[str, bool]) -> bool:
         return value in VALID_BOOLEAN_FALSE_VALUES
 
     @classmethod
-    def _load_boolean(cls, key, default=False):
+    def _load_boolean(cls, key:str, default:bool=False) -> bool:
         value = os.environ.get(key, default)
         if cls._is_true(value):
             return True
         if cls._is_false(value):
             return False
         return default
+
+    @classmethod
+    def _to_number(cls, key:str, default:int=0) -> int:
+        value = os.environ.get(key, default=0)
+        if not bool(value and not value.isspace()):
+            return default
+        if not value.isdigit():
+            return default
+        return int(value) 
 
 
 def load_configuration():
