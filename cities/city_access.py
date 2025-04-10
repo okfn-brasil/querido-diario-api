@@ -21,12 +21,14 @@ class CitySearchResult:
         uf: str,
         openness_level: OpennessLevel,
         gazettes_urls: List[str],
+        availability_date: str
     ):
         self.publication_urls = gazettes_urls
         self.territory_id = ibge_id
         self.territory_name = name
         self.level = openness_level
         self.state_code = uf
+        self.availability_date = availability_date
 
     def __eq__(self, other):
         return (
@@ -35,14 +37,15 @@ class CitySearchResult:
             and self.level == other.level
             and self.state_code == other.state_code
             and self.publication_urls == other.publication_urls
+            and self.availability_date == other.availability_date
         )
 
     def __repr__(self):
-        return f"CitySearchResult({self.territory_name}, {self.territory_id}, {self.level}, {self.state_code}, {self.publication_urls})"
+        return f"CitySearchResult({self.territory_name}, {self.territory_id}, {self.level}, {self.state_code}, {self.publication_urls}, {self.availability_date})"
 
     def __hash__(self):
         return hash(
-            (self.territory_id, self.territory_name, self.state_code, self.level,)
+            (self.territory_id, self.territory_name, self.state_code, self.level, self.availability_date)
         )
 
 
@@ -109,6 +112,7 @@ class CitiesCSVDatabaseGateway(CityDataGateway):
                         row["uf"],
                         OpennessLevel(row["openness_level"]),
                         self._split_urls(row["gazettes_urls"]),
+                        row["availability_date"]
                     )
                     results.append(city)
         return results
@@ -124,6 +128,7 @@ class CitiesCSVDatabaseGateway(CityDataGateway):
                         row["uf"],
                         OpennessLevel(row["openness_level"]),
                         self._split_urls(row["gazettes_urls"]),
+                        row["availability_date"]
                     )
                     return city
 

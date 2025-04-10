@@ -115,6 +115,7 @@ class City(BaseModel):
     state_code: str
     publication_urls: Optional[List[str]]
     level: CityLevel
+    availability_date: str
 
 
 class CitiesSearchResponse(BaseModel):
