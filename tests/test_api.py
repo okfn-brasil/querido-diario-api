@@ -9,11 +9,11 @@ class TestsApiGazettesEndpoint:
     def test_api_should_fail_when_try_to_set_any_object_as_gazettes_interface(self, mocker, configure_app):
         with pytest.raises(Exception):
             configure_app(
-                gazette=mocker.Mock()
+                gazettes=mocker.Mock()
             )
     
     def test_api_should_not_fail_when_try_to_set_any_object_as_gazettes_interface(self, configure_app):
-        configure_app() #TODO: ver se seria legal colocar um spy 
+        configure_app()
 
     def test_gazettes_endpoint_should_accept_territory_id_in_the_path(self, mock_gazette_interface, configure_app, client):
         interface = mock_gazette_interface()
@@ -22,10 +22,24 @@ class TestsApiGazettesEndpoint:
             gazettes=interface
         )
         
-        response = client.get("/gazettes", params={"territory_ids": "4205902"}) #TODO: remover isso e colocar de volta a assert na interface
+        response = client.get("/gazettes", params={"territory_ids": "4205902"})
         
         assert response.status_code == HTTPStatus.OK
-        assert response.json() == {"total_gazettes": 0, "gazettes": []}
+        
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
+        
+        assert interface.get_gazettes.call_args.args[0].published_since is None
+        assert interface.get_gazettes.call_args.args[0].published_until is None
+        assert interface.get_gazettes.call_args.args[0].scraped_since is None
+        assert interface.get_gazettes.call_args.args[0].scraped_until is None
+        assert interface.get_gazettes.call_args.args[0].querystring is not None
+        assert interface.get_gazettes.call_args.args[0].excerpt_size is not None
+        assert interface.get_gazettes.call_args.args[0].number_of_excerpts is not None
+        assert interface.get_gazettes.call_args.args[0].pre_tags is not None
+        assert interface.get_gazettes.call_args.args[0].post_tags is not None
+        assert interface.get_gazettes.call_args.args[0].offset is not None
+        assert interface.get_gazettes.call_args.args[0].size is not None
+        assert interface.get_gazettes.call_args.args[0].sort_by is not None
 
     def test_gazettes_endpoint_should_accept_query_published_since_date(self, mock_gazette_interface, configure_app, client):
         interface = mock_gazette_interface()
@@ -178,7 +192,7 @@ class TestsApiGazettesEndpoint:
                 "published_until": today,
                 "scraped_since": datetime_now,
                 "scraped_until": datetime_now,
-                "querystring": "xpto",
+                "querystring": "keyword",
                 "excerpt_size": 500,
                 "number_of_excerpts": 1,
                 "pre_tags": ["<strong>"],
@@ -191,13 +205,14 @@ class TestsApiGazettesEndpoint:
         
         assert response.status_code == HTTPStatus.OK
         interface.get_gazettes.assert_called_once()
-
-        assert interface.get_gazettes.call_args.args[0].territory_ids[0] == "4205902"
+        
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
+        
         assert interface.get_gazettes.call_args.args[0].published_since == date.today()
         assert interface.get_gazettes.call_args.args[0].published_until == date.today()
         assert interface.get_gazettes.call_args.args[0].scraped_since == datetime.now().replace(microsecond=0)
         assert interface.get_gazettes.call_args.args[0].scraped_until == datetime.now().replace(microsecond=0)
-        assert interface.get_gazettes.call_args.args[0].querystring == "xpto"
+        assert interface.get_gazettes.call_args.args[0].querystring == "keyword"
         assert interface.get_gazettes.call_args.args[0].excerpt_size == 500
         assert interface.get_gazettes.call_args.args[0].number_of_excerpts == 1
         assert interface.get_gazettes.call_args.args[0].pre_tags == ["<strong>"]
@@ -239,7 +254,7 @@ class TestsApiGazettesEndpoint:
         assert response.status_code == HTTPStatus.OK
         interface.get_gazettes.assert_called_once()
         
-        assert interface.get_gazettes.call_args.args[0].territory_ids[0] == "4205902"
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
         
         assert response.json() == {
                 "total_gazettes": 1,
@@ -271,7 +286,7 @@ class TestsApiGazettesEndpoint:
         
         interface.get_gazettes.assert_called_once()
         
-        assert interface.get_gazettes.call_args.args[0].territory_ids[0] == "4205902"
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
         assert response.status_code == HTTPStatus.OK
         assert response.json() == {"total_gazettes": 0, "gazettes": []}
     
@@ -507,9 +522,11 @@ class TestsApiGazettesEndpoint:
         )
         response = client.get(
             "/gazettes",
-            params={ #TODO: Ver se seria legal colocar os restos dos paramentros
+            params={
                 "published_since": date.today().isoformat(),
                 "published_until": date.today().isoformat(),
+                "scraped_since": datetime.now().replace(microsecond=0).isoformat(),
+                "scraped_until": datetime.now().replace(microsecond=0).isoformat(),
                 "offset": 10,
                 "size": 100,
             },
@@ -599,7 +616,7 @@ class TestsApiGazettesEndpoint:
         response = client.get("/gazettes", params={"territory_ids": "4205902"})
         
         interface.get_gazettes.assert_called_once()
-        assert interface.get_gazettes.call_args.args[0].territory_ids[0] == "4205902"
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
         assert response.status_code == HTTPStatus.OK
         assert response.json() == {
                 "total_gazettes": 2,
@@ -676,7 +693,7 @@ class TestsApiGazettesEndpoint:
         response = client.get("/gazettes", params={"territory_ids": "4205902"})
             
         interface.get_gazettes.assert_called_once()
-        assert interface.get_gazettes.call_args.args[0].territory_ids[0] == "4205902"
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
         assert response.status_code == HTTPStatus.OK
         assert response.json() == {
                 "total_gazettes": 2,
@@ -902,8 +919,6 @@ class TestsApiCitiesEndpoint:
 
         
 class TestsApiSuggestionsEndpoint:
-
-
     def test_suggestion_endpoint_should_send_email(self, mock_suggestion_service_interface, configure_app, client):
         
         
