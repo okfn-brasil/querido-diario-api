@@ -99,3 +99,8 @@ def configure_app(default_mocks):
 @pytest.fixture
 def client():
     return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def freeze_time(freezer):
+    freezer.move_to("2025-01-01 14:50:03")
