@@ -1,61 +1,134 @@
 on:
   push:
     branches:
-    - main
+      - main
     tags:
-    - 'v*'
+      - "v*"
 
 name: Build container images
 
 jobs:
+  test:
+    name: Run tests before build
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Verify Docker Compose
+        run: |
+          docker compose version
+      - name: Setup environment files
+        run: |
+          cp --no-clobber config/sample.env config/current.env || true
+          test -f censo.csv || curl -s -O https://querido-diario.nyc3.cdn.digitaloceanspaces.com/censo/censo.csv
+          test -f themes_config.json || curl -s -O https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json
+      - name: Build and test for platform
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
+        run: |
+          # Update docker-compose.test.yml to build for specific platform
+          sed -i "s|dockerfile: Dockerfile|dockerfile: Dockerfile\n      platforms:\n        - ${{ matrix.platform }}|" docker-compose.test.yml
+          
+          # Run full test suite on native architecture
+          docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from api
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v || true
+
   build:
     name: Build container image
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm64
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    needs: test
+    if: github.event_name == 'push'
     steps:
-      -
-        name: Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      -
-        name: Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      -
-        name: Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Retrieve repository name
+      - name: Retrieve repository name
         run: |
           echo REPOSITORY=$(echo $GITHUB_REPOSITORY) >> $GITHUB_ENV
-      -
-        name: Build and push development container image
+      - name: Build and push development container image
         if: ${{ startsWith(github.ref, 'refs/heads/') }}
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64, linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ghcr.io/${{env.REPOSITORY}}:latest
-      -
-        name: Retrieve tag name
+            ghcr.io/${{env.REPOSITORY}}:latest-${{ matrix.arch }}
+      - name: Retrieve tag name
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
           echo TAG_NAME=$(echo $GITHUB_REF | sed -e "s|refs/tags/||") >> $GITHUB_ENV
-      -
-        name: Build and push tagged container image
+      - name: Build and push tagged container image
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64, linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}
+            ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}-${{ matrix.arch }}
+
+  create-manifest:
+    name: Create multi-arch manifest
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push'
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Retrieve repository name
+        run: |
+          echo REPOSITORY=$(echo $GITHUB_REPOSITORY) >> $GITHUB_ENV
+      - name: Create and push development manifest
+        if: ${{ startsWith(github.ref, 'refs/heads/') }}
+        run: |
+          docker manifest create ghcr.io/${{env.REPOSITORY}}:latest \
+            ghcr.io/${{env.REPOSITORY}}:latest-amd64 \
+            ghcr.io/${{env.REPOSITORY}}:latest-arm64
+          docker manifest push ghcr.io/${{env.REPOSITORY}}:latest
+      - name: Retrieve tag name
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          echo TAG_NAME=$(echo $GITHUB_REF | sed -e "s|refs/tags/||") >> $GITHUB_ENV
+      - name: Create and push tagged manifest
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          docker manifest create ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }} \
+            ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}-amd64 \
+            ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}-arm64
+          docker manifest push ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}
