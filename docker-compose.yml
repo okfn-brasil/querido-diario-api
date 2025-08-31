@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:10
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_COMPANIES_PASSWORD:-companies}
+      POSTGRES_USER: ${POSTGRES_COMPANIES_USER:-companies}
+      POSTGRES_DB: ${POSTGRES_COMPANIES_DB:-companiesdb}
+    ports:
+      - "${POSTGRES_COMPANIES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_COMPANIES_USER:-companies} -d ${POSTGRES_COMPANIES_DB:-companiesdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  opensearch:
+    image: opensearchproject/opensearch:2.9.0
+    environment:
+      - discovery.type=single-node
+      - plugins.security.ssl.http.enabled=false
+    ports:
+      - "${OPENSEARCH_PORT1:-9200}:9200"
+      - "${OPENSEARCH_PORT2:-9300}:9300"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - ${PLATFORM:-linux/amd64}
+    image: ${IMAGE_NAMESPACE:-okfn-brasil}/${IMAGE_NAME:-querido-diario-api}:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    environment:
+      - PYTHONPATH=/mnt/code
+      - RUN_INTEGRATION_TESTS=${RUN_INTEGRATION_TESTS:-0}
+      - POSTGRES_COMPANIES_HOST=postgres
+      - POSTGRES_COMPANIES_DB=${POSTGRES_COMPANIES_DB:-companiesdb}
+      - POSTGRES_COMPANIES_USER=${POSTGRES_COMPANIES_USER:-companies}
+      - POSTGRES_COMPANIES_PASSWORD=${POSTGRES_COMPANIES_PASSWORD:-companies}
+      - POSTGRES_COMPANIES_PORT=5432
+      - QUERIDO_DIARIO_OPENSEARCH_HOST=opensearch
+    volumes:
+      - .:/mnt/code:rw
+    working_dir: /mnt/code
+    env_file:
+      - config/current.env
+    ports:
+      - "${API_PORT:-8080}:8080"
+    user: "${UID:-1000}:${UID:-1000}"
+    networks:
+      - default
+
+volumes:
+  postgres_data:
+  opensearch_data:
+
+networks:
+  default:
+    driver: bridge
