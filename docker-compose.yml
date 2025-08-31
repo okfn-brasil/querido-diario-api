@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -10,7 +10,11 @@ services:
     ports:
       - "${POSTGRES_COMPANIES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_COMPANIES_USER:-companies} -d ${POSTGRES_COMPANIES_DB:-companiesdb}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_COMPANIES_USER:-companies} -d ${POSTGRES_COMPANIES_DB:-companiesdb}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,7 +30,15 @@ services:
       - "${OPENSEARCH_PORT1:-9200}:9200"
       - "${OPENSEARCH_PORT2:-9300}:9300"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "-u",
+          "admin:admin",
+          "http://localhost:9200/_cluster/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
