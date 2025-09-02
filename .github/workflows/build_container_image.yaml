@@ -4,13 +4,23 @@ on:
       - main
     tags:
       - "v*"
+  workflow_dispatch:
 
 name: Build container images
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     name: Run tests before build
     strategy:
+      fail-fast: false
       matrix:
         include:
           - platform: linux/amd64
@@ -18,6 +28,7 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -73,6 +84,7 @@ jobs:
   build:
     name: Build container image
     strategy:
+      fail-fast: false
       matrix:
         include:
           - platform: linux/amd64
@@ -84,6 +96,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     needs: test
     if: github.event_name == 'push'
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -109,9 +122,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Retrieve repository name
-        run: |
-          echo REPOSITORY=$(echo $GITHUB_REPOSITORY) >> $GITHUB_ENV
       - name: Build and push development container image
         if: ${{ startsWith(github.ref, 'refs/heads/') }}
         uses: docker/build-push-action@v5
@@ -121,11 +131,9 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ghcr.io/${{env.REPOSITORY}}:latest-${{ matrix.arch }}
-      - name: Retrieve tag name
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        run: |
-          echo TAG_NAME=$(echo $GITHUB_REF | sed -e "s|refs/tags/||") >> $GITHUB_ENV
+            ghcr.io/${{ github.repository }}:latest-${{ matrix.arch }}
+          cache-from: type=gha,scope=api-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=api-${{ matrix.arch }}
       - name: Build and push tagged container image
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: docker/build-push-action@v5
@@ -135,7 +143,9 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}-${{ matrix.arch }}
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=api-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=api-${{ matrix.arch }}
 
   create-manifest:
     name: Create multi-arch manifest
@@ -143,30 +153,55 @@ jobs:
     needs: build
     if: github.event_name == 'push'
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Retrieve repository name
+      - name: Verify single-arch images availability (branch)
+        if: ${{ startsWith(github.ref, 'refs/heads/') }}
         run: |
-          echo REPOSITORY=$(echo $GITHUB_REPOSITORY) >> $GITHUB_ENV
+          REPO="${{ github.repository }}"
+          for tag in latest-amd64 latest-arm64; do
+            for i in {1..20}; do
+              if docker buildx imagetools inspect ghcr.io/$REPO:$tag > /dev/null 2>&1; then
+                echo "Found ghcr.io/$REPO:$tag";
+                break;
+              fi
+              echo "Waiting for ghcr.io/$REPO:$tag to be available ($i/20)...";
+              sleep 3;
+            done
+          done
       - name: Create and push development manifest
         if: ${{ startsWith(github.ref, 'refs/heads/') }}
         run: |
-          docker manifest create ghcr.io/${{env.REPOSITORY}}:latest \
-            ghcr.io/${{env.REPOSITORY}}:latest-amd64 \
-            ghcr.io/${{env.REPOSITORY}}:latest-arm64
-          docker manifest push ghcr.io/${{env.REPOSITORY}}:latest
-      - name: Retrieve tag name
+          REPO="${{ github.repository }}"
+          docker buildx imagetools create \
+            -t ghcr.io/$REPO:latest \
+            ghcr.io/$REPO:latest-amd64 \
+            ghcr.io/$REPO:latest-arm64
+      - name: Verify single-arch images availability (tag)
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
-          echo TAG_NAME=$(echo $GITHUB_REF | sed -e "s|refs/tags/||") >> $GITHUB_ENV
+          REPO="${{ github.repository }}"
+          for arch in amd64 arm64; do
+            for i in {1..20}; do
+              if docker buildx imagetools inspect ghcr.io/$REPO:${{ github.ref_name }}-$arch > /dev/null 2>&1; then
+                echo "Found ghcr.io/$REPO:${{ github.ref_name }}-$arch";
+                break;
+              fi
+              echo "Waiting for ghcr.io/$REPO:${{ github.ref_name }}-$arch to be available ($i/20)...";
+              sleep 3;
+            done
+          done
       - name: Create and push tagged manifest
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
-          docker manifest create ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }} \
-            ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}-amd64 \
-            ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}-arm64
-          docker manifest push ghcr.io/${{env.REPOSITORY}}:${{ env.TAG_NAME }}
+          REPO="${{ github.repository }}"
+          docker buildx imagetools create \
+            -t ghcr.io/$REPO:${{ github.ref_name }} \
+            ghcr.io/$REPO:${{ github.ref_name }}-amd64 \
+            ghcr.io/$REPO:${{ github.ref_name }}-arm64
