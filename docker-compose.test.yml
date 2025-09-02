@@ -88,7 +88,7 @@ services:
     volumes:
       - .:/mnt/code:rw
     working_dir: /mnt/code
-    command: sh -c "coverage run -m unittest tests && coverage report -m"
+    command: sh -c "python -m unittest tests"
     networks:
       - default
 
