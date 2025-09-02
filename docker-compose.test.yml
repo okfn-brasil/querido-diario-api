@@ -1,0 +1,97 @@
+services:
+  postgres:
+    image: postgres:10
+    environment:
+      POSTGRES_PASSWORD: companies
+      POSTGRES_USER: companies
+      POSTGRES_DB: companiesdb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U companies -d companiesdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  opensearch:
+    image: opensearchproject/opensearch:2.9.0
+    environment:
+      - discovery.type=single-node
+      - plugins.security.ssl.http.enabled=false
+      - plugins.security.disabled=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=admin
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "-u",
+          "admin:admin",
+          "http://localhost:9200/_cluster/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    environment:
+      - PYTHONPATH=/mnt/code
+      - RUN_INTEGRATION_TESTS=1
+      - POSTGRES_COMPANIES_HOST=postgres
+      - POSTGRES_COMPANIES_DB=companiesdb
+      - POSTGRES_COMPANIES_USER=companies
+      - POSTGRES_COMPANIES_PASSWORD=companies
+      - POSTGRES_COMPANIES_PORT=5432
+      - QUERIDO_DIARIO_OPENSEARCH_HOST=opensearch
+      - QUERIDO_DIARIO_OPENSEARCH_USER=admin
+      - QUERIDO_DIARIO_OPENSEARCH_PASSWORD=admin
+      - CITY_DATABASE_CSV=censo.csv
+      - THEMES_DATABASE_JSON=themes_config.json
+      - GAZETTE_OPENSEARCH_INDEX=querido-diario
+      - GAZETTE_CONTENT_FIELD=source_text
+      - GAZETTE_CONTENT_EXACT_FIELD_SUFFIX=.exact
+      - GAZETTE_PUBLICATION_DATE_FIELD=date
+      - GAZETTE_SCRAPED_AT_FIELD=scraped_at
+      - GAZETTE_TERRITORY_ID_FIELD=territory_id
+      - THEMED_EXCERPT_CONTENT_FIELD=excerpt
+      - THEMED_EXCERPT_CONTENT_EXACT_FIELD_SUFFIX=.exact
+      - THEMED_EXCERPT_PUBLICATION_DATE_FIELD=source_date
+      - THEMED_EXCERPT_SCRAPED_AT_FIELD=source_scraped_at
+      - THEMED_EXCERPT_TERRITORY_ID_FIELD=source_territory_id
+      - THEMED_EXCERPT_ENTITIES_FIELD=excerpt_entities
+      - THEMED_EXCERPT_SUBTHEMES_FIELD=excerpt_subthemes
+      - THEMED_EXCERPT_EMBEDDING_SCORE_FIELD=excerpt_embedding_score
+      - THEMED_EXCERPT_TFIDF_SCORE_FIELD=excerpt_tfidf_score
+      - THEMED_EXCERPT_FRAGMENT_SIZE=10000
+      - THEMED_EXCERPT_NUMBER_OF_FRAGMENTS=1
+    volumes:
+      - .:/mnt/code:rw
+    working_dir: /mnt/code
+    command: sh -c "python -m unittest tests"
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge

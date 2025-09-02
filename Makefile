@@ -3,6 +3,27 @@ IMAGE_NAME ?= querido-diario-api
 IMAGE_TAG ?= latest
 IMAGE_FORMAT ?= docker
 
+# Architecture detection and configuration
+CURRENT_ARCH := $(shell uname -m)
+ifeq ($(CURRENT_ARCH),x86_64)
+    DEFAULT_PLATFORM := linux/amd64
+else ifeq ($(CURRENT_ARCH),aarch64)
+    DEFAULT_PLATFORM := linux/arm64
+else ifeq ($(CURRENT_ARCH),arm64)
+    DEFAULT_PLATFORM := linux/arm64
+else
+    DEFAULT_PLATFORM := linux/amd64
+endif
+
+# Allow override via command line flags
+ifdef amd64
+    PLATFORM := linux/amd64
+else ifdef arm64
+    PLATFORM := linux/arm64
+else
+    PLATFORM := $(DEFAULT_PLATFORM)
+endif
+
 # Opensearch ports
 # Variables used to connect the app to the OpenSearch
 QUERIDO_DIARIO_DATABASE_CSV ?= censo.csv
@@ -25,58 +46,47 @@ RUN_INTEGRATION_TESTS ?= 0
 
 API_PORT := 8080
 
-run-command=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-	--pod $(POD_NAME) \
-	--env PYTHONPATH=/mnt/code \
-	--env RUN_INTEGRATION_TESTS=$(RUN_INTEGRATION_TESTS) \
-	--env-file config/current.env \
-	--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) $1)
+run-command=docker compose run --rm api $1
 
-wait-for=(podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-	--pod $(POD_NAME) \
-	--env PYTHONPATH=/mnt/code \
-	--user=$(UID):$(UID) \
-	$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) wait-for-it --timeout=90 $1)
+wait-for=docker compose run --rm api wait-for-it --timeout=90 $1
 
 .PHONY: black
 black:
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--env PYTHONPATH=/mnt/code \
-		--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
-		black .
+	$(call run-command, black .)
 
 .PHONY: build
 build:
-	podman build --format $(IMAGE_FORMAT) --tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
+	docker build --platform $(PLATFORM) --tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
+		-f Dockerfile $(PWD)
+
+.PHONY: build-multi-arch
+build-multi-arch:
+	docker buildx build --platform linux/amd64,linux/arm64 --tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
 		-f Dockerfile $(PWD)
 
 login:
-	podman login --username $(REGISTRY_USER) --password "$(REGISTRY_PASSWORD)" https://index.docker.io/v1/
+	docker login --username $(REGISTRY_USER) --password "$(REGISTRY_PASSWORD)" https://index.docker.io/v1/
 
 .PHONY: publish
 publish:
-	podman tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG} $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc)
-	podman push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc)
-	podman push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG}
+	docker tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG} $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc)
+	docker push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell date --rfc-3339=date --utc)
+	docker push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG}
 
 .PHONY: publish-tag
 publish-tag:
-	podman tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG} $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell git describe --tags)
-	podman push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell git describe --tags)
+	docker tag $(IMAGE_NAMESPACE)/$(IMAGE_NAME):${IMAGE_TAG} $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell git describe --tags)
+	docker push $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(shell git describe --tags)
 
 .PHONY: destroy
 destroy:
-	podman rmi --force $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG)
+	docker rmi --force $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG)
 
-destroy-pod:
-	podman pod rm --force --ignore $(POD_NAME)
+destroy-services:
+	docker compose down --volumes --remove-orphans
 
-create-pod: setup-environment destroy-pod
-	podman pod create --publish $(API_PORT):$(API_PORT) \
-	  --publish $(POSTGRES_COMPANIES_PORT):$(POSTGRES_COMPANIES_PORT) \
-	  --publish $(OPENSEARCH_PORT1):$(OPENSEARCH_PORT1) \
-	  --publish $(OPENSEARCH_PORT2):$(OPENSEARCH_PORT2) \
-	  --name $(POD_NAME)
+create-services: setup-environment destroy-services
+	docker compose up -d postgres opensearch
 
 .PHONY: setup-environment
 setup-environment:
@@ -97,34 +107,31 @@ set-integration-test-variables: set-test-variables
 	$(eval RUN_INTEGRATION_TESTS=1)
 
 .PHONY: test
-test: set-test-variables create-pod retest
+test: set-test-variables create-services retest
 
 .PHONY: retest
 retest: set-test-variables black
-	$(call run-command,  python -m unittest discover tests)
+	$(call run-command, python -m unittest discover tests)
 
 .PHONY: test-all
-test-all: set-integration-test-variables create-pod opensearch database retest
+test-all: set-integration-test-variables create-services retest
 
 .PHONY: test-shell
 test-shell: set-test-variables
 	$(call run-command, bash)
 
 .PHONY: coverage
-coverage: set-test-variables create-pod opensearch database
+coverage: set-test-variables create-services
 	$(call run-command, coverage erase)
 	$(call run-command, coverage run -m unittest tests)
 	$(call run-command, coverage report -m)
 
 .PHONY: shell
 shell:
-	podman run --rm -ti --volume $(PWD):/mnt/code:rw \
-		--env PYTHONPATH=/mnt/code \
-		--user=$(UID):$(UID) $(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
-		bash
+	$(call run-command, bash)
 
 .PHONY: run
-run: create-pod opensearch database load-data re-run
+run: create-services load-data re-run
 
 .PHONY:load-data
 load-data:
@@ -142,43 +149,42 @@ runshell:
 opensearch: stop-opensearch start-opensearch wait-opensearch
 
 start-opensearch:
-	podman run -d --rm -ti \
-		--name $(OPENSEARCH_CONTAINER_NAME) \
-		--pod $(POD_NAME) \
-		--env discovery.type=single-node \
-		--env plugins.security.ssl.http.enabled=false \
-		opensearchproject/opensearch:2.9.0
+	docker compose up -d opensearch
 
 stop-opensearch:
-	podman rm --force --ignore $(OPENSEARCH_CONTAINER_NAME)
+	docker compose stop opensearch
 
 wait-opensearch:
-	$(call wait-for, localhost:9200)
+	$(call wait-for, opensearch:9200)
 
 .PHONY: stop-database
 stop-database:
-	podman rm --force --ignore $(DATABASE_CONTAINER_NAME)
+	docker compose stop postgres
 
 .PHONY: database
 database: stop-database start-database wait-database
 
 start-database:
-	podman run -d --rm -ti \
-		--name $(DATABASE_CONTAINER_NAME) \
-		--pod $(POD_NAME) \
-		-e POSTGRES_PASSWORD=$(POSTGRES_COMPANIES_PASSWORD) \
-		-e POSTGRES_USER=$(POSTGRES_COMPANIES_USER) \
-		-e POSTGRES_DB=$(POSTGRES_COMPANIES_DB) \
-		$(POSTGRES_COMPANIES_IMAGE)
+	docker compose up -d postgres
 
 wait-database:
-	$(call wait-for, localhost:5432)
+	$(call wait-for, postgres:5432)
 
 load-database:
 ifneq ("$(wildcard $(DATABASE_RESTORE_FILE))","")
-	podman cp $(DATABASE_RESTORE_FILE) $(DATABASE_CONTAINER_NAME):/mnt/dump_file
-	podman exec $(DATABASE_CONTAINER_NAME) bash -c "pg_restore -v -c -h localhost -U $(POSTGRES_COMPANIES_USER) -d $(POSTGRES_COMPANIES_DB) /mnt/dump_file || true"
+	docker compose cp $(DATABASE_RESTORE_FILE) postgres:/mnt/dump_file
+	docker compose exec postgres bash -c "pg_restore -v -c -h localhost -U $(POSTGRES_COMPANIES_USER) -d $(POSTGRES_COMPANIES_DB) /mnt/dump_file || true"
 else
 	@echo "cannot restore because file does not exists '$(DATABASE_RESTORE_FILE)'"
 	@exit 1
 endif
+
+.PHONY: help-arch
+help-arch:
+	@echo "Architecture build options:"
+	@echo "  make build                - Build for current architecture ($(DEFAULT_PLATFORM))"
+	@echo "  make build amd64=1        - Build for AMD64 architecture"
+	@echo "  make build arm64=1        - Build for ARM64 architecture"
+	@echo "  make build-multi-arch     - Build for both amd64 and arm64 architectures"
+	@echo ""
+	@echo "Current system architecture: $(CURRENT_ARCH) -> $(DEFAULT_PLATFORM)"
