@@ -16,3 +16,5 @@ ADD https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing
 RUN chmod 644 themes_config.json
 
 USER gazette
+
+CMD ["python", "-m", "main"]
