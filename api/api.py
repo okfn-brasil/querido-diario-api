@@ -33,6 +33,23 @@ app.add_middleware(
 )
 
 
+@app.get("/health", tags=["Health"])
+async def health_check():
+    """
+    Health check endpoint for monitoring and load balancers.
+    Returns 200 OK when the service is healthy.
+    """
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "healthy",
+            "service": "querido-diario-api",
+            # Todo: Retrieve from a central place
+            "version": "0.19.0"
+        }
+    )
+
+
 class GazetteItem(BaseModel):
     territory_id: str
     date: date
