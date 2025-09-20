@@ -46,6 +46,25 @@ services:
       timeout: 10s
       retries: 5
 
+  setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    environment:
+      - PYTHONPATH=/mnt/code
+      - QUERIDO_DIARIO_OPENSEARCH_HOST=opensearch
+      - QUERIDO_DIARIO_OPENSEARCH_USER=admin
+      - QUERIDO_DIARIO_OPENSEARCH_PASSWORD=admin
+    volumes:
+      - .:/mnt/code:rw
+    working_dir: /mnt/code
+    command: python scripts/load_fake_gazettes.py
+    networks:
+      - default
+
   api:
     build:
       context: .
@@ -53,8 +72,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      opensearch:
-        condition: service_healthy
+      setup:
+        condition: service_completed_successfully
     environment:
       - PYTHONPATH=/mnt/code
       - RUN_INTEGRATION_TESTS=1
