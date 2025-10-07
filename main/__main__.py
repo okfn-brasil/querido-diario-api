@@ -1,5 +1,6 @@
 import uvicorn
 import logging
+import os
 
 from api import app, configure_api_app
 from cities import create_cities_data_gateway, create_cities_interface
@@ -109,4 +110,13 @@ class HealthCheckFilter(logging.Filter):
 # Apply filter to uvicorn access logger
 logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
 
-uvicorn.run(app, host="0.0.0.0", port=8080, root_path=configuration.root_path)
+# Get log level from environment (default to INFO)
+log_level = os.environ.get("LOG_LEVEL", "info").lower()
+
+uvicorn.run(
+    app,
+    host="0.0.0.0",
+    port=8080,
+    root_path=configuration.root_path,
+    log_level=log_level
+)
