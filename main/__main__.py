@@ -1,4 +1,5 @@
 import uvicorn
+import logging
 
 from api import app, configure_api_app
 from cities import create_cities_data_gateway, create_cities_interface
@@ -99,5 +100,13 @@ configure_api_app(
     aggregates_interface,
     configuration.root_path
 )
+
+# Configure access log filter to exclude health checks
+class HealthCheckFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.getMessage().find("/health") == -1
+
+# Apply filter to uvicorn access logger
+logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
 
 uvicorn.run(app, host="0.0.0.0", port=8080, root_path=configuration.root_path)
