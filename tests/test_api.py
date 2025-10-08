@@ -1,698 +1,934 @@
-from datetime import date, timedelta
-from unittest.mock import MagicMock
-from unittest import TestCase, expectedFailure
+import pytest
 
-from fastapi.testclient import TestClient
-
-from api import app, configure_api_app
-from gazettes import GazetteAccessInterface, GazetteRequest
-from suggestions import Suggestion, SuggestionSent, SuggestionServiceInterface
-from companies import CompaniesAccessInterface
+from http import HTTPStatus
+from datetime import date, datetime, timedelta
 
 
-@GazetteAccessInterface.register
-class MockGazetteAccessInterface:
-    pass
 
-
-@SuggestionServiceInterface.register
-class MockSuggestionService:
-    pass
-
-
-@CompaniesAccessInterface.register
-class MockCompaniesAccessInterface:
-    pass
-
-
-class ApiGazettesEndpointTests(TestCase):
-    def create_mock_gazette_interface(
-        self, return_value=(0, []), cities_info=[], city_info=None
-    ):
-        interface = MockGazetteAccessInterface()
-        interface.get_gazettes = MagicMock(return_value=return_value)
-        interface.get_cities = MagicMock(return_value=cities_info)
-        interface.get_city = MagicMock(return_value=city_info)
-        return interface
-
-    def test_api_should_fail_when_try_to_set_any_object_as_gazettes_interface(self):
-        with self.assertRaises(Exception):
-            configure_api_app(
-                MagicMock(), MockSuggestionService(), MockCompaniesAccessInterface()
+class TestsApiGazettesEndpoint:
+    def test_api_should_fail_when_try_to_set_any_object_as_gazettes_interface(self, mocker, configure_app):
+        with pytest.raises(Exception):
+            configure_app(
+                gazettes=mocker.Mock()
             )
+    
+    def test_api_should_not_fail_when_try_to_set_any_object_as_gazettes_interface(self, configure_app):
+        configure_app()
 
-    def test_api_should_not_fail_when_try_to_set_any_object_as_gazettes_interface(self):
-        configure_api_app(
-            MockGazetteAccessInterface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
+    def test_gazettes_endpoint_should_accept_territory_id_in_the_path(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
 
-    def test_gazettes_endpoint_should_accept_territory_id_in_the_path(self):
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
-        response = client.get("/gazettes/4205902")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            "4205902", interface.get_gazettes.call_args.args[0].territory_id
-        )
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
-        self.assertIsNotNone(interface.get_gazettes.call_args.args[0].offset)
-        self.assertIsNotNone(interface.get_gazettes.call_args.args[0].size)
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902"})
+        
+        assert response.status_code == HTTPStatus.OK
+        
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
+        
+        assert interface.get_gazettes.call_args.args[0].published_since is None
+        assert interface.get_gazettes.call_args.args[0].published_until is None
+        assert interface.get_gazettes.call_args.args[0].scraped_since is None
+        assert interface.get_gazettes.call_args.args[0].scraped_until is None
+        assert interface.get_gazettes.call_args.args[0].querystring is not None
+        assert interface.get_gazettes.call_args.args[0].excerpt_size is not None
+        assert interface.get_gazettes.call_args.args[0].number_of_excerpts is not None
+        assert interface.get_gazettes.call_args.args[0].pre_tags is not None
+        assert interface.get_gazettes.call_args.args[0].post_tags is not None
+        assert interface.get_gazettes.call_args.args[0].offset is not None
+        assert interface.get_gazettes.call_args.args[0].size is not None
+        assert interface.get_gazettes.call_args.args[0].sort_by is not None
 
-    def test_gazettes_endpoint_should_accept_query_since_date(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    def test_gazettes_endpoint_should_accept_query_published_since_date(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
+        
         response = client.get(
-            "/gazettes/4205902", params={"since": date.today().strftime("%Y-%m-%d")}
+            "/gazettes",
+            params={"territory_ids": "4205902","published_since": date.today().isoformat()}
         )
-        self.assertEqual(response.status_code, 200)
+        
+        assert response.status_code == HTTPStatus.OK
 
-    def test_gazettes_endpoint_should_accept_query_until_date(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    def test_gazettes_endpoint_should_accept_query_published_until_date(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
+        
         response = client.get(
-            "/gazettes/4205902", params={"until": date.today().strftime("%Y-%m-%d")}
+            "/gazettes",
+            params={"territory_ids": "4205902","published_until": date.today().isoformat()}
         )
-        self.assertEqual(response.status_code, 200)
 
-    def test_gazettes_endpoint_should_fail_with_invalid_since_value(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
-        response = client.get("/gazettes/4205902", params={"since": "foo-bar-2222"})
-        self.assertEqual(response.status_code, 422)
+        assert response.status_code == HTTPStatus.OK
 
-    def test_gazettes_endpoint_should_fail_with_invalid_until_value(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
-        response = client.get("/gazettes/4205902", params={"until": "foo-bar-2222"})
-        self.assertEqual(response.status_code, 422)
+    def test_gazettes_endpoint_should_accept_query_scraped_since_date(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
 
-    def test_gazettes_endpoint_should_fail_with_invalid_pagination_data(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
+        configure_app(gazettes=interface)
+
         response = client.get(
-            "/gazettes/4205902", params={"offset": "asfasdasd", "size": "10"}
+            "/gazettes",
+            params={"territory_ids": "4205902","scraped_since": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")},
         )
-        self.assertEqual(response.status_code, 422)
-        response = client.get(
-            "/gazettes/4205902", params={"offset": "10", "size": "ssddsfds"}
-        )
-        self.assertEqual(response.status_code, 422)
-        response = client.get(
-            "/gazettes/4205902", params={"offset": "x", "size": "asdasdas"}
-        )
-        self.assertEqual(response.status_code, 422)
+        
+        assert response.status_code == HTTPStatus.OK
+        
+    def test_gazettes_endpoint_should_accept_query_scraped_until_date(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
 
-    def test_get_gazettes_without_territory_id_should_be_fine(self):
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
-        client = TestClient(app)
-        response = client.get("/gazettes/")
-        self.assertEqual(response.status_code, 200)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].territory_id)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
-        self.assertIsNotNone(interface.get_gazettes.call_args.args[0].offset)
-        self.assertIsNotNone(interface.get_gazettes.call_args.args[0].size)
+        configure_app(gazettes=interface)
 
-    def test_get_gazettes_should_request_gazettes_to_interface_object(self):
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        response = client.get(
+           "/gazettes",
+            params={"territory_ids": "4205902","scraped_until": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")},
         )
-        client = TestClient(app)
-        response = client.get("/gazettes/4205902")
-        self.assertEqual(response.status_code, 200)
+        
+        assert response.status_code == HTTPStatus.OK
+        
+    def test_gazettes_endpoint_should_fail_with_invalid_published_since_value(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(gazettes=interface)
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902", "published_since": "foo-bar-2222"})
+
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_gazettes_endpoint_should_fail_with_invalid_published_until_value(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(gazettes=interface)
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902", "published_until": "foo-bar-2222"})
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_gazettes_endpoint_should_fail_with_invalid_scraped_since_value(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(gazettes=interface)
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902", "scraped_since": "foo-bar-2222"})
+
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_gazettes_endpoint_should_fail_with_invalid_scraped_until_value(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(gazettes=interface)
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902", "scraped_until": "foo-bar-2222"})
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_gazettes_endpoint_should_fail_with_invalid_pagination_data(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(gazettes=interface)
+        
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "offset": "asfasdasd", "size": "10"}
+        )
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+        
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "offset": "10", "size": "ssddsfds"}
+        )
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+        
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "offset": "x", "size": "asdasdas"}
+        )
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_get_gazettes_without_territory_id_should_be_fine(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(gazettes=interface)
+        
+        response = client.get("/gazettes")
+        
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {"total_gazettes": 0, "gazettes": []}
+      
+    def test_get_gazettes_should_request_gazettes_to_interface_object(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
+        )
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902"})
+        
+        assert response.status_code == HTTPStatus.OK
         interface.get_gazettes.assert_called_once()
 
-    def test_get_gazettes_should_forward_gazettes_filters_to_interface_object(self):
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+    def test_get_gazettes_should_forward_gazettes_filters_to_interface_object(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
+
+        today = date.today().isoformat()
+        datetime_now = datetime.now().replace(microsecond=0).isoformat()
+        
         response = client.get(
-            "/gazettes/4205902",
+            "/gazettes",
             params={
-                "since": date.today().strftime("%Y-%m-%d"),
-                "until": date.today().strftime("%Y-%m-%d"),
+                "territory_ids": "4205902",
+                "published_since": today,
+                "published_until": today,
+                "scraped_since": datetime_now,
+                "scraped_until": datetime_now,
+                "querystring": "keyword",
+                "excerpt_size": 500,
+                "number_of_excerpts": 1,
+                "pre_tags": ["<strong>"],
+                "post_tags": ["</strong>"],
                 "offset": 10,
                 "size": 100,
+                "sort_by": "relevance"
             },
         )
-        self.assertEqual(response.status_code, 200)
+        
+        assert response.status_code == HTTPStatus.OK
         interface.get_gazettes.assert_called_once()
-        self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
-        )
-        self.assertEqual(
-            interface.get_gazettes.call_args.args[0].since, date.today(),
-        )
-        self.assertEqual(interface.get_gazettes.call_args.args[0].until, date.today())
-        self.assertEqual(interface.get_gazettes.call_args.args[0].offset, 10)
-        self.assertEqual(interface.get_gazettes.call_args.args[0].size, 100)
-
-    def test_get_gazettes_should_return_json_with_items(self):
+        
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
+        
+        assert interface.get_gazettes.call_args.args[0].published_since == date.today()
+        assert interface.get_gazettes.call_args.args[0].published_until == date.today()
+        assert interface.get_gazettes.call_args.args[0].scraped_since == datetime.now().replace(microsecond=0)
+        assert interface.get_gazettes.call_args.args[0].scraped_until == datetime.now().replace(microsecond=0)
+        assert interface.get_gazettes.call_args.args[0].querystring == "keyword"
+        assert interface.get_gazettes.call_args.args[0].excerpt_size == 500
+        assert interface.get_gazettes.call_args.args[0].number_of_excerpts == 1
+        assert interface.get_gazettes.call_args.args[0].pre_tags == ["<strong>"]
+        assert interface.get_gazettes.call_args.args[0].post_tags == ["</strong>"]
+        assert interface.get_gazettes.call_args.args[0].offset == 10
+        assert interface.get_gazettes.call_args.args[0].size == 100
+        assert interface.get_gazettes.call_args.args[0].sort_by == "relevance"
+        
+    def test_get_gazettes_should_return_json_with_items(self, mock_gazette_interface, configure_app, client):
         today = date.today()
-        interface = self.create_mock_gazette_interface(
+        datetime_now = datetime.now().isoformat()
+        
+        interface = mock_gazette_interface(
             (
                 1,
                 [
                     {
                         "territory_id": "4205902",
                         "date": today,
+                        "scraped_at": datetime_now,
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
-                        "is_extra_edition": False,
+                        "excerpts": [],
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "is_extra_edition": False,
+                        "txt_url": "https://queridodiario.ok.org.br/123456/1a2345b678c9.txt",
                     }
                 ],
             )
         )
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902"})
+        
+        assert response.status_code == HTTPStatus.OK
         interface.get_gazettes.assert_called_once()
-        self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(),
-            {
+        
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
+        
+        assert response.json() == {
                 "total_gazettes": 1,
                 "gazettes": [
                     {
                         "territory_id": "4205902",
                         "date": today.strftime("%Y-%m-%d"),
+                        "scraped_at": datetime_now,
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
-                        "is_extra_edition": False,
+                        "excerpts": [],
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "is_extra_edition": False,
+                        "txt_url": "https://queridodiario.ok.org.br/123456/1a2345b678c9.txt",
                     }
                 ],
-            },
+            }
+
+        
+    def test_get_gazettes_should_return_empty_list_when_no_gazettes_is_found(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
 
-    def test_get_gazettes_should_return_empty_list_when_no_gazettes_is_found(self):
-        today = date.today()
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
-        client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        response = client.get("/gazettes", params={"territory_ids": "4205902"})
+        
         interface.get_gazettes.assert_called_once()
-        self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(), {"total_gazettes": 0, "gazettes": []},
-        )
+        
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {"total_gazettes": 0, "gazettes": []}
+    
 
-    def test_gazettes_endpoint_should_accept_query_querystring_date(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
-        response = client.get(
-            "/gazettes/4205902", params={"querystring": "keyword1 keyword2"}
-        )
-        self.assertEqual(response.status_code, 200)
-        response = client.get("/gazettes/4205902", params={"querystring": []})
-        self.assertEqual(response.status_code, 200)
+    def test_gazettes_endpoint_should_accept_query_querystring_date(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
 
-    def test_get_gazettes_should_forward_querystring_to_interface_object(self):
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
 
         response = client.get(
-            "/gazettes/4205902", params={"querystring": "keyword1 1 True"}
+            "/gazettes",
+            params={"territory_ids": "4205902", "querystring": "keyword1 keyword2"}
         )
+        
         interface.get_gazettes.assert_called_once()
-        self.assertEqual(
-            interface.get_gazettes.call_args.args[0].querystring, "keyword1 1 True"
+        assert interface.get_gazettes.call_args.args[0].querystring == "keyword1 keyword2"
+
+    def test_gazettes_endpoint_should_handle_array_querystring(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
 
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        client.get(
+            "/gazettes",
+            params={"territory_ids": "4205902", "querystring": []}
         )
-        response = client.get("/gazettes/4205902", params={"querystring": None})
+        
         interface.get_gazettes.assert_called_once()
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
+        assert interface.get_gazettes.call_args.args[0].querystring == ""
 
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+    def test_get_gazettes_should_forward_querystring_to_interface_object(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
-        response = client.get("/gazettes/4205902", params={"querystring": ""})
+
+        client.get(
+            "/gazettes",
+            params={"territory_ids": "4205902", "querystring": "keyword1 1 True"}
+        )
+
         interface.get_gazettes.assert_called_once()
-        self.assertEqual(interface.get_gazettes.call_args.args[0].querystring, "")
+        assert interface.get_gazettes.call_args.args[0].querystring == "keyword1 1 True"
+        
 
-    def test_gazettes_without_territory_endpoint__should_accept_query_since_date(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    def test_get_gazettes_should_handle_none_querystring(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
+
+        client.get(
+            "/gazettes",
+            params={"territory_ids": "4205902","querystring": None}
+        )
+        
+        interface.get_gazettes.assert_called_once()
+        assert interface.get_gazettes.call_args.args[0].querystring is not None
+
+    def test_get_gazettes_should_handle_empty_querystring(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
+        )
+
+        client.get(
+            "/gazettes",
+            params={"territory_ids": "4205902","querystring": ""}
+        )
+        
+        interface.get_gazettes.assert_called_once()
+        assert interface.get_gazettes.call_args.args[0].querystring == ""
+
+    def test_gazettes_without_territory_ids_endpoint_should_accept_query_published_since_date(
+            self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
+        )
+        
         response = client.get(
-            "/gazettes", params={"since": date.today().strftime("%Y-%m-%d")}
+            "/gazettes",
+            params={"published_since": date.today().isoformat()}
         )
-        self.assertEqual(response.status_code, 200)
+        
+        assert response.status_code == HTTPStatus.OK
 
-    def test_gazettes_without_territory_endpoint__should_accept_query_until_date(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    def test_gazettes_without_territory_ids_endpoint_should_accept_query_published_until_date(self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
+        
         response = client.get(
-            "/gazettes", params={"until": date.today().strftime("%Y-%m-%d")}
+            "/gazettes", params={"published_until": date.today().isoformat()}
         )
-        self.assertEqual(response.status_code, 200)
+        
+        assert response.status_code == HTTPStatus.OK
 
-    def test_gazettes_without_territory_endpoint__should_fail_with_invalid_since_value(
-        self,
-    ):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
-        response = client.get("/gazettes", params={"since": "foo-bar-2222"})
-        self.assertEqual(response.status_code, 422)
+    def test_gazettes_without_territory_ids_endpoint_should_accept_query_scraped_since_date(
+            self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        interface = mock_gazette_interface()
 
-    def test_gazettes_without_territory_endpoint__should_fail_with_invalid_until_value(
-        self,
-    ):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
-        response = client.get("/gazettes", params={"until": "foo-bar-2222"})
-        self.assertEqual(response.status_code, 422)
+        
+        response = client.get(
+            "/gazettes",
+            params={"scraped_since": datetime.now().replace(microsecond=0).isoformat()}
+        )
+        
+        assert response.status_code == HTTPStatus.OK
+
+    def test_gazettes_without_territory_ids_endpoint_should_accept_query_scraped_until_date(
+            self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
+        )
+        
+        response = client.get(
+            "/gazettes", params={"scraped_until": datetime.now().replace(microsecond=0).isoformat()}
+        )
+        
+        assert response.status_code == HTTPStatus.OK
+
+    def test_gazettes_without_territory_ids_endpoint_should_fail_with_invalid_published_since_value(
+            self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
+        )
+        
+        response = client.get("/gazettes", params={"published_since": "foo-bar-2222"})
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_gazettes_without_territory_endpoint_should_fail_with_invalid_published_until_value(
+            self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
+        )
+        
+        response = client.get("/gazettes", params={"published_until": "foo-bar-2222"})
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_gazettes_without_territory_ids_endpoint_should_fail_with_invalid_scraped_since_value(
+            self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
+        )
+        
+        response = client.get("/gazettes", params={"scraped_since": "foo-bar-2222"})
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    def test_gazettes_without_territory_endpoint_should_fail_with_invalid_scraped_until_value(
+            self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
+        )
+        
+        response = client.get("/gazettes", params={"scraped_until": "foo-bar-2222"})
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     def test_get_gazettes_without_territory_id_should_forward_gazettes_filters_to_interface_object(
-        self,
-    ):
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+            self,
+            mock_gazette_interface,
+            configure_app,
+            client
+        ):
+        
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
         response = client.get(
             "/gazettes",
             params={
-                "since": date.today().strftime("%Y-%m-%d"),
-                "until": date.today().strftime("%Y-%m-%d"),
+                "published_since": date.today().isoformat(),
+                "published_until": date.today().isoformat(),
+                "scraped_since": datetime.now().replace(microsecond=0).isoformat(),
+                "scraped_until": datetime.now().replace(microsecond=0).isoformat(),
                 "offset": 10,
                 "size": 100,
             },
         )
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == HTTPStatus.OK
         interface.get_gazettes.assert_called_once()
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].territory_id)
-        self.assertEqual(
-            interface.get_gazettes.call_args.args[0].since, date.today(),
-        )
-        self.assertEqual(interface.get_gazettes.call_args.args[0].until, date.today())
-        self.assertEqual(interface.get_gazettes.call_args.args[0].offset, 10)
-        self.assertEqual(interface.get_gazettes.call_args.args[0].size, 100)
+        
+        assert interface.get_gazettes.call_args.args[0].territory_ids is not None
+        assert interface.get_gazettes.call_args.args[0].published_since == date.today()
+        assert interface.get_gazettes.call_args.args[0].published_until == date.today()
+        assert interface.get_gazettes.call_args.args[0].offset == 10
+        assert interface.get_gazettes.call_args.args[0].size == 100
 
-    def test_api_should_forward_the_result_offset(self):
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+    def test_api_should_forward_the_result_offset(self, mock_gazette_interface, configure_app, client):
+        interface = mock_gazette_interface()
+
+        configure_app(
+            gazettes=interface
         )
-        client = TestClient(app)
-        response = client.get("/gazettes", params={"offset": 0,},)
-        self.assertEqual(response.status_code, 200)
+        
+        response = client.get("/gazettes", params={"offset": 0})
+        
+        assert response.status_code == HTTPStatus.OK
         interface.get_gazettes.assert_called_once()
-        self.assertEqual(interface.get_gazettes.call_args.args[0].offset, 0)
+        assert interface.get_gazettes.call_args.args[0].offset == 0
 
-    @expectedFailure
-    def test_configure_api_should_failed_with_invalid_root_path(self):
-        configure_api_app(
-            MockGazetteAccessInterface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    @pytest.mark.xfail
+    def test_configure_api_should_failed_with_invalid_root_path(self, configure_app):
+        configure_app(
             api_root_path=1,
         )
 
-    def test_configure_api_root_path(self):
-        configure_api_app(
-            MockGazetteAccessInterface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    def test_configure_api_root_path(self, configure_app):
+        from api import app
+        
+        configure_app(
             api_root_path="/api/v1",
         )
-        self.assertEqual("/api/v1", app.root_path)
+        
+        assert "/api/v1" == app.root_path
 
-    def test_api_without_edition_and_extra_field(self):
+    def test_api_without_edition_and_extra_field(self, mock_gazette_interface, configure_app, client):
         today = date.today()
         yesterday = today - timedelta(days=1)
-        interface = self.create_mock_gazette_interface(
+
+        datetime_now = datetime.now().replace(microsecond=0)
+        yesterday_datetime_now = (datetime_now - timedelta(days=1))
+
+        
+        interface = mock_gazette_interface(
             (
                 2,
                 [
                     {
                         "territory_id": "4205902",
-                        "date": today,
+                        "date": today.isoformat(),
+                        "scraped_at": datetime_now.isoformat(),
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
+                        "excerpts": [],
                         "is_extra_edition": False,
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "txt_url": "https://queridodiario.ok.org.br/123/1a2345b678c9.txt",
                     },
                     {
                         "territory_id": "4205902",
-                        "date": yesterday,
+                        "date": yesterday.isoformat(),
+                        "scraped_at": yesterday_datetime_now.isoformat(),
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
-                        "highlight_texts": ["test"],
+                        "excerpts": [],
+                        "is_extra_edition": False,
+                        "edition": "12.3442",
+                        "txt_url": "https://queridodiario.ok.org.br/456/1d2345e678f9.txt",
                     },
+
                 ],
             )
         )
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+        
+        configure_app(
+            gazettes=interface, 
         )
-        client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902"})
+        
         interface.get_gazettes.assert_called_once()
-        self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(),
-            {
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {
                 "total_gazettes": 2,
                 "gazettes": [
                     {
                         "territory_id": "4205902",
-                        "date": today.strftime("%Y-%m-%d"),
+                        "date": today.isoformat(),
+                        "scraped_at": datetime_now.isoformat(),
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
+                        "excerpts": [],
                         "is_extra_edition": False,
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "txt_url": "https://queridodiario.ok.org.br/123/1a2345b678c9.txt",
                     },
                     {
                         "territory_id": "4205902",
-                        "date": yesterday.strftime("%Y-%m-%d"),
+                        "date": yesterday.isoformat(),
+                        "scraped_at": yesterday_datetime_now.isoformat(),
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
-                        "highlight_texts": ["test"],
+                        "excerpts": [],
+                        "is_extra_edition": False,
+                        "edition": "12.3442",
+                        "txt_url": "https://queridodiario.ok.org.br/456/1d2345e678f9.txt",
                     },
                 ],
-            },
-        )
+            }
 
-    def test_api_with_none_edition_and_extra_field(self):
+        
+    def test_api_with_none_edition_and_extra_field(self, mock_gazette_interface, configure_app, client):
         today = date.today()
         yesterday = today - timedelta(days=1)
-        interface = self.create_mock_gazette_interface(
+
+        datetime_now = datetime.now().replace(microsecond=0)
+        yesterday_datetime_now = (datetime_now - timedelta(days=1))
+
+        interface = mock_gazette_interface(
             (
                 2,
                 [
                     {
                         "territory_id": "4205902",
-                        "date": today,
+                        "date": today.isoformat(),
+                        "scraped_at": datetime_now.isoformat(),
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
+                        "excerpts": [],
                         "is_extra_edition": False,
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "txt_url": "https://queridodiario.ok.org.br/123/1a2345b678c9.txt",
                     },
                     {
                         "territory_id": "4205902",
-                        "date": yesterday,
+                        "date": yesterday.isoformat(),
+                        "scraped_at": yesterday_datetime_now.isoformat(),
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
+                        "excerpts": [],
                         "is_extra_edition": None,
                         "edition": None,
-                        "highlight_texts": ["test"],
+                        "txt_url": "https://queridodiario.ok.org.br/456/1d2345e678f9.txt",
                     },
                 ],
             )
         )
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
-        client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        
+        configure_app(gazettes=interface)
+        
+        response = client.get("/gazettes", params={"territory_ids": "4205902"})
+            
         interface.get_gazettes.assert_called_once()
-        self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(),
-            {
+        assert "4205902" in interface.get_gazettes.call_args.args[0].territory_ids
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {
                 "total_gazettes": 2,
                 "gazettes": [
                     {
                         "territory_id": "4205902",
-                        "date": today.strftime("%Y-%m-%d"),
+                        "date": today.isoformat(),
+                        "scraped_at": datetime_now.isoformat(),
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
+                        "excerpts": [],
                         "is_extra_edition": False,
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "txt_url": "https://queridodiario.ok.org.br/123/1a2345b678c9.txt",
                     },
                     {
                         "territory_id": "4205902",
-                        "date": yesterday.strftime("%Y-%m-%d"),
+                        "date": yesterday.isoformat(),
+                        "scraped_at": yesterday_datetime_now.isoformat(),
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
-                        "highlight_texts": ["test"],
+                        "excerpts": [],
+                        "txt_url": "https://queridodiario.ok.org.br/456/1d2345e678f9.txt",
                     },
                 ],
-            },
-        )
+            }
 
-    def test_cities_endpoint_should_reject_request_without_partial_city_name(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+
+
+class TestsApiCitiesEndpoint:
+    def test_cities_endpoint_should_reject_request_without_partial_city_name(
+            self,
+            mock_city_interface,
+            configure_app,
+            client
+        ):
+        
+        configure_app(
+            cities=mock_city_interface()
         )
-        client = TestClient(app)
+        
         response = client.get("/cities")
-        self.assertNotEqual(response.status_code, 200)
+        
+        assert response.status_code is not HTTPStatus.OK
 
-    def test_cities_endpoint_should_accept_request_without_partial_city_name(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    def test_cities_endpoint_should_accept_request_without_partial_city_name(
+            self,
+            mock_city_interface,
+            configure_app,
+            client
+        ):
+        
+        configure_app(
+            cities=mock_city_interface()
         )
-        client = TestClient(app)
+        
         response = client.get("/cities", params={"city_name": "pirapo"})
-        self.assertEqual(response.status_code, 200)
+        
+        assert response.status_code == HTTPStatus.OK
 
-    def test_cities_should_return_some_city_info(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    def test_cities_should_return_some_city_info(
+            self,
+            mock_city_interface,
+            configure_app,
+            client
+        ):
+        
+        configure_app(
+            cities=mock_city_interface()
         )
-        client = TestClient(app)
+        
         response = client.get("/cities", params={"city_name": "pirapo"})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(), {"cities": []},
-        )
+        
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {"cities": []}
+        
 
-    def test_cities_should_request_data_from_gazette_interface(self):
-        interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
+    def test_cities_should_request_data_from_city_interface(
+            self,
+            mock_city_interface,
+            configure_app,
+            client
+        ):
+
+        interface=mock_city_interface()
+        configure_app(
+            cities=interface
         )
-        client = TestClient(app)
-        response = client.get("/cities", params={"city_name": "pirapo"})
+        
+        client.get("/cities", params={"city_name": "pirapo"})
         interface.get_cities.assert_called_once()
 
-    def test_cities_should_return_data_returned_by_gazettes_interface(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(
+
+    def test_cities_should_return_data_returned_by_city_interface(
+            self,
+            mock_city_interface,
+            configure_app,
+            client
+        ):
+
+        today = date.today().isoformat()
+        
+        interface=mock_city_interface(
                 cities_info=[
                     {
-                        "territory_id": "1234",
-                        "territory_name": "piraporia",
-                        "state_code": "SC",
+                        "territory_id": "2611606",
+                        "territory_name": "Recife",
+                        "state_code": "PE",
                         "publication_urls": ["https://querido-diario.org.br"],
                         "level": "1",
+                        "availability_date": today
                     }
                 ]
-            ),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
-        response = client.get("/cities", params={"city_name": "pirapo"})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(),
-            {
+            )
+        
+        configure_app(cities=interface)
+        
+        response = client.get("/cities", params={"city_name": "Recife"})
+        
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {
                 "cities": [
                     {
-                        "territory_id": "1234",
-                        "territory_name": "piraporia",
-                        "state_code": "SC",
+                        "territory_id": "2611606",
+                        "territory_name": "Recife",
+                        "state_code": "PE",
                         "publication_urls": ["https://querido-diario.org.br"],
                         "level": "1",
+                        "availability_date": today
                     }
                 ]
-            },
-        )
+            }
 
-    def test_city_endpoint_should_accept_request_with_city_id(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(
+    def test_city_endpoint_should_accept_request_with_city_id(
+            self,
+            mock_city_interface,
+            configure_app,
+            client
+        ):
+
+        today = date.today().isoformat()
+        
+        interface=mock_city_interface(
                 city_info={
-                    "territory_id": "1234",
-                    "territory_name": "piraporia",
-                    "state_code": "SC",
-                    "publication_urls": ["https://querido-diario.org.br"],
-                    "level": "1",
-                }
-            ),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
-        response = client.get("/cities/1234")
-        self.assertEqual(response.status_code, 200)
+                        "territory_id": "2611606",
+                        "territory_name": "Recife",
+                        "state_code": "PE",
+                        "publication_urls": ["https://querido-diario.org.br"],
+                        "level": "1",
+                        "availability_date": today
+                   }
+            )
+        
+        configure_app(cities=interface)
 
-    def test_city_endpoint_should_return_404_with_city_id_not_found(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
-        response = client.get("/cities/1234")
-        self.assertEqual(response.status_code, 404)
+        response = client.get("/cities/2611606")
+        assert response.status_code == HTTPStatus.OK
 
-    def test_city_endpoint_should_request_data_from_gazette_interface(self):
-        interface = self.create_mock_gazette_interface(
+    def test_city_endpoint_should_return_404_with_city_id_not_found(
+            self,
+            mock_city_interface,
+            configure_app,
+            client
+        ):
+        
+        configure_app(
+            cities=mock_city_interface(),
+        )
+        response = client.get("/cities/1234")
+        assert response.status_code == HTTPStatus.NOT_FOUND
+
+    def test_city_endpoint_should_request_data_from_city_interface(self, mock_city_interface, configure_app, client):
+        today = date.today().isoformat()
+        
+        interface = mock_city_interface(
             city_info={
-                "territory_id": "1234",
-                "territory_name": "piraporia",
-                "state_code": "SC",
+                "territory_id": "2611606",
+                "territory_name": "Recife",
+                "state_code": "PE",
                 "publication_urls": ["https://querido-diario.org.br"],
                 "level": "1",
+                "availability_date": today
             }
         )
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface(),
-        )
-        client = TestClient(app)
-        response = client.get("/cities/1234")
+        
+        configure_app(cities=interface)
+
+        client.get("/cities/2611606")
+        
         interface.get_city.assert_called_once()
 
-    def test_city_endpoint_should_return_city_info_returned_by_gazettes_interface(self):
-        configure_api_app(
-            self.create_mock_gazette_interface(
-                city_info={
-                    "territory_id": "1234",
-                    "territory_name": "piraporia",
-                    "state_code": "SC",
-                    "publication_urls": ["https://querido-diario.org.br"],
-                    "level": "1",
-                }
-            ),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+    def test_city_endpoint_should_return_city_info_returned_by_city_interface(self, mock_city_interface, configure_app, client):
+        today = date.today().isoformat()
+        
+        interface = mock_city_interface(
+            city_info={
+                "territory_id": "2611606",
+                "territory_name": "Recife",
+                "state_code": "PE",
+                "publication_urls": ["https://querido-diario.org.br"],
+                "level": "1",
+                "availability_date": today
+            }
         )
-        client = TestClient(app)
-        response = client.get("/cities/1234")
-        self.assertEqual(
-            response.json(),
-            {
+
+        configure_app(cities=interface)
+        
+        response = client.get("/cities/2611606")
+        
+        assert response.json() == {
                 "city": {
-                    "territory_id": "1234",
-                    "territory_name": "piraporia",
-                    "state_code": "SC",
+                    "territory_id": "2611606",
+                    "territory_name": "Recife",
+                    "state_code": "PE",
                     "publication_urls": ["https://querido-diario.org.br"],
                     "level": "1",
+                    "availability_date": today
                 }
-            },
+            }
+
+
+        
+class TestsApiSuggestionsEndpoint:
+    def test_suggestion_endpoint_should_send_email(self, mock_suggestion_service_interface, configure_app, client):
+        
+        
+        interface = mock_suggestion_service_interface(success=True, status="sent")
+
+        configure_app(
+            suggestion_service=interface
         )
 
-
-class ApiSuggestionsEndpointTests(TestCase):
-    def setUp(self):
-        self.suggestion_service = MockSuggestionService()
-        configure_api_app(
-            MockGazetteAccessInterface(),
-            self.suggestion_service,
-            MockCompaniesAccessInterface(),
-        )
-        self.client = TestClient(app)
-
-    def test_suggestion_endpoint_should_send_email(self):
-        suggestion_sent = SuggestionSent(success=True, status="sent")
-        self.suggestion_service.add_suggestion = MagicMock(return_value=suggestion_sent)
-
-        response = self.client.post(
+        response = client.post(
             "/suggestions",
             json={
                 "email_address": "some-email-from@email.com",
@@ -700,26 +936,30 @@ class ApiSuggestionsEndpointTests(TestCase):
                 "content": "Suggestion content",
             },
         )
-        assert response.status_code == 200
+        
+        assert response.status_code == HTTPStatus.OK
         assert response.json() == {"status": "sent"}
 
     def test_api_should_fail_when_try_to_set_any_object_as_suggestions_service_interface(
         self,
+        mocker,
+        configure_app
     ):
-        with self.assertRaises(Exception):
-            configure_api_app(
-                MockGazetteAccessInterface(),
-                MagicMock(),
-                MockCompaniesAccessInterface(),
+        with pytest.raises(Exception):
+            configure_app(
+                suggestion_service=mocker.Mock(),
             )
 
-    def test_suggestion_endpoint_should_fail_send_email(self):
-        suggestion_sent = SuggestionSent(
-            success=False, status="Could not sent message: an error"
-        )
-        self.suggestion_service.add_suggestion = MagicMock(return_value=suggestion_sent)
+    def test_suggestion_endpoint_should_fail_send_email(self, mock_suggestion_service_interface, configure_app, client):
+        
+        interface = mock_suggestion_service_interface(success=False, status="Could not sent message: an error")
 
-        response = self.client.post(
+        configure_app(
+            suggestion_service=interface
+        )
+        
+
+        response = client.post(
             "/suggestions",
             json={
                 "email_address": "some-email-from@email.com",
@@ -727,14 +967,20 @@ class ApiSuggestionsEndpointTests(TestCase):
                 "content": "Suggestion content",
             },
         )
-        assert response.status_code == 400
+        
+        assert response.status_code == HTTPStatus.BAD_REQUEST
         assert response.json() == {"status": "Could not sent message: an error"}
 
-    def test_suggestion_endpoint_should_reject_when_email_address_is_not_present(self):
-        response = self.client.post(
+
+    def test_suggestion_endpoint_should_reject_when_email_address_is_not_present(self, mock_suggestion_service_interface, configure_app, client):
+
+        configure_app(suggestion_service=mock_suggestion_service_interface())
+        
+        response = client.post(
             "/suggestions", json={"name": "My Name", "content": "Suggestion content",},
         )
-        assert response.status_code == 422
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
         assert response.json() == {
             "detail": [
                 {
@@ -745,15 +991,18 @@ class ApiSuggestionsEndpointTests(TestCase):
             ]
         }
 
-    def test_suggestion_endpoint_should_reject_when_name_is_not_present(self):
-        response = self.client.post(
+    def test_suggestion_endpoint_should_reject_when_name_is_not_present(self, mock_suggestion_service_interface, configure_app, client):
+
+        configure_app(suggestion_service=mock_suggestion_service_interface())
+        
+        response = client.post(
             "/suggestions",
             json={
                 "email_address": "some-email-from@email.com",
                 "content": "Suggestion content",
             },
         )
-        assert response.status_code == 422
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
         assert response.json() == {
             "detail": [
                 {
@@ -764,12 +1013,16 @@ class ApiSuggestionsEndpointTests(TestCase):
             ]
         }
 
-    def test_suggestion_endpoint_should_reject_when_content_is_not_present(self):
-        response = self.client.post(
+    def test_suggestion_endpoint_should_reject_when_content_is_not_present(self, mock_suggestion_service_interface, configure_app, client):
+
+        configure_app(suggestion_service=mock_suggestion_service_interface())
+        
+        response = client.post(
             "/suggestions",
             json={"email_address": "some-email-from@email.com", "name": "My Name",},
         )
-        assert response.status_code == 422
+        
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
         assert response.json() == {
             "detail": [
                 {
@@ -779,3 +1032,5 @@ class ApiSuggestionsEndpointTests(TestCase):
                 }
             ]
         }
+
+
