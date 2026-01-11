@@ -91,7 +91,7 @@ create-services: setup-environment destroy-services
 .PHONY: setup-environment
 setup-environment:
 	-cp --no-clobber config/sample.env config/current.env
-	test -f censo.csv || curl -s -O https://querido-diario.nyc3.cdn.digitaloceanspaces.com/censo/censo.csv
+	test -f censo.csv || curl -s -O https://data.queridodiario.ok.org.br/censo/censo.csv
 	test -f themes_config.json || curl -s -O https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json
 
 set-test-variables:
