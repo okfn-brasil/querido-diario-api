@@ -1,6 +1,7 @@
 import abc
 from typing import Optional, Dict
 
+
 class AggregatesDatabaseInterface(abc.ABC):
     """
     Interface to access data from aggregates.
@@ -11,6 +12,7 @@ class AggregatesDatabaseInterface(abc.ABC):
         """
         Get information about a aggregate.
         """
+
 
 class AggregatesAccessInterface(abc.ABC):
     """
@@ -23,6 +25,7 @@ class AggregatesAccessInterface(abc.ABC):
         Get information about a aggregate.
         """
 
+
 class AggregatesAccess(AggregatesAccessInterface):
     _database_gateway = None
 
@@ -32,7 +35,8 @@ class AggregatesAccess(AggregatesAccessInterface):
     def get_aggregates(self, territory_id: Optional[str] = None, state_code: str = ""):
         aggregate_info = self._database_gateway.get_aggregates(territory_id, state_code)
         return aggregate_info
-    
+
+
 class Aggregates:
     """
     Item to represente a aggregate in memory inside the module
@@ -58,8 +62,11 @@ class Aggregates:
 
     def __repr__(self):
         return f"Aggregates(territory_id={self.territory_id}, state_code={self.state_code}, file_path={self.file_path}, year={self.year}, last_updated={self.last_updated}, hash_info={self.hash_info}, file_size_mb={self.file_size_mb})"
-        
-def create_aggregates_interface(database_gateway: AggregatesDatabaseInterface) -> AggregatesAccessInterface:
+
+
+def create_aggregates_interface(
+    database_gateway: AggregatesDatabaseInterface,
+) -> AggregatesAccessInterface:
     if not isinstance(database_gateway, AggregatesDatabaseInterface):
         raise Exception(
             "Database gateway should implement the AggregatesDatabaseInterface interface"

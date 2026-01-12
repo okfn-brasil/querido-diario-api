@@ -13,7 +13,9 @@ INDEX = "querido-diario"
 def delete_index(search_engine):
     for attempt in range(3):
         try:
-            search_engine.indices.delete(index=INDEX, ignore_unavailable=True, timeout=30)
+            search_engine.indices.delete(
+                index=INDEX, ignore_unavailable=True, timeout=30
+            )
             search_engine.indices.refresh()
             print("Index deleted")
             return
@@ -35,7 +37,9 @@ def create_index(search_engine):
                             "date": {"type": "date"},
                             "edition_number": {
                                 "type": "text",
-                                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+                                "fields": {
+                                    "keyword": {"type": "keyword", "ignore_above": 256}
+                                },
                             },
                             "file_checksum": {"type": "keyword"},
                             "file_path": {"type": "keyword"},
@@ -62,22 +66,24 @@ def create_index(search_engine):
                                         "analyzer": "exact",
                                         "index_options": "offsets",
                                         "term_vector": "with_positions_offsets",
-                                    }
+                                    },
                                 },
                             },
                             "state_code": {"type": "keyword"},
                             "territory_id": {"type": "keyword"},
                             "territory_name": {
                                 "type": "text",
-                                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+                                "fields": {
+                                    "keyword": {"type": "keyword", "ignore_above": 256}
+                                },
                             },
                             "url": {"type": "keyword"},
                         }
                     },
                     "settings": {
                         "index": {
-                          "sort.field": ["territory_id", "date"],
-                          "sort.order": ["asc", "desc"]
+                            "sort.field": ["territory_id", "date"],
+                            "sort.order": ["asc", "desc"],
                         },
                         "analysis": {
                             "filter": {
@@ -96,7 +102,7 @@ def create_index(search_engine):
                                     "filter": ["lowercase"],
                                 },
                             },
-                        }
+                        },
                     },
                 },
             )
@@ -371,7 +377,9 @@ def get_data():
 
 
 def main():
-    search_engine = opensearchpy.OpenSearch(hosts=["localhost"], http_auth=("admin", "admin"))
+    search_engine = opensearchpy.OpenSearch(
+        hosts=["localhost"], http_auth=("admin", "admin")
+    )
     recreate_index(search_engine)
     add_data_on_index(get_data(), search_engine)
 

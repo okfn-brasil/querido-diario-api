@@ -8,6 +8,7 @@ import psycopg2
 from companies import Company, InvalidCNPJException, Partner, CompaniesDatabaseInterface
 from aggregates import AggregatesDatabaseInterface, Aggregates
 
+
 class PostgreSQLDatabase:
     def __init__(self, host, database, user, password, port):
         self.host = host
@@ -15,7 +16,7 @@ class PostgreSQLDatabase:
         self.user = user
         self.password = password
         self.port = port
-        
+
     def _select(self, command: str, data: Dict = {}) -> Iterable[Tuple]:
         connection = psycopg2.connect(
             dbname=self.database,
@@ -31,7 +32,7 @@ class PostgreSQLDatabase:
                 logging.debug(entry)
                 yield entry
             logging.debug(f"Finished query: {cursor.query}")
-    
+
     def _always_str_or_none(self, data: Any) -> Union[str, None]:
         if data == "None" or data == "" or data is None:
             return None
@@ -40,8 +41,8 @@ class PostgreSQLDatabase:
         else:
             return data
 
-class PostgreSQLDatabaseCompanies(PostgreSQLDatabase, CompaniesDatabaseInterface):
 
+class PostgreSQLDatabaseCompanies(PostgreSQLDatabase, CompaniesDatabaseInterface):
     def get_company(self, cnpj: str = "") -> Union[Company, None]:
         command = """
         SELECT
@@ -228,21 +229,24 @@ class PostgreSQLDatabaseCompanies(PostgreSQLDatabase, CompaniesDatabaseInterface
             cnpj_dv=str(cnpj_dv).zfill(2),
         )
 
+
 class PostgreSQLDatabaseAggregates(PostgreSQLDatabase, AggregatesDatabaseInterface):
-        
     def _format_aggregates_data(self, data: Tuple) -> Aggregates:
         formatted_data = [self._always_str_or_none(value) for value in data]
         return Aggregates(
             territory_id=formatted_data[1],
             state_code=formatted_data[2],
-            file_path=os.environ.get("QUERIDO_DIARIO_FILES_ENDPOINT","")+formatted_data[4],
+            file_path=os.environ.get("QUERIDO_DIARIO_FILES_ENDPOINT", "")
+            + formatted_data[4],
             year=formatted_data[3],
             hash_info=formatted_data[6],
             file_size_mb=formatted_data[5],
-            last_updated=formatted_data[7]
+            last_updated=formatted_data[7],
         )
 
-    def get_aggregates(self, territory_id: Optional[str] = None, state_code: str = "") -> Union[List[Aggregates], None]:
+    def get_aggregates(
+        self, territory_id: Optional[str] = None, state_code: str = ""
+    ) -> Union[List[Aggregates], None]:
         command = """
             SELECT
                 *
@@ -254,11 +258,9 @@ class PostgreSQLDatabaseAggregates(PostgreSQLDatabase, AggregatesDatabaseInterfa
                 territory_id {territory_id_query_statement}
             ORDER BY year DESC
         """
-        
-        data = {
-            "state_code": state_code
-        }
-        
+
+        data = {"state_code": state_code}
+
         if territory_id is None:
             command = command.format(territory_id_query_statement="IS NULL")
         else:
@@ -266,12 +268,8 @@ class PostgreSQLDatabaseAggregates(PostgreSQLDatabase, AggregatesDatabaseInterfa
             command = command.format(territory_id_query_statement="= %(territory_id)s")
 
         results = list(self._select(command, data))
-        
+
         if not results:
             return []
-        
-        return (
-            [vars(self._format_aggregates_data(result)) for result in results]
-        )
 
-    
+        return [vars(self._format_aggregates_data(result)) for result in results]

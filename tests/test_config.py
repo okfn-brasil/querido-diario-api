@@ -13,11 +13,6 @@ class BasicConfigurationTests(TestCase):
             msg="Invalid opensearch host",
         )
         self.assertEqual(
-            configuration.index,
-            expected_values["QUERIDO_DIARIO_OPENSEARCH_INDEX"],
-            msg="Invalid opensearch index",
-        )
-        self.assertEqual(
             configuration.root_path,
             expected_values["QUERIDO_DIARIO_API_ROOT_PATH"],
             msg="Invalid API root path",
@@ -45,7 +40,7 @@ class BasicConfigurationTests(TestCase):
         )
 
     @patch.dict(
-        "os.environ", {}, True,
+        "os.environ", {"CITY_DATABASE_CSV": "", "THEMES_DATABASE_JSON": "",}, True,
     )
     def test_load_configuration_with_no_envvars(self):
         expected_config_dict = {
@@ -64,8 +59,9 @@ class BasicConfigurationTests(TestCase):
     @patch.dict(
         "os.environ",
         {
+            "CITY_DATABASE_CSV": "",
+            "THEMES_DATABASE_JSON": "",
             "QUERIDO_DIARIO_OPENSEARCH_HOST": "",
-            "QUERIDO_DIARIO_OPENSEARCH_INDEX": "",
             "QUERIDO_DIARIO_API_ROOT_PATH": "",
             "QUERIDO_DIARIO_URL_PREFIX": "",
             "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": "",
@@ -78,7 +74,6 @@ class BasicConfigurationTests(TestCase):
     def test_load_configuration_with_empty_envvars(self):
         expected_config_dict = {
             "QUERIDO_DIARIO_OPENSEARCH_HOST": "",
-            "QUERIDO_DIARIO_OPENSEARCH_INDEX": "",
             "QUERIDO_DIARIO_API_ROOT_PATH": "",
             "QUERIDO_DIARIO_URL_PREFIX": "",
             "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": [""],
@@ -92,8 +87,9 @@ class BasicConfigurationTests(TestCase):
     @patch.dict(
         "os.environ",
         {
+            "CITY_DATABASE_CSV": "test.csv",
+            "THEMES_DATABASE_JSON": "test.json",
             "QUERIDO_DIARIO_OPENSEARCH_HOST": "000.0.0.0",
-            "QUERIDO_DIARIO_OPENSEARCH_INDEX": "myindex",
             "QUERIDO_DIARIO_API_ROOT_PATH": "api/",
             "QUERIDO_DIARIO_URL_PREFIX": "https://test.com",
             "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": "localhost",
@@ -106,7 +102,6 @@ class BasicConfigurationTests(TestCase):
     def test_load_configuration_with_envvars_defined(self):
         expected_config_dict = {
             "QUERIDO_DIARIO_OPENSEARCH_HOST": "000.0.0.0",
-            "QUERIDO_DIARIO_OPENSEARCH_INDEX": "myindex",
             "QUERIDO_DIARIO_API_ROOT_PATH": "api/",
             "QUERIDO_DIARIO_URL_PREFIX": "https://test.com",
             "QUERIDO_DIARIO_CORS_ALLOW_ORIGINS": ["localhost"],

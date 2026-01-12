@@ -3,5 +3,5 @@ from .aggregates_access import (
     AggregatesAccessInterface,
     AggregatesDatabaseInterface,
     create_aggregates_interface,
-    Aggregates
+    Aggregates,
 )
