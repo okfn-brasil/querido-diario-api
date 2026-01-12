@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 import time
+import os
 
 import opensearchpy
 
@@ -377,8 +378,13 @@ def get_data():
 
 
 def main():
+    # Use environment variables for OpenSearch connection
+    opensearch_host = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_HOST", "localhost")
+    opensearch_user = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_USER", "admin")
+    opensearch_password = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_PASSWORD", "admin")
+    
     search_engine = opensearchpy.OpenSearch(
-        hosts=["localhost"], http_auth=("admin", "admin")
+        hosts=[opensearch_host], http_auth=(opensearch_user, opensearch_password)
     )
     recreate_index(search_engine)
     add_data_on_index(get_data(), search_engine)
