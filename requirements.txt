@@ -1,10 +1,8 @@
-black==19.10b0
-coverage==5.2.1
-dateparser==0.7.6
-fastapi==0.61.0
-requests==2.30.0
-uvicorn==0.11.8
-psycopg2==2.8.5
-SQLAlchemy==1.3.19
-opensearch-py==2.3.2
+fastapi==0.115.6
+uvicorn==0.32.1
+opensearch-py==2.7.1
+psycopg2-binary==2.9.10
 mailjet-rest==1.3.4
+black==24.10.0
+coverage==7.6.9
+httpx==0.28.1
