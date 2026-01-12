@@ -567,6 +567,7 @@ class ApiGazettesEndpointTests(TestCase):
                 "state_code": "SC",
                 "publication_urls": ["https://querido-diario.org.br"],
                 "level": "1",
+                "availability_date": "2020-01-01",
             }
         ]
         configure_api_app(*mocks)
@@ -583,6 +584,7 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "SC",
                         "publication_urls": ["https://querido-diario.org.br"],
                         "level": "1",
+                        "availability_date": "2020-01-01",
                     }
                 ]
             },
@@ -597,6 +599,7 @@ class ApiGazettesEndpointTests(TestCase):
             "state_code": "SC",
             "publication_urls": ["https://querido-diario.org.br"],
             "level": "1",
+            "availability_date": "2020-01-01",
         }
         configure_api_app(*mocks)
         client = TestClient(app)
@@ -621,6 +624,7 @@ class ApiGazettesEndpointTests(TestCase):
             "state_code": "SC",
             "publication_urls": ["https://querido-diario.org.br"],
             "level": "1",
+            "availability_date": "2020-01-01",
         }
         configure_api_app(*mocks)
         client = TestClient(app)
@@ -636,6 +640,7 @@ class ApiGazettesEndpointTests(TestCase):
             "state_code": "SC",
             "publication_urls": ["https://querido-diario.org.br"],
             "level": "1",
+            "availability_date": "2020-01-01",
         }
         configure_api_app(*mocks)
         client = TestClient(app)
@@ -649,6 +654,7 @@ class ApiGazettesEndpointTests(TestCase):
                     "state_code": "SC",
                     "publication_urls": ["https://querido-diario.org.br"],
                     "level": "1",
+                    "availability_date": "2020-01-01",
                 }
             },
         )
