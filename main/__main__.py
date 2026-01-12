@@ -7,7 +7,10 @@ from cities import create_cities_data_gateway, create_cities_interface
 from config import load_configuration
 from companies import create_companies_interface
 from aggregates import create_aggregates_interface
-from database import create_companies_database_interface, create_aggregates_database_interface
+from database import (
+    create_companies_database_interface,
+    create_aggregates_database_interface,
+)
 from gazettes import (
     create_gazettes_interface,
     create_gazettes_data_gateway,
@@ -25,7 +28,9 @@ from themed_excerpts import (
 configuration = load_configuration()
 
 search_engine = create_search_engine_interface(
-    configuration.host, (configuration.opensearch_user, configuration.opensearch_pswd), configuration.gazette_index
+    configuration.host,
+    (configuration.opensearch_user, configuration.opensearch_pswd),
+    configuration.gazette_index,
 )
 
 gazettes_query_builder = create_gazettes_query_builder(
@@ -99,13 +104,14 @@ configure_api_app(
     suggestion_service,
     companies_interface,
     aggregates_interface,
-    configuration.root_path
+    configuration.root_path,
 )
 
 # Configure access log filter to exclude health checks
 class HealthCheckFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         return record.getMessage().find("/health") == -1
+
 
 # Apply filter to uvicorn access logger
 logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
@@ -118,5 +124,5 @@ uvicorn.run(
     host="0.0.0.0",
     port=8080,
     root_path=configuration.root_path,
-    log_level=log_level
+    log_level=log_level,
 )

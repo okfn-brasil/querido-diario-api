@@ -460,37 +460,41 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
         """
         import os
         import re
-        
+
         endpoint = os.environ.get("QUERIDO_DIARIO_FILES_ENDPOINT", "")
-        replace_base_enabled = os.environ.get("REPLACE_FILE_URL_BASE", "false").lower() == "true"
-        
+        replace_base_enabled = (
+            os.environ.get("REPLACE_FILE_URL_BASE", "false").lower() == "true"
+        )
+
         # Check if it's a URL (supports http://, https://, s3://)
-        is_url = (path_or_url.startswith('http://') or 
-                  path_or_url.startswith('https://') or 
-                  path_or_url.startswith('s3://'))
-        
+        is_url = (
+            path_or_url.startswith("http://")
+            or path_or_url.startswith("https://")
+            or path_or_url.startswith("s3://")
+        )
+
         # Scenario 1: Relative path (new data)
         if not is_url:
             if not endpoint:
                 return path_or_url  # No endpoint configured
-            
-            endpoint = endpoint.rstrip('/')
-            path = path_or_url.lstrip('/')
+
+            endpoint = endpoint.rstrip("/")
+            path = path_or_url.lstrip("/")
             return f"{endpoint}/{path}"
-        
+
         # Scenario 2: Full URL with base replacement enabled
         if replace_base_enabled and endpoint:
             # Extract path from URL using regex
             # Pattern: <protocol>://<domain>/<path>
             # Supports: http://, https://, s3://
-            pattern = r'^(https?://|s3://)[^/]+/(.+)$'
+            pattern = r"^(https?://|s3://)[^/]+/(.+)$"
             match = re.match(pattern, path_or_url)
-            
+
             if match:
                 relative_path = match.group(2)
-                endpoint_clean = endpoint.rstrip('/')
+                endpoint_clean = endpoint.rstrip("/")
                 return f"{endpoint_clean}/{relative_path}"
-        
+
         # Scenario 3: Legacy mode - return URL as-is
         return path_or_url
 
@@ -508,11 +512,11 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
             if "highlight" in excerpt
             else excerpt["_source"]["excerpt"]
         )
-        
+
         # Build file URL from relative path or process legacy URL
         file_raw_txt = excerpt["_source"].get("source_file_raw_txt", None)
         txt_url = self._build_file_url(file_raw_txt) if file_raw_txt else None
-        
+
         return ThemedExcerptSearchResult(
             excerpt["_source"]["excerpt_id"],
             excerpt["_source"]["source_territory_id"],

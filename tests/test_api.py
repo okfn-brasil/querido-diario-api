@@ -8,6 +8,9 @@ from api import app, configure_api_app
 from gazettes import GazetteAccessInterface, GazetteRequest
 from suggestions import Suggestion, SuggestionSent, SuggestionServiceInterface
 from companies import CompaniesAccessInterface
+from themed_excerpts import ThemedExcerptAccessInterface
+from cities import CityAccessInterface
+from aggregates import AggregatesAccessInterface
 
 
 @GazetteAccessInterface.register
@@ -25,6 +28,33 @@ class MockCompaniesAccessInterface:
     pass
 
 
+@ThemedExcerptAccessInterface.register
+class MockThemedExcerptAccessInterface:
+    pass
+
+
+@CityAccessInterface.register
+class MockCityAccessInterface:
+    pass
+
+
+@AggregatesAccessInterface.register
+class MockAggregatesAccessInterface:
+    pass
+
+
+def create_default_mocks():
+    """Helper para criar mocks padrão para todos os parâmetros do configure_api_app"""
+    return (
+        MockGazetteAccessInterface(),
+        MockThemedExcerptAccessInterface(),
+        MockCityAccessInterface(),
+        MockSuggestionService(),
+        MockCompaniesAccessInterface(),
+        MockAggregatesAccessInterface(),
+    )
+
+
 class ApiGazettesEndpointTests(TestCase):
     def create_mock_gazette_interface(
         self, return_value=(0, []), cities_info=[], city_info=None
@@ -37,134 +67,128 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_api_should_fail_when_try_to_set_any_object_as_gazettes_interface(self):
         with self.assertRaises(Exception):
-            configure_api_app(
-                MagicMock(), MockSuggestionService(), MockCompaniesAccessInterface()
-            )
+            configure_api_app(MagicMock(), *create_default_mocks()[1:])
 
     def test_api_should_not_fail_when_try_to_set_any_object_as_gazettes_interface(self):
-        configure_api_app(
-            MockGazetteAccessInterface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-        )
+        configure_api_app(*create_default_mocks())
 
-    def test_gazettes_endpoint_should_accept_territory_id_in_the_path(self):
+    def test_gazettes_endpoint_should_accept_territory_ids_as_query_param(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        response = client.get("/gazettes", params={"territory_ids": ["4205902"]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            "4205902", interface.get_gazettes.call_args.args[0].territory_id
+            ["4205902"], interface.get_gazettes.call_args.args[0].territory_ids
         )
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].published_since)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].published_until)
+        self.assertEqual("", interface.get_gazettes.call_args.args[0].querystring)
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].offset)
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].size)
 
-    def test_gazettes_endpoint_should_accept_query_since_date(self):
+    def test_gazettes_endpoint_should_accept_query_published_since_date(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get(
-            "/gazettes/4205902", params={"since": date.today().strftime("%Y-%m-%d")}
+            "/gazettes",
+            params={
+                "territory_ids": ["4205902"],
+                "published_since": date.today().strftime("%Y-%m-%d"),
+            },
         )
         self.assertEqual(response.status_code, 200)
 
-    def test_gazettes_endpoint_should_accept_query_until_date(self):
+    def test_gazettes_endpoint_should_accept_query_published_until_date(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get(
-            "/gazettes/4205902", params={"until": date.today().strftime("%Y-%m-%d")}
+            "/gazettes",
+            params={
+                "territory_ids": ["4205902"],
+                "published_until": date.today().strftime("%Y-%m-%d"),
+            },
         )
         self.assertEqual(response.status_code, 200)
 
-    def test_gazettes_endpoint_should_fail_with_invalid_since_value(self):
+    def test_gazettes_endpoint_should_fail_with_invalid_published_since_value(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
-        response = client.get("/gazettes/4205902", params={"since": "foo-bar-2222"})
+        response = client.get(
+            "/gazettes",
+            params={"territory_ids": ["4205902"], "published_since": "foo-bar-2222"},
+        )
         self.assertEqual(response.status_code, 422)
 
-    def test_gazettes_endpoint_should_fail_with_invalid_until_value(self):
+    def test_gazettes_endpoint_should_fail_with_invalid_published_until_value(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
-        response = client.get("/gazettes/4205902", params={"until": "foo-bar-2222"})
+        response = client.get(
+            "/gazettes",
+            params={"territory_ids": ["4205902"], "published_until": "foo-bar-2222"},
+        )
         self.assertEqual(response.status_code, 422)
 
     def test_gazettes_endpoint_should_fail_with_invalid_pagination_data(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get(
-            "/gazettes/4205902", params={"offset": "asfasdasd", "size": "10"}
+            "/gazettes",
+            params={"territory_ids": ["4205902"], "offset": "asfasdasd", "size": "10"},
         )
         self.assertEqual(response.status_code, 422)
         response = client.get(
-            "/gazettes/4205902", params={"offset": "10", "size": "ssddsfds"}
+            "/gazettes",
+            params={"territory_ids": ["4205902"], "offset": "10", "size": "ssddsfds"},
         )
         self.assertEqual(response.status_code, 422)
         response = client.get(
-            "/gazettes/4205902", params={"offset": "x", "size": "asdasdas"}
+            "/gazettes",
+            params={"territory_ids": ["4205902"], "offset": "x", "size": "asdasdas"},
         )
         self.assertEqual(response.status_code, 422)
 
-    def test_get_gazettes_without_territory_id_should_be_fine(self):
+    def test_get_gazettes_without_territory_ids_should_be_fine(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
-        response = client.get("/gazettes/")
+        response = client.get("/gazettes")
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].territory_id)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].since)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].until)
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
+        self.assertEqual([], interface.get_gazettes.call_args.args[0].territory_ids)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].published_since)
+        self.assertIsNone(interface.get_gazettes.call_args.args[0].published_until)
+        self.assertEqual("", interface.get_gazettes.call_args.args[0].querystring)
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].offset)
         self.assertIsNotNone(interface.get_gazettes.call_args.args[0].size)
 
     def test_get_gazettes_should_request_gazettes_to_interface_object(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        response = client.get("/gazettes", params={"territory_ids": ["4205902"]})
         self.assertEqual(response.status_code, 200)
         interface.get_gazettes.assert_called_once()
 
     def test_get_gazettes_should_forward_gazettes_filters_to_interface_object(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
         response = client.get(
-            "/gazettes/4205902",
+            "/gazettes",
             params={
-                "since": date.today().strftime("%Y-%m-%d"),
-                "until": date.today().strftime("%Y-%m-%d"),
+                "territory_ids": ["4205902"],
+                "published_since": date.today().strftime("%Y-%m-%d"),
+                "published_until": date.today().strftime("%Y-%m-%d"),
                 "offset": 10,
                 "size": 100,
             },
@@ -172,12 +196,14 @@ class ApiGazettesEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         interface.get_gazettes.assert_called_once()
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
+            interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].since, date.today(),
+            interface.get_gazettes.call_args.args[0].published_since, date.today(),
         )
-        self.assertEqual(interface.get_gazettes.call_args.args[0].until, date.today())
+        self.assertEqual(
+            interface.get_gazettes.call_args.args[0].published_until, date.today()
+        )
         self.assertEqual(interface.get_gazettes.call_args.args[0].offset, 10)
         self.assertEqual(interface.get_gazettes.call_args.args[0].size, 100)
 
@@ -200,14 +226,12 @@ class ApiGazettesEndpointTests(TestCase):
                 ],
             )
         )
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        response = client.get("/gazettes", params={"territory_ids": ["4205902"]})
         interface.get_gazettes.assert_called_once()
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
+            interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -232,14 +256,12 @@ class ApiGazettesEndpointTests(TestCase):
     def test_get_gazettes_should_return_empty_list_when_no_gazettes_is_found(self):
         today = date.today()
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        response = client.get("/gazettes", params={"territory_ids": ["4205902"]})
         interface.get_gazettes.assert_called_once()
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
+            interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -248,9 +270,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_gazettes_endpoint_should_accept_query_querystring_date(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get(
@@ -262,9 +282,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_get_gazettes_should_forward_querystring_to_interface_object(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
 
         response = client.get(
@@ -276,26 +294,20 @@ class ApiGazettesEndpointTests(TestCase):
         )
 
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         response = client.get("/gazettes/4205902", params={"querystring": None})
         interface.get_gazettes.assert_called_once()
         self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
 
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         response = client.get("/gazettes/4205902", params={"querystring": ""})
         interface.get_gazettes.assert_called_once()
         self.assertEqual(interface.get_gazettes.call_args.args[0].querystring, "")
 
     def test_gazettes_without_territory_endpoint__should_accept_query_since_date(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get(
@@ -305,9 +317,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_gazettes_without_territory_endpoint__should_accept_query_until_date(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get(
@@ -319,9 +329,7 @@ class ApiGazettesEndpointTests(TestCase):
         self,
     ):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get("/gazettes", params={"since": "foo-bar-2222"})
@@ -331,46 +339,42 @@ class ApiGazettesEndpointTests(TestCase):
         self,
     ):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get("/gazettes", params={"until": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
-    def test_get_gazettes_without_territory_id_should_forward_gazettes_filters_to_interface_object(
+    def test_get_gazettes_without_territory_ids_should_forward_gazettes_filters_to_interface_object(
         self,
     ):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
         response = client.get(
             "/gazettes",
             params={
-                "since": date.today().strftime("%Y-%m-%d"),
-                "until": date.today().strftime("%Y-%m-%d"),
+                "published_since": date.today().strftime("%Y-%m-%d"),
+                "published_until": date.today().strftime("%Y-%m-%d"),
                 "offset": 10,
                 "size": 100,
             },
         )
         self.assertEqual(response.status_code, 200)
         interface.get_gazettes.assert_called_once()
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].territory_id)
+        self.assertEqual([], interface.get_gazettes.call_args.args[0].territory_ids)
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].since, date.today(),
+            interface.get_gazettes.call_args.args[0].published_since, date.today(),
         )
-        self.assertEqual(interface.get_gazettes.call_args.args[0].until, date.today())
+        self.assertEqual(
+            interface.get_gazettes.call_args.args[0].published_until, date.today()
+        )
         self.assertEqual(interface.get_gazettes.call_args.args[0].offset, 10)
         self.assertEqual(interface.get_gazettes.call_args.args[0].size, 100)
 
     def test_api_should_forward_the_result_offset(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
         response = client.get("/gazettes", params={"offset": 0,},)
         self.assertEqual(response.status_code, 200)
@@ -380,18 +384,12 @@ class ApiGazettesEndpointTests(TestCase):
     @expectedFailure
     def test_configure_api_should_failed_with_invalid_root_path(self):
         configure_api_app(
-            MockGazetteAccessInterface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-            api_root_path=1,
+            *create_default_mocks(), api_root_path=1,
         )
 
     def test_configure_api_root_path(self):
         configure_api_app(
-            MockGazetteAccessInterface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
-            api_root_path="/api/v1",
+            *create_default_mocks(), api_root_path="/api/v1",
         )
         self.assertEqual("/api/v1", app.root_path)
 
@@ -423,14 +421,12 @@ class ApiGazettesEndpointTests(TestCase):
                 ],
             )
         )
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        response = client.get("/gazettes", params={"territory_ids": ["4205902"]})
         interface.get_gazettes.assert_called_once()
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
+            interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -490,14 +486,12 @@ class ApiGazettesEndpointTests(TestCase):
                 ],
             )
         )
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
-        response = client.get("/gazettes/4205902")
+        response = client.get("/gazettes", params={"territory_ids": ["4205902"]})
         interface.get_gazettes.assert_called_once()
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].territory_id, "4205902"
+            interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -529,9 +523,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_cities_endpoint_should_reject_request_without_partial_city_name(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get("/cities")
@@ -539,9 +531,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_cities_endpoint_should_accept_request_without_partial_city_name(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get("/cities", params={"city_name": "pirapo"})
@@ -549,9 +539,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_cities_should_return_some_city_info(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get("/cities", params={"city_name": "pirapo"})
@@ -562,9 +550,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_cities_should_request_data_from_gazette_interface(self):
         interface = self.create_mock_gazette_interface()
-        configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface()
-        )
+        configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
         response = client.get("/cities", params={"city_name": "pirapo"})
         interface.get_cities.assert_called_once()
@@ -582,8 +568,7 @@ class ApiGazettesEndpointTests(TestCase):
                     }
                 ]
             ),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            *create_default_mocks()[1:],
         )
         client = TestClient(app)
         response = client.get("/cities", params={"city_name": "pirapo"})
@@ -614,8 +599,7 @@ class ApiGazettesEndpointTests(TestCase):
                     "level": "1",
                 }
             ),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            *create_default_mocks()[1:],
         )
         client = TestClient(app)
         response = client.get("/cities/1234")
@@ -623,9 +607,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_city_endpoint_should_return_404_with_city_id_not_found(self):
         configure_api_app(
-            self.create_mock_gazette_interface(),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
         response = client.get("/cities/1234")
@@ -642,7 +624,7 @@ class ApiGazettesEndpointTests(TestCase):
             }
         )
         configure_api_app(
-            interface, MockSuggestionService(), MockCompaniesAccessInterface(),
+            interface, *create_default_mocks()[1:],
         )
         client = TestClient(app)
         response = client.get("/cities/1234")
@@ -659,8 +641,7 @@ class ApiGazettesEndpointTests(TestCase):
                     "level": "1",
                 }
             ),
-            MockSuggestionService(),
-            MockCompaniesAccessInterface(),
+            *create_default_mocks()[1:],
         )
         client = TestClient(app)
         response = client.get("/cities/1234")
@@ -682,9 +663,7 @@ class ApiSuggestionsEndpointTests(TestCase):
     def setUp(self):
         self.suggestion_service = MockSuggestionService()
         configure_api_app(
-            MockGazetteAccessInterface(),
-            self.suggestion_service,
-            MockCompaniesAccessInterface(),
+            MockGazetteAccessInterface(), self.suggestion_service,
         )
         self.client = TestClient(app)
 
@@ -708,9 +687,7 @@ class ApiSuggestionsEndpointTests(TestCase):
     ):
         with self.assertRaises(Exception):
             configure_api_app(
-                MockGazetteAccessInterface(),
-                MagicMock(),
-                MockCompaniesAccessInterface(),
+                MockGazetteAccessInterface(), MagicMock(),
             )
 
     def test_suggestion_endpoint_should_fail_send_email(self):

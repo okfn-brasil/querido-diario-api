@@ -27,8 +27,15 @@ class SearchEngineInterface(abc.ABC):
 
 
 class OpenSearch(SearchEngineInterface):
-    def __init__(self, host: str, credentials: Tuple[str, str]=("user", "pswd"), default_index: str = ""):
-        self._search_engine = opensearchpy.OpenSearch(hosts=[host], http_auth=credentials)
+    def __init__(
+        self,
+        host: str,
+        credentials: Tuple[str, str] = ("user", "pswd"),
+        default_index: str = "",
+    ):
+        self._search_engine = opensearchpy.OpenSearch(
+            hosts=[host], http_auth=credentials
+        )
         self._default_index = default_index
 
     def search(self, query: Dict, index: str = "", timeout: int = 30) -> Dict:
@@ -49,7 +56,7 @@ class OpenSearch(SearchEngineInterface):
 
     def _is_valid_index_name(self, index: str) -> bool:
         return isinstance(index, str) and len(index) > 0
-    
+
 
 class QueryBuilderInterface(abc.ABC):
     @abc.abstractmethod
@@ -214,11 +221,14 @@ class HighlightMixin:
 
 
 def create_search_engine_interface(
-        host: str = "", credentials: Tuple[str, str]=("user", "pswd"), default_index: str = ""
+    host: str = "",
+    credentials: Tuple[str, str] = ("user", "pswd"),
+    default_index: str = "",
 ) -> SearchEngineInterface:
     if not isinstance(host, str) or len(host.strip()) == 0:
         raise Exception("Missing host")
     if not isinstance(default_index, str):
         raise Exception("Invalid index name")
-    return OpenSearch(host.strip(), credentials=credentials, default_index=default_index.strip())
-
+    return OpenSearch(
+        host.strip(), credentials=credentials, default_index=default_index.strip()
+    )

@@ -21,7 +21,7 @@ class CitySearchResult:
         uf: str,
         openness_level: OpennessLevel,
         gazettes_urls: List[str],
-        availability_date: str
+        availability_date: str,
     ):
         self.publication_urls = gazettes_urls
         self.territory_id = ibge_id
@@ -45,7 +45,13 @@ class CitySearchResult:
 
     def __hash__(self):
         return hash(
-            (self.territory_id, self.territory_name, self.state_code, self.level, self.availability_date)
+            (
+                self.territory_id,
+                self.territory_name,
+                self.state_code,
+                self.level,
+                self.availability_date,
+            )
         )
 
 
@@ -112,7 +118,7 @@ class CitiesCSVDatabaseGateway(CityDataGateway):
                         row["uf"],
                         OpennessLevel(row["openness_level"]),
                         self._split_urls(row["gazettes_urls"]),
-                        row["availability_date"]
+                        row["availability_date"],
                     )
                     results.append(city)
         return results
@@ -128,7 +134,7 @@ class CitiesCSVDatabaseGateway(CityDataGateway):
                         row["uf"],
                         OpennessLevel(row["openness_level"]),
                         self._split_urls(row["gazettes_urls"]),
-                        row["availability_date"]
+                        row["availability_date"],
                     )
                     return city
 
