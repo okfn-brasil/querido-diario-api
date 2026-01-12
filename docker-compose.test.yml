@@ -107,7 +107,7 @@ services:
     volumes:
       - .:/mnt/code:rw
     working_dir: /mnt/code
-    command: sh -c "python -m unittest tests"
+    command: sh -c "python -m unittest discover -s tests"
     networks:
       - default
 
