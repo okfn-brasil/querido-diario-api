@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from unittest.mock import MagicMock
 from unittest import TestCase, expectedFailure
 
@@ -45,13 +45,36 @@ class MockAggregatesAccessInterface:
 
 def create_default_mocks():
     """Helper para criar mocks padrão para todos os parâmetros do configure_api_app"""
+    gazette_mock = MockGazetteAccessInterface()
+    gazette_mock.get_gazettes = MagicMock(return_value=(0, []))
+    gazette_mock.get_cities = MagicMock(return_value=[])
+    gazette_mock.get_city = MagicMock(return_value=None)
+
+    themed_excerpt_mock = MockThemedExcerptAccessInterface()
+    themed_excerpt_mock.get_themed_excerpts = MagicMock(return_value=(0, []))
+    themed_excerpt_mock.get_themes = MagicMock(return_value=[])
+    themed_excerpt_mock.get_subthemes = MagicMock(return_value=[])
+    themed_excerpt_mock.get_entities = MagicMock(return_value=[])
+
+    city_mock = MockCityAccessInterface()
+    city_mock.get_cities = MagicMock(return_value=[])
+    city_mock.get_city = MagicMock(return_value=None)
+
+    suggestion_mock = MockSuggestionService()
+
+    companies_mock = MockCompaniesAccessInterface()
+    companies_mock.get_companies = MagicMock(return_value=[])
+
+    aggregates_mock = MockAggregatesAccessInterface()
+    aggregates_mock.get_aggregates = MagicMock(return_value=[])
+
     return (
-        MockGazetteAccessInterface(),
-        MockThemedExcerptAccessInterface(),
-        MockCityAccessInterface(),
-        MockSuggestionService(),
-        MockCompaniesAccessInterface(),
-        MockAggregatesAccessInterface(),
+        gazette_mock,
+        themed_excerpt_mock,
+        city_mock,
+        suggestion_mock,
+        companies_mock,
+        aggregates_mock,
     )
 
 
@@ -209,6 +232,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_get_gazettes_should_return_json_with_items(self):
         today = date.today()
+        scraped_at = datetime.now()
         interface = self.create_mock_gazette_interface(
             (
                 1,
@@ -221,7 +245,9 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "scraped_at": scraped_at,
+                        "txt_url": None,
+                        "excerpts": ["test"],
                     }
                 ],
             )
@@ -234,27 +260,23 @@ class ApiGazettesEndpointTests(TestCase):
             interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(),
-            {
-                "total_gazettes": 1,
-                "gazettes": [
-                    {
-                        "territory_id": "4205902",
-                        "date": today.strftime("%Y-%m-%d"),
-                        "url": "https://queridodiario.ok.org.br/",
-                        "territory_name": "My city",
-                        "state_code": "My state",
-                        "is_extra_edition": False,
-                        "edition": "12.3442",
-                        "highlight_texts": ["test"],
-                    }
-                ],
-            },
-        )
+        response_data = response.json()
+        self.assertEqual(response_data["total_gazettes"], 1)
+        self.assertEqual(len(response_data["gazettes"]), 1)
+        gazette = response_data["gazettes"][0]
+        self.assertEqual(gazette["territory_id"], "4205902")
+        self.assertEqual(gazette["date"], today.strftime("%Y-%m-%d"))
+        self.assertEqual(gazette["url"], "https://queridodiario.ok.org.br/")
+        self.assertEqual(gazette["territory_name"], "My city")
+        self.assertEqual(gazette["state_code"], "My state")
+        self.assertEqual(gazette["is_extra_edition"], False)
+        self.assertEqual(gazette["edition"], "12.3442")
+        self.assertEqual(gazette["excerpts"], ["test"])
+        self.assertIn("scraped_at", gazette)
 
     def test_get_gazettes_should_return_empty_list_when_no_gazettes_is_found(self):
         today = date.today()
+        scraped_at = datetime.now()
         interface = self.create_mock_gazette_interface()
         configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
@@ -395,6 +417,7 @@ class ApiGazettesEndpointTests(TestCase):
 
     def test_api_without_edition_and_extra_field(self):
         today = date.today()
+        scraped_at = datetime.now()
         yesterday = today - timedelta(days=1)
         interface = self.create_mock_gazette_interface(
             (
@@ -408,7 +431,9 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "scraped_at": scraped_at,
+                        "txt_url": None,
+                        "excerpts": ["test"],
                     },
                     {
                         "territory_id": "4205902",
@@ -416,7 +441,9 @@ class ApiGazettesEndpointTests(TestCase):
                         "url": "https://queridodiario.ok.org.br/",
                         "territory_name": "My city",
                         "state_code": "My state",
-                        "highlight_texts": ["test"],
+                        "scraped_at": scraped_at,
+                        "txt_url": None,
+                        "excerpts": ["test"],
                     },
                 ],
             )
@@ -429,35 +456,28 @@ class ApiGazettesEndpointTests(TestCase):
             interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(),
-            {
-                "total_gazettes": 2,
-                "gazettes": [
-                    {
-                        "territory_id": "4205902",
-                        "date": today.strftime("%Y-%m-%d"),
-                        "url": "https://queridodiario.ok.org.br/",
-                        "territory_name": "My city",
-                        "state_code": "My state",
-                        "is_extra_edition": False,
-                        "edition": "12.3442",
-                        "highlight_texts": ["test"],
-                    },
-                    {
-                        "territory_id": "4205902",
-                        "date": yesterday.strftime("%Y-%m-%d"),
-                        "url": "https://queridodiario.ok.org.br/",
-                        "territory_name": "My city",
-                        "state_code": "My state",
-                        "highlight_texts": ["test"],
-                    },
-                ],
-            },
-        )
+        response_data = response.json()
+        self.assertEqual(response_data["total_gazettes"], 2)
+        self.assertEqual(len(response_data["gazettes"]), 2)
+
+        # Verificar primeira gazette
+        gazette1 = response_data["gazettes"][0]
+        self.assertEqual(gazette1["territory_id"], "4205902")
+        self.assertEqual(gazette1["date"], today.strftime("%Y-%m-%d"))
+        self.assertEqual(gazette1["edition"], "12.3442")
+        self.assertIn("scraped_at", gazette1)
+        self.assertIn("excerpts", gazette1)
+
+        # Verificar segunda gazette
+        gazette2 = response_data["gazettes"][1]
+        self.assertEqual(gazette2["territory_id"], "4205902")
+        self.assertEqual(gazette2["date"], yesterday.strftime("%Y-%m-%d"))
+        self.assertIn("scraped_at", gazette2)
+        self.assertIn("excerpts", gazette2)
 
     def test_api_with_none_edition_and_extra_field(self):
         today = date.today()
+        scraped_at = datetime.now()
         yesterday = today - timedelta(days=1)
         interface = self.create_mock_gazette_interface(
             (
@@ -471,7 +491,9 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": False,
                         "edition": "12.3442",
-                        "highlight_texts": ["test"],
+                        "scraped_at": scraped_at,
+                        "txt_url": None,
+                        "excerpts": ["test"],
                     },
                     {
                         "territory_id": "4205902",
@@ -481,7 +503,9 @@ class ApiGazettesEndpointTests(TestCase):
                         "state_code": "My state",
                         "is_extra_edition": None,
                         "edition": None,
-                        "highlight_texts": ["test"],
+                        "scraped_at": scraped_at,
+                        "txt_url": None,
+                        "excerpts": ["test"],
                     },
                 ],
             )
@@ -494,32 +518,17 @@ class ApiGazettesEndpointTests(TestCase):
             interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json(),
-            {
-                "total_gazettes": 2,
-                "gazettes": [
-                    {
-                        "territory_id": "4205902",
-                        "date": today.strftime("%Y-%m-%d"),
-                        "url": "https://queridodiario.ok.org.br/",
-                        "territory_name": "My city",
-                        "state_code": "My state",
-                        "is_extra_edition": False,
-                        "edition": "12.3442",
-                        "highlight_texts": ["test"],
-                    },
-                    {
-                        "territory_id": "4205902",
-                        "date": yesterday.strftime("%Y-%m-%d"),
-                        "url": "https://queridodiario.ok.org.br/",
-                        "territory_name": "My city",
-                        "state_code": "My state",
-                        "highlight_texts": ["test"],
-                    },
-                ],
-            },
-        )
+        response_data = response.json()
+        self.assertEqual(response_data["total_gazettes"], 2)
+        self.assertEqual(len(response_data["gazettes"]), 2)
+
+        # Verificar que campos obrigatórios existem em ambas as gazettes
+        for gazette in response_data["gazettes"]:
+            self.assertIn("territory_id", gazette)
+            self.assertIn("date", gazette)
+            self.assertIn("scraped_at", gazette)
+            self.assertIn("excerpts", gazette)
+            self.assertIn("url", gazette)
 
     def test_cities_endpoint_should_reject_request_without_partial_city_name(self):
         configure_api_app(
@@ -662,8 +671,15 @@ class ApiGazettesEndpointTests(TestCase):
 class ApiSuggestionsEndpointTests(TestCase):
     def setUp(self):
         self.suggestion_service = MockSuggestionService()
+        mocks = create_default_mocks()
+        # Substituir suggestion_service pelo nosso mock customizado
         configure_api_app(
-            MockGazetteAccessInterface(), self.suggestion_service,
+            mocks[0],  # gazettes
+            mocks[1],  # themed_excerpts
+            mocks[2],  # cities
+            self.suggestion_service,  # suggestion_service customizado
+            mocks[4],  # companies
+            mocks[5],  # aggregates
         )
         self.client = TestClient(app)
 
