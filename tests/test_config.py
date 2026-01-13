@@ -40,7 +40,12 @@ class BasicConfigurationTests(TestCase):
         )
 
     @patch.dict(
-        "os.environ", {"CITY_DATABASE_CSV": "", "THEMES_DATABASE_JSON": "",}, True,
+        "os.environ",
+        {
+            "CITY_DATABASE_CSV": "",
+            "THEMES_DATABASE_JSON": "",
+        },
+        True,
     )
     def test_load_configuration_with_no_envvars(self):
         expected_config_dict = {

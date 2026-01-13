@@ -222,7 +222,8 @@ class ApiGazettesEndpointTests(TestCase):
             interface.get_gazettes.call_args.args[0].territory_ids, ["4205902"]
         )
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].published_since, date.today(),
+            interface.get_gazettes.call_args.args[0].published_since,
+            date.today(),
         )
         self.assertEqual(
             interface.get_gazettes.call_args.args[0].published_until, date.today()
@@ -287,7 +288,8 @@ class ApiGazettesEndpointTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.json(), {"total_gazettes": 0, "gazettes": []},
+            response.json(),
+            {"total_gazettes": 0, "gazettes": []},
         )
 
     def test_gazettes_endpoint_should_accept_query_querystring_date(self):
@@ -296,10 +298,13 @@ class ApiGazettesEndpointTests(TestCase):
         )
         client = TestClient(app)
         response = client.get(
-            "/gazettes/4205902", params={"querystring": "keyword1 keyword2"}
+            "/gazettes",
+            params={"territory_ids": "4205902", "querystring": "keyword1 keyword2"},
         )
         self.assertEqual(response.status_code, 200)
-        response = client.get("/gazettes/4205902", params={"querystring": []})
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "querystring": []}
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_get_gazettes_should_forward_querystring_to_interface_object(self):
@@ -308,7 +313,8 @@ class ApiGazettesEndpointTests(TestCase):
         client = TestClient(app)
 
         response = client.get(
-            "/gazettes/4205902", params={"querystring": "keyword1 1 True"}
+            "/gazettes",
+            params={"territory_ids": "4205902", "querystring": "keyword1 1 True"},
         )
         interface.get_gazettes.assert_called_once()
         self.assertEqual(
@@ -317,13 +323,17 @@ class ApiGazettesEndpointTests(TestCase):
 
         interface = self.create_mock_gazette_interface()
         configure_api_app(interface, *create_default_mocks()[1:])
-        response = client.get("/gazettes/4205902", params={"querystring": None})
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "querystring": None}
+        )
         interface.get_gazettes.assert_called_once()
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
+        self.assertEqual(interface.get_gazettes.call_args.args[0].querystring, "")
 
         interface = self.create_mock_gazette_interface()
         configure_api_app(interface, *create_default_mocks()[1:])
-        response = client.get("/gazettes/4205902", params={"querystring": ""})
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "querystring": ""}
+        )
         interface.get_gazettes.assert_called_once()
         self.assertEqual(interface.get_gazettes.call_args.args[0].querystring, "")
 
@@ -354,7 +364,7 @@ class ApiGazettesEndpointTests(TestCase):
             self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
-        response = client.get("/gazettes", params={"since": "foo-bar-2222"})
+        response = client.get("/gazettes", params={"published_since": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
     def test_gazettes_without_territory_endpoint__should_fail_with_invalid_until_value(
@@ -364,7 +374,7 @@ class ApiGazettesEndpointTests(TestCase):
             self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
-        response = client.get("/gazettes", params={"until": "foo-bar-2222"})
+        response = client.get("/gazettes", params={"published_until": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
     def test_get_gazettes_without_territory_ids_should_forward_gazettes_filters_to_interface_object(
@@ -386,7 +396,8 @@ class ApiGazettesEndpointTests(TestCase):
         interface.get_gazettes.assert_called_once()
         self.assertEqual([], interface.get_gazettes.call_args.args[0].territory_ids)
         self.assertEqual(
-            interface.get_gazettes.call_args.args[0].published_since, date.today(),
+            interface.get_gazettes.call_args.args[0].published_since,
+            date.today(),
         )
         self.assertEqual(
             interface.get_gazettes.call_args.args[0].published_until, date.today()
@@ -398,7 +409,12 @@ class ApiGazettesEndpointTests(TestCase):
         interface = self.create_mock_gazette_interface()
         configure_api_app(interface, *create_default_mocks()[1:])
         client = TestClient(app)
-        response = client.get("/gazettes", params={"offset": 0,},)
+        response = client.get(
+            "/gazettes",
+            params={
+                "offset": 0,
+            },
+        )
         self.assertEqual(response.status_code, 200)
         interface.get_gazettes.assert_called_once()
         self.assertEqual(interface.get_gazettes.call_args.args[0].offset, 0)
@@ -406,12 +422,14 @@ class ApiGazettesEndpointTests(TestCase):
     @expectedFailure
     def test_configure_api_should_failed_with_invalid_root_path(self):
         configure_api_app(
-            *create_default_mocks(), api_root_path=1,
+            *create_default_mocks(),
+            api_root_path=1,
         )
 
     def test_configure_api_root_path(self):
         configure_api_app(
-            *create_default_mocks(), api_root_path="/api/v1",
+            *create_default_mocks(),
+            api_root_path="/api/v1",
         )
         self.assertEqual("/api/v1", app.root_path)
 
@@ -444,6 +462,8 @@ class ApiGazettesEndpointTests(TestCase):
                         "scraped_at": scraped_at,
                         "txt_url": None,
                         "excerpts": ["test"],
+                        "edition": None,
+                        "is_extra_edition": None,
                     },
                 ],
             )
@@ -546,7 +566,8 @@ class ApiGazettesEndpointTests(TestCase):
         response = client.get("/cities", params={"city_name": "pirapo"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.json(), {"cities": []},
+            response.json(),
+            {"cities": []},
         )
 
     def test_cities_should_request_data_from_city_interface(self):
@@ -695,7 +716,8 @@ class ApiSuggestionsEndpointTests(TestCase):
     ):
         with self.assertRaises(Exception):
             configure_api_app(
-                MockGazetteAccessInterface(), MagicMock(),
+                MockGazetteAccessInterface(),
+                MagicMock(),
             )
 
     def test_suggestion_endpoint_should_fail_send_email(self):
@@ -717,18 +739,19 @@ class ApiSuggestionsEndpointTests(TestCase):
 
     def test_suggestion_endpoint_should_reject_when_email_address_is_not_present(self):
         response = self.client.post(
-            "/suggestions", json={"name": "My Name", "content": "Suggestion content",},
+            "/suggestions",
+            json={
+                "name": "My Name",
+                "content": "Suggestion content",
+            },
         )
         assert response.status_code == 422
-        assert response.json() == {
-            "detail": [
-                {
-                    "loc": ["body", "email_address"],
-                    "msg": "field required",
-                    "type": "value_error.missing",
-                }
-            ]
-        }
+        response_data = response.json()
+        assert len(response_data["detail"]) == 1
+        error = response_data["detail"][0]
+        assert error["type"] == "missing"
+        assert error["loc"] == ["body", "email_address"]
+        assert error["msg"] == "Field required"
 
     def test_suggestion_endpoint_should_reject_when_name_is_not_present(self):
         response = self.client.post(
@@ -739,28 +762,25 @@ class ApiSuggestionsEndpointTests(TestCase):
             },
         )
         assert response.status_code == 422
-        assert response.json() == {
-            "detail": [
-                {
-                    "loc": ["body", "name"],
-                    "msg": "field required",
-                    "type": "value_error.missing",
-                }
-            ]
-        }
+        response_data = response.json()
+        assert len(response_data["detail"]) == 1
+        error = response_data["detail"][0]
+        assert error["type"] == "missing"
+        assert error["loc"] == ["body", "name"]
+        assert error["msg"] == "Field required"
 
     def test_suggestion_endpoint_should_reject_when_content_is_not_present(self):
         response = self.client.post(
             "/suggestions",
-            json={"email_address": "some-email-from@email.com", "name": "My Name",},
+            json={
+                "email_address": "some-email-from@email.com",
+                "name": "My Name",
+            },
         )
         assert response.status_code == 422
-        assert response.json() == {
-            "detail": [
-                {
-                    "loc": ["body", "content"],
-                    "msg": "field required",
-                    "type": "value_error.missing",
-                }
-            ]
-        }
+        response_data = response.json()
+        assert len(response_data["detail"]) == 1
+        error = response_data["detail"][0]
+        assert error["type"] == "missing"
+        assert error["loc"] == ["body", "content"]
+        assert error["msg"] == "Field required"

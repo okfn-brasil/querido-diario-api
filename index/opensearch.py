@@ -182,7 +182,11 @@ class PaginationMixin:
 
 
 class HighlightMixin:
-    def add_highlight(self, query: Dict, fields_highlights: List[Dict] = [],) -> None:
+    def add_highlight(
+        self,
+        query: Dict,
+        fields_highlights: List[Dict] = [],
+    ) -> None:
         if fields_highlights == []:
             return
 

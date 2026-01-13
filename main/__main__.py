@@ -107,6 +107,7 @@ configure_api_app(
     configuration.root_path,
 )
 
+
 # Configure access log filter to exclude health checks
 class HealthCheckFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
