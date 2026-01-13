@@ -518,6 +518,9 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
         )
 
         # Build file URL from relative path or process legacy URL
+        file_url = excerpt["_source"]["source_url"]
+        url = self._build_file_url(file_url)
+
         file_raw_txt = excerpt["_source"].get("source_file_raw_txt", None)
         txt_url = self._build_file_url(file_raw_txt) if file_raw_txt else None
 
@@ -526,7 +529,7 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
             excerpt["_source"]["source_territory_id"],
             datetime.strptime(excerpt["_source"]["source_date"], "%Y-%m-%d").date(),
             datetime.fromisoformat(excerpt["_source"]["source_scraped_at"]),
-            excerpt["_source"]["source_url"],
+            url,
             excerpt["_source"]["source_territory_name"],
             excerpt["_source"]["source_state_code"],
             excerpt["_source"]["excerpt_subthemes"],

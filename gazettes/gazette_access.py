@@ -411,6 +411,9 @@ class GazetteSearchEngineGateway(GazetteDataGateway):
         )
 
         # Build file URL from relative path or process legacy URL
+        file_url = gazette["_source"]["url"]
+        url = self._build_file_url(file_url)
+
         file_raw_txt = gazette["_source"].get("file_raw_txt", None)
         txt_url = self._build_file_url(file_raw_txt) if file_raw_txt else None
 
@@ -418,7 +421,7 @@ class GazetteSearchEngineGateway(GazetteDataGateway):
             gazette["_source"]["territory_id"],
             datetime.strptime(gazette["_source"]["date"], "%Y-%m-%d").date(),
             datetime.fromisoformat(gazette["_source"]["scraped_at"]),
-            gazette["_source"]["url"],
+            url,
             gazette["_source"]["file_checksum"],
             gazette["_source"]["territory_name"],
             gazette["_source"]["state_code"],
