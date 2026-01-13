@@ -22,8 +22,9 @@ class MailjetSuggestionServiceTest(TestCase):
             suggestion_mailjet_custom_id="custom_id",
         )
 
-    def test_send_email(self):
-        data = {
+    def _build_message_data(self, name, email, content):
+        """Helper to build Mailjet message data structure"""
+        return {
             "Messages": [
                 {
                     "From": {
@@ -37,11 +38,21 @@ class MailjetSuggestionServiceTest(TestCase):
                         }
                     ],
                     "Subject": "Querido Diário, hoje recebi uma sugestão",
-                    "TextPart": f"From My Name <email@address.com>:\n\nContent of suggestion",
+                    "TextPart": f"From {name} <{email}>:\n\n{content}",
                     "CustomID": "custom_id",
                 }
             ]
         }
+
+    def test_send_email(self):
+        data = self._build_message_data(
+            "My Name", "email@address.com", "Content of suggestion"
+        )
+
+    def test_send_email(self):
+        data = self._build_message_data(
+            "My Name", "email@address.com", "Content of suggestion"
+        )
         self.mailjet_client.send.create(data=data).configure_mock(status_code=200)
 
         suggestion_result = self.subject.add_suggestion(
@@ -57,25 +68,14 @@ class MailjetSuggestionServiceTest(TestCase):
         self.mailjet_client.send.create.assert_called_with(data=data)
 
     def test_not_send_email_without_detail_error(self):
-        data = {
-            "Messages": [
-                {
-                    "From": {
-                        "Name": "Sender Name",
-                        "Email": "sender-email@address",
-                    },
-                    "To": [
-                        {
-                            "Name": "Recipient Name",
-                            "Email": "recipient-email@address",
-                        }
-                    ],
-                    "Subject": "Querido Diário, hoje recebi uma sugestão",
-                    "TextPart": f"From A girl has no name <wrong@address.com>:\n\nArgument Clinic",
-                    "CustomID": "custom_id",
-                }
-            ]
-        }
+        data = self._build_message_data(
+            "A girl has no name", "wrong@address.com", "Argument Clinic"
+        )
+
+    def test_not_send_email_without_detail_error(self):
+        data = self._build_message_data(
+            "A girl has no name", "wrong@address.com", "Argument Clinic"
+        )
         self.mailjet_client.send.create(data=data).configure_mock(status_code=401)
 
         suggestion_result = self.subject.add_suggestion(
@@ -93,25 +93,9 @@ class MailjetSuggestionServiceTest(TestCase):
         self.mailjet_client.send.create.assert_called_with(data=data)
 
     def test_not_send_email_with_detail_error(self):
-        data = {
-            "Messages": [
-                {
-                    "From": {
-                        "Name": "Sender Name",
-                        "Email": "sender-email@address",
-                    },
-                    "To": [
-                        {
-                            "Name": "Recipient Name",
-                            "Email": "recipient-email@address",
-                        }
-                    ],
-                    "Subject": "Querido Diário, hoje recebi uma sugestão",
-                    "TextPart": f"From A girl has no name <wrong@address.com>:\n\nArgument Clinic",
-                    "CustomID": "custom_id",
-                }
-            ]
-        }
+        data = self._build_message_data(
+            "A girl has no name", "wrong@address.com", "Argument Clinic"
+        )
         detail_error = {
             "Messages": [
                 {"Errors": [{"ErrorMessage": "Oops"}, {"ErrorMessage": "noooo!"}]}
