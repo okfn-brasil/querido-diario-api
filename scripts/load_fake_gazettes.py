@@ -382,7 +382,7 @@ def main():
     opensearch_host = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_HOST", "localhost")
     opensearch_user = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_USER", "admin")
     opensearch_password = os.environ.get("QUERIDO_DIARIO_OPENSEARCH_PASSWORD", "admin")
-    
+
     search_engine = opensearchpy.OpenSearch(
         hosts=[opensearch_host], http_auth=(opensearch_user, opensearch_password)
     )

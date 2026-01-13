@@ -26,9 +26,15 @@ class MailjetSuggestionServiceTest(TestCase):
         data = {
             "Messages": [
                 {
-                    "From": {"Name": "Sender Name", "Email": "sender-email@address",},
+                    "From": {
+                        "Name": "Sender Name",
+                        "Email": "sender-email@address",
+                    },
                     "To": [
-                        {"Name": "Recipient Name", "Email": "recipient-email@address",}
+                        {
+                            "Name": "Recipient Name",
+                            "Email": "recipient-email@address",
+                        }
                     ],
                     "Subject": "Querido Diário, hoje recebi uma sugestão",
                     "TextPart": f"From My Name <email@address.com>:\n\nContent of suggestion",
@@ -54,9 +60,15 @@ class MailjetSuggestionServiceTest(TestCase):
         data = {
             "Messages": [
                 {
-                    "From": {"Name": "Sender Name", "Email": "sender-email@address",},
+                    "From": {
+                        "Name": "Sender Name",
+                        "Email": "sender-email@address",
+                    },
                     "To": [
-                        {"Name": "Recipient Name", "Email": "recipient-email@address",}
+                        {
+                            "Name": "Recipient Name",
+                            "Email": "recipient-email@address",
+                        }
                     ],
                     "Subject": "Querido Diário, hoje recebi uma sugestão",
                     "TextPart": f"From A girl has no name <wrong@address.com>:\n\nArgument Clinic",
@@ -84,9 +96,15 @@ class MailjetSuggestionServiceTest(TestCase):
         data = {
             "Messages": [
                 {
-                    "From": {"Name": "Sender Name", "Email": "sender-email@address",},
+                    "From": {
+                        "Name": "Sender Name",
+                        "Email": "sender-email@address",
+                    },
                     "To": [
-                        {"Name": "Recipient Name", "Email": "recipient-email@address",}
+                        {
+                            "Name": "Recipient Name",
+                            "Email": "recipient-email@address",
+                        }
                     ],
                     "Subject": "Querido Diário, hoje recebi uma sugestão",
                     "TextPart": f"From A girl has no name <wrong@address.com>:\n\nArgument Clinic",

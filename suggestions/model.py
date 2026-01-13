@@ -4,14 +4,23 @@ class Suggestion:
     """
 
     def __init__(
-        self, email_address, name, content,
+        self,
+        email_address,
+        name,
+        content,
     ):
         self.email_address = email_address
         self.name = name
         self.content = content
 
     def __hash__(self):
-        return hash((self.email_address, self.name, self.content,))
+        return hash(
+            (
+                self.email_address,
+                self.name,
+                self.content,
+            )
+        )
 
     def __eq__(self, other):
         return (
@@ -30,13 +39,20 @@ class SuggestionSent:
     """
 
     def __init__(
-        self, success, status,
+        self,
+        success,
+        status,
     ):
         self.success = success
         self.status = status
 
     def __hash__(self):
-        return hash((self.success, self.status,))
+        return hash(
+            (
+                self.success,
+                self.status,
+            )
+        )
 
     def __eq__(self, other):
         return self.success == other.success and self.status == other.status

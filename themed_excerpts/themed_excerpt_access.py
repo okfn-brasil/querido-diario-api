@@ -293,7 +293,10 @@ class ThemedExcerptQueryBuilder(
             self.add_sorts(
                 query=query,
                 sorts=[
-                    self.build_sort(field=self.publication_date_field, order=order,)
+                    self.build_sort(
+                        field=self.publication_date_field,
+                        order=order,
+                    )
                 ],
             )
 
@@ -373,7 +376,8 @@ class ThemedExcerptQueryBuilder(
             matched_fields=matched_fields,
         )
         self.add_highlight(
-            query=query, fields_highlights=[text_highlight],
+            query=query,
+            fields_highlights=[text_highlight],
         )
 
         return query
@@ -436,25 +440,25 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
     def _build_file_url(self, path_or_url: str) -> str:
         """
         Builds the complete file URL from a relative path or processes legacy URLs.
-        
+
         This method supports three scenarios:
         1. New data: relative paths (e.g., "3304557/2019/file.txt")
         2. Old data: full URLs with automatic base URL replacement
         3. Legacy mode: full URLs returned as-is (backward compatibility)
-        
+
         Environment variables:
         - QUERIDO_DIARIO_FILES_ENDPOINT: New base URL for files
         - REPLACE_FILE_URL_BASE: Boolean flag to enable base URL replacement (true/false)
-        
+
         Examples:
-        - If REPLACE_FILE_URL_BASE=true and 
+        - If REPLACE_FILE_URL_BASE=true and
           QUERIDO_DIARIO_FILES_ENDPOINT="https://cdn.queridodiario.ok.org.br"
-          Then "https://queridodiario.nyc3.digitaloceanspaces.com/3304557/2019/file.txt" 
+          Then "https://queridodiario.nyc3.digitaloceanspaces.com/3304557/2019/file.txt"
           becomes "https://cdn.queridodiario.ok.org.br/3304557/2019/file.txt"
-        
+
         Args:
             path_or_url: Either a relative path or a full URL
-        
+
         Returns:
             Complete URL to access the file
         """
@@ -620,7 +624,8 @@ class ThemedExcerptAccess(ThemedExcerptAccessInterface):
             raise Exception(f"Theme not found.")
 
         total_number_excerpts, excerpts = self._data_gateway.get_themed_excerpts(
-            theme_index=theme_index, **vars(filters),
+            theme_index=theme_index,
+            **vars(filters),
         )
         return (total_number_excerpts, [vars(excerpt) for excerpt in excerpts])
 
@@ -666,7 +671,8 @@ def create_themed_excerpts_query_builder(
 
 
 def create_themed_excerpts_data_gateway(
-    search_engine: SearchEngineInterface, query_builder: QueryBuilderInterface,
+    search_engine: SearchEngineInterface,
+    query_builder: QueryBuilderInterface,
 ) -> ThemedExcerptDataGateway:
     if not isinstance(search_engine, SearchEngineInterface):
         raise Exception(
