@@ -76,6 +76,7 @@ services:
         condition: service_completed_successfully
     environment:
       - PYTHONPATH=/mnt/code
+      - PYTHONUNBUFFERED=1
       - RUN_INTEGRATION_TESTS=1
       - POSTGRES_COMPANIES_HOST=postgres
       - POSTGRES_COMPANIES_DB=companiesdb
@@ -107,7 +108,7 @@ services:
     volumes:
       - .:/mnt/code:rw
     working_dir: /mnt/code
-    command: sh -c "python -m unittest tests"
+    command: sh -c "echo 'Starting tests...' && python -u -m unittest discover -s tests 2>&1"
     networks:
       - default
 

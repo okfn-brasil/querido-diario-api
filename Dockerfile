@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.12
 
 RUN adduser --system gazette && apt-get update && apt-get install -y wait-for-it jq
 
