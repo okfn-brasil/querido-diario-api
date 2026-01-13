@@ -18,6 +18,7 @@ from index.opensearch import (
     HighlightMixin,
     RankFeatureQueryMixin,
 )
+from utils import build_file_url
 
 
 class ThemedExcerptRequest:
@@ -437,71 +438,6 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
     def get_total_number_items(self, search_response_json: Dict):
         return search_response_json["hits"]["total"]["value"]
 
-    def _build_file_url(self, path_or_url: str) -> str:
-        """
-        Builds the complete file URL from a relative path or processes legacy URLs.
-
-        This method supports three scenarios:
-        1. New data: relative paths (e.g., "3304557/2019/file.txt")
-        2. Old data: full URLs with automatic base URL replacement
-        3. Legacy mode: full URLs returned as-is (backward compatibility)
-
-        Environment variables:
-        - QUERIDO_DIARIO_FILES_ENDPOINT: New base URL for files
-        - REPLACE_FILE_URL_BASE: Boolean flag to enable base URL replacement (true/false)
-
-        Examples:
-        - If REPLACE_FILE_URL_BASE=true and
-          QUERIDO_DIARIO_FILES_ENDPOINT="https://cdn.queridodiario.ok.org.br"
-          Then "https://queridodiario.nyc3.digitaloceanspaces.com/3304557/2019/file.txt"
-          becomes "https://cdn.queridodiario.ok.org.br/3304557/2019/file.txt"
-
-        Args:
-            path_or_url: Either a relative path or a full URL
-
-        Returns:
-            Complete URL to access the file
-        """
-        import os
-        import re
-
-        endpoint = os.environ.get("QUERIDO_DIARIO_FILES_ENDPOINT", "")
-        replace_base_enabled = (
-            os.environ.get("REPLACE_FILE_URL_BASE", "false").lower() == "true"
-        )
-
-        # Check if it's a URL (supports http://, https://, s3://)
-        is_url = (
-            path_or_url.startswith("http://")
-            or path_or_url.startswith("https://")
-            or path_or_url.startswith("s3://")
-        )
-
-        # Scenario 1: Relative path (new data)
-        if not is_url:
-            if not endpoint:
-                return path_or_url  # No endpoint configured
-
-            endpoint = endpoint.rstrip("/")
-            path = path_or_url.lstrip("/")
-            return f"{endpoint}/{path}"
-
-        # Scenario 2: Full URL with base replacement enabled
-        if replace_base_enabled and endpoint:
-            # Extract path from URL using regex
-            # Pattern: <protocol>://<domain>/<path>
-            # Supports: http://, https://, s3://
-            pattern = r"^(https?://|s3://)[^/]+/(.+)$"
-            match = re.match(pattern, path_or_url)
-
-            if match:
-                relative_path = match.group(2)
-                endpoint_clean = endpoint.rstrip("/")
-                return f"{endpoint_clean}/{relative_path}"
-
-        # Scenario 3: Legacy mode - return URL as-is
-        return path_or_url
-
     def create_list_with_themed_excerpt_objects(
         self, themed_excerpt_hits: List[Dict], theme: str
     ):
@@ -518,15 +454,18 @@ class ThemedExcerptSearchEngineGateway(ThemedExcerptDataGateway):
         )
 
         # Build file URL from relative path or process legacy URL
+        file_url = excerpt["_source"]["source_url"]
+        url = build_file_url(file_url)
+
         file_raw_txt = excerpt["_source"].get("source_file_raw_txt", None)
-        txt_url = self._build_file_url(file_raw_txt) if file_raw_txt else None
+        txt_url = build_file_url(file_raw_txt) if file_raw_txt else None
 
         return ThemedExcerptSearchResult(
             excerpt["_source"]["excerpt_id"],
             excerpt["_source"]["source_territory_id"],
             datetime.strptime(excerpt["_source"]["source_date"], "%Y-%m-%d").date(),
             datetime.fromisoformat(excerpt["_source"]["source_scraped_at"]),
-            excerpt["_source"]["source_url"],
+            url,
             excerpt["_source"]["source_territory_name"],
             excerpt["_source"]["source_state_code"],
             excerpt["_source"]["excerpt_subthemes"],
