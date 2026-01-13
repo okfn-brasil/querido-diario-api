@@ -296,10 +296,13 @@ class ApiGazettesEndpointTests(TestCase):
         )
         client = TestClient(app)
         response = client.get(
-            "/gazettes/4205902", params={"querystring": "keyword1 keyword2"}
+            "/gazettes",
+            params={"territory_ids": "4205902", "querystring": "keyword1 keyword2"},
         )
         self.assertEqual(response.status_code, 200)
-        response = client.get("/gazettes/4205902", params={"querystring": []})
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "querystring": []}
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_get_gazettes_should_forward_querystring_to_interface_object(self):
@@ -308,7 +311,8 @@ class ApiGazettesEndpointTests(TestCase):
         client = TestClient(app)
 
         response = client.get(
-            "/gazettes/4205902", params={"querystring": "keyword1 1 True"}
+            "/gazettes",
+            params={"territory_ids": "4205902", "querystring": "keyword1 1 True"},
         )
         interface.get_gazettes.assert_called_once()
         self.assertEqual(
@@ -317,13 +321,17 @@ class ApiGazettesEndpointTests(TestCase):
 
         interface = self.create_mock_gazette_interface()
         configure_api_app(interface, *create_default_mocks()[1:])
-        response = client.get("/gazettes/4205902", params={"querystring": None})
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "querystring": None}
+        )
         interface.get_gazettes.assert_called_once()
-        self.assertIsNone(interface.get_gazettes.call_args.args[0].querystring)
+        self.assertEqual(interface.get_gazettes.call_args.args[0].querystring, "")
 
         interface = self.create_mock_gazette_interface()
         configure_api_app(interface, *create_default_mocks()[1:])
-        response = client.get("/gazettes/4205902", params={"querystring": ""})
+        response = client.get(
+            "/gazettes", params={"territory_ids": "4205902", "querystring": ""}
+        )
         interface.get_gazettes.assert_called_once()
         self.assertEqual(interface.get_gazettes.call_args.args[0].querystring, "")
 
@@ -354,7 +362,7 @@ class ApiGazettesEndpointTests(TestCase):
             self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
-        response = client.get("/gazettes", params={"since": "foo-bar-2222"})
+        response = client.get("/gazettes", params={"published_since": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
     def test_gazettes_without_territory_endpoint__should_fail_with_invalid_until_value(
@@ -364,7 +372,7 @@ class ApiGazettesEndpointTests(TestCase):
             self.create_mock_gazette_interface(), *create_default_mocks()[1:]
         )
         client = TestClient(app)
-        response = client.get("/gazettes", params={"until": "foo-bar-2222"})
+        response = client.get("/gazettes", params={"published_until": "foo-bar-2222"})
         self.assertEqual(response.status_code, 422)
 
     def test_get_gazettes_without_territory_ids_should_forward_gazettes_filters_to_interface_object(
