@@ -64,8 +64,14 @@ jobs:
           # Update docker-compose.test.yml to build for specific platform
           sed -i "s|dockerfile: Dockerfile|dockerfile: Dockerfile\n      platforms:\n        - ${{ matrix.platform }}|" docker-compose.test.yml
 
-          # Run full test suite on native architecture
-          docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from api
+          # Start dependencies
+          docker compose -f docker-compose.test.yml up -d postgres opensearch
+          
+          # Wait for them to be healthy
+          docker compose -f docker-compose.test.yml up setup
+          
+          # Run tests
+          docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from api api
 
       - name: Clean up test images
         if: always()
