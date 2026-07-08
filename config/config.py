@@ -105,6 +105,9 @@ class Configuration:
             "POSTGRES_AGGREGATES_PASSWORD", ""
         )
         self.aggregates_database_port = os.environ.get("POSTGRES_AGGREGATES_PORT", "")
+        self.scraper_api_keys = Configuration._load_list(
+            "QUERIDO_DIARIO_SCRAPER_API_KEYS", []
+        )
 
     @classmethod
     def _load_list(cls, key, default=[]):

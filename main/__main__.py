@@ -10,7 +10,9 @@ from aggregates import create_aggregates_interface
 from database import (
     create_companies_database_interface,
     create_aggregates_database_interface,
+    create_scraper_database_interface,
 )
+from scraper import create_scraper_interface
 from gazettes import (
     create_gazettes_interface,
     create_gazettes_data_gateway,
@@ -96,6 +98,14 @@ aggregates_database = create_aggregates_database_interface(
     db_port=configuration.aggregates_database_port,
 )
 aggregates_interface = create_aggregates_interface(aggregates_database)
+scraper_database = create_scraper_database_interface(
+    db_host=configuration.aggregates_database_host,
+    db_name=configuration.aggregates_database_db,
+    db_user=configuration.aggregates_database_user,
+    db_pass=configuration.aggregates_database_pass,
+    db_port=configuration.aggregates_database_port,
+)
+scraper_interface = create_scraper_interface(scraper_database)
 
 configure_api_app(
     gazettes_interface,
@@ -104,6 +114,7 @@ configure_api_app(
     suggestion_service,
     companies_interface,
     aggregates_interface,
+    scraper_interface,
     configuration.root_path,
 )
 

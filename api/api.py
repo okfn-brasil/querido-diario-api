@@ -1,8 +1,8 @@
 from enum import Enum, unique
 from datetime import date, datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from fastapi import FastAPI, Query, Path, Response, status
+from fastapi import FastAPI, Query, Path, Response, Security, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -15,6 +15,9 @@ from config.config import load_configuration
 from themed_excerpts import ThemedExcerptAccessInterface, ThemedExcerptAccessInterface
 from themed_excerpts.themed_excerpt_access import ThemedExcerptRequest
 from aggregates import AggregatesAccessInterface
+from scraper import InvalidTerritoryIDException, ScraperAccessInterface
+
+from api.auth import validate_api_key
 
 config = load_configuration()
 
@@ -244,6 +247,94 @@ class Partner(BaseModel):
 class PartnersSearchResponse(BaseModel):
     total_partners: int
     partners: List[Partner]
+
+
+class SpiderItem(BaseModel):
+    spider_name: str
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+
+
+class SpidersSearchResponse(BaseModel):
+    total_spiders: int
+    spiders: List[SpiderItem]
+
+
+class ScrapedGazetteBody(BaseModel):
+    territory_id: str = Field(
+        ...,
+        min_length=7,
+        max_length=7,
+        pattern=r"^\d{7}$",
+        title="Territory ID",
+        description="City's 7-digit IBGE ID.",
+    )
+    date: date
+    scraped_at: datetime = Field(
+        title="Scraped at", description="Datetime when the gazette was scraped."
+    )
+    file_path: str = Field(
+        title="File path", description="Path of the gazette file in the storage."
+    )
+    file_url: str = Field(
+        title="File URL", description="Original URL of the gazette file."
+    )
+    file_checksum: str = Field(
+        title="File checksum", description="Checksum of the gazette file."
+    )
+    edition_number: Optional[str] = Field(
+        None, title="Edition number", description="Gazette's edition number."
+    )
+    is_extra_edition: Optional[bool] = Field(
+        None,
+        title="Is extra edition",
+        description="Whether the gazette is an extra edition.",
+    )
+    power: Optional[str] = Field(
+        None,
+        title="Power",
+        description="Government power of the gazette (e.g. executive, legislative).",
+    )
+    source_text: Optional[str] = Field(
+        None,
+        title="Source text",
+        description="Gazette's text content (usually empty; filled later by the data processing).",
+    )
+
+
+class CreatedScrapedGazetteResponse(BaseModel):
+    status: str
+    gazette_id: Optional[int] = None
+
+
+class JobStatsBody(BaseModel):
+    spider_name: str = Field(
+        title="Spider name", description="Name of the spider that ran the job."
+    )
+    job_id: Optional[str] = Field(
+        None, title="Job ID", description="Identifier of the scraping job."
+    )
+    stats: Dict = Field(
+        title="Job stats", description="JSON with the stats of the scraping job."
+    )
+
+
+class CreatedJobStatsResponse(BaseModel):
+    status: str
+    job_stats_id: int
+
+
+class JobStatsItem(BaseModel):
+    id: int
+    spider_name: str
+    job_id: Optional[str] = None
+    stats: Dict
+    created_at: datetime
+
+
+class JobStatsSearchResponse(BaseModel):
+    total_stats: int
+    job_stats: List[JobStatsItem]
 
 
 @app.get(
@@ -631,6 +722,132 @@ async def get_aggregates(
     )
 
 
+@app.get(
+    "/api/scraper/spiders",
+    response_model=SpidersSearchResponse,
+    name="List enabled spiders",
+    description="List the spiders enabled to run, optionally filtered by the scraping date range.",
+    dependencies=[Security(validate_api_key)],
+    tags=["Scraper (internal)"],
+    responses={
+        401: {"model": HTTPExceptionMessage, "description": "Missing API Key."},
+        403: {"model": HTTPExceptionMessage, "description": "Invalid API Key."},
+        503: {
+            "model": HTTPExceptionMessage,
+            "description": "Scraper API is not configured.",
+        },
+    },
+)
+async def get_scraper_spiders(
+    start_date: Optional[date] = Query(
+        None,
+        description="Only return spiders which scrape gazettes published since the given date (format: YYYY-MM-DD).",
+    ),
+    end_date: Optional[date] = Query(
+        None,
+        description="Only return spiders which scrape gazettes published until the given date (format: YYYY-MM-DD).",
+    ),
+):
+    spiders = app.scraper.get_enabled_spiders(start_date, end_date)
+    return {
+        "total_spiders": len(spiders),
+        "spiders": spiders,
+    }
+
+
+@app.post(
+    "/api/scraper/gazettes",
+    response_model=CreatedScrapedGazetteResponse,
+    status_code=status.HTTP_201_CREATED,
+    name="Persist a scraped gazette",
+    description="Persist the metadata of a scraped gazette. The operation is idempotent: posting the same gazette again returns a duplicate status instead of creating a new entry.",
+    response_model_exclude_none=True,
+    dependencies=[Security(validate_api_key)],
+    tags=["Scraper (internal)"],
+    responses={
+        200: {
+            "model": CreatedScrapedGazetteResponse,
+            "description": "Gazette already exists (duplicate).",
+        },
+        401: {"model": HTTPExceptionMessage, "description": "Missing API Key."},
+        403: {"model": HTTPExceptionMessage, "description": "Invalid API Key."},
+        404: {"model": HTTPExceptionMessage, "description": "Territory not found."},
+        503: {
+            "model": HTTPExceptionMessage,
+            "description": "Scraper API is not configured.",
+        },
+    },
+)
+async def create_scraped_gazette(response: Response, body: ScrapedGazetteBody):
+    try:
+        gazette_id = app.scraper.create_gazette(body.model_dump())
+    except InvalidTerritoryIDException as exc:
+        return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+    if gazette_id is None:
+        response.status_code = status.HTTP_200_OK
+        return {"status": "duplicate"}
+
+    return {"status": "created", "gazette_id": gazette_id}
+
+
+@app.post(
+    "/api/scraper/job-stats",
+    response_model=CreatedJobStatsResponse,
+    status_code=status.HTTP_201_CREATED,
+    name="Persist the stats of a scraping job",
+    description="Persist the stats collected at the end of a scraping job.",
+    dependencies=[Security(validate_api_key)],
+    tags=["Scraper (internal)"],
+    responses={
+        401: {"model": HTTPExceptionMessage, "description": "Missing API Key."},
+        403: {"model": HTTPExceptionMessage, "description": "Invalid API Key."},
+        503: {
+            "model": HTTPExceptionMessage,
+            "description": "Scraper API is not configured.",
+        },
+    },
+)
+async def create_scraper_job_stats(body: JobStatsBody):
+    job_stats_id = app.scraper.create_job_stats(
+        body.spider_name, body.job_id, body.stats
+    )
+    return {"status": "created", "job_stats_id": job_stats_id}
+
+
+@app.get(
+    "/api/scraper/job-stats",
+    response_model=JobStatsSearchResponse,
+    name="Get the stats of scraping jobs",
+    description="Get the stats of scraping jobs, optionally filtered by spider name and datetime.",
+    dependencies=[Security(validate_api_key)],
+    tags=["Scraper (internal)"],
+    responses={
+        401: {"model": HTTPExceptionMessage, "description": "Missing API Key."},
+        403: {"model": HTTPExceptionMessage, "description": "Invalid API Key."},
+        503: {
+            "model": HTTPExceptionMessage,
+            "description": "Scraper API is not configured.",
+        },
+    },
+)
+async def get_scraper_job_stats(
+    spider: Optional[str] = Query(
+        None,
+        description="Only return stats of jobs run by the spider with the given name.",
+    ),
+    since: Optional[datetime] = Query(
+        None,
+        description="Only return stats of jobs created on the given datetime or after (format: YYYY-MM-DDTHH:MM:SS).",
+    ),
+):
+    job_stats = app.scraper.get_job_stats(spider, since)
+    return {
+        "total_stats": len(job_stats),
+        "job_stats": job_stats,
+    }
+
+
 def configure_api_app(
     gazettes: GazetteAccessInterface,
     themed_excerpts: ThemedExcerptAccessInterface,
@@ -638,6 +855,7 @@ def configure_api_app(
     suggestion_service: SuggestionServiceInterface,
     companies: CompaniesAccessInterface,
     aggregates: AggregatesAccessInterface,
+    scraper: ScraperAccessInterface,
     api_root_path=None,
 ):
     if not isinstance(gazettes, GazetteAccessInterface):
@@ -664,6 +882,10 @@ def configure_api_app(
         raise Exception(
             "Only AggregatesAccessInterface object are accepted for aggregates parameter"
         )
+    if not isinstance(scraper, ScraperAccessInterface):
+        raise Exception(
+            "Only ScraperAccessInterface object are accepted for scraper parameter"
+        )
     if api_root_path is not None and type(api_root_path) != str:
         raise Exception("Invalid api_root_path")
     app.gazettes = gazettes
@@ -672,4 +894,5 @@ def configure_api_app(
     app.suggestion_service = suggestion_service
     app.companies = companies
     app.aggregates = aggregates
+    app.scraper = scraper
     app.root_path = api_root_path
