@@ -53,9 +53,9 @@ jobs:
           docker compose version
       - name: Setup environment files
         run: |
-          cp --no-clobber config/sample.env config/current.env || true
-          test -f censo.csv || curl -s -O https://querido-diario.nyc3.cdn.digitaloceanspaces.com/censo/censo.csv
-          test -f themes_config.json || curl -s -O https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json
+          cp --update=none config/sample.env config/current.env || true
+          test -f censo.csv || curl -fsSO https://data.queridodiario.ok.org.br/censo/censo.csv
+          test -f themes_config.json || curl -fsSO https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json
       - name: Monitor disk usage before build
         run: |
           echo "=== Disk usage before build ==="
