@@ -56,8 +56,8 @@ class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
             querido_diario_spiders
         WHERE
             enabled IS TRUE
-            AND (%(start_date)s IS NULL OR date_from <= %(start_date)s)
-            AND (%(end_date)s IS NULL OR date_to >= %(end_date)s)
+            AND (%(start_date)s IS NULL OR date_to >= %(start_date)s)
+            AND (%(end_date)s IS NULL OR date_from <= %(end_date)s)
         ORDER BY spider_name
         ;
         """
