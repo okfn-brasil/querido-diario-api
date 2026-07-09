@@ -10,6 +10,7 @@ from companies import CompaniesAccessInterface
 from themed_excerpts import ThemedExcerptAccessInterface
 from cities import CityAccessInterface
 from aggregates import AggregatesAccessInterface
+from scraper import ScraperAccessInterface
 
 
 @GazetteAccessInterface.register
@@ -50,6 +51,13 @@ class MockCityAccessInterface:
 @AggregatesAccessInterface.register
 class MockAggregatesAccessInterface:
     """Mock implementation of AggregatesAccessInterface"""
+
+    pass
+
+
+@ScraperAccessInterface.register
+class MockScraperAccessInterface:
+    """Mock implementation of ScraperAccessInterface"""
 
     pass
 
@@ -150,13 +158,36 @@ def create_mock_aggregates_interface(aggregates=[]):
     return interface
 
 
+def create_mock_scraper_interface(
+    spiders=[], gazette_id=1, job_stats_id=1, job_stats=[]
+):
+    """
+    Helper to create a mock scraper interface.
+
+    Args:
+        spiders: List of enabled spiders
+        gazette_id: ID returned when a gazette is created (None means duplicate)
+        job_stats_id: ID returned when job stats are created
+        job_stats: List of job stats
+
+    Returns:
+        MockScraperAccessInterface instance with configured mocks
+    """
+    interface = MockScraperAccessInterface()
+    interface.get_enabled_spiders = MagicMock(return_value=spiders)
+    interface.create_gazette = MagicMock(return_value=gazette_id)
+    interface.create_job_stats = MagicMock(return_value=job_stats_id)
+    interface.get_job_stats = MagicMock(return_value=job_stats)
+    return interface
+
+
 def create_default_mocks():
     """
     Helper to create default mocks for all parameters of configure_api_app.
 
     Returns:
         Tuple of (gazette_mock, themed_excerpt_mock, city_mock, suggestion_mock,
-                  companies_mock, aggregates_mock)
+                  companies_mock, aggregates_mock, scraper_mock)
     """
     return (
         create_mock_gazette_interface(),
@@ -165,4 +196,5 @@ def create_default_mocks():
         create_mock_suggestion_service(),
         create_mock_companies_interface(),
         create_mock_aggregates_interface(),
+        create_mock_scraper_interface(),
     )

@@ -601,6 +601,7 @@ class ApiSuggestionsEndpointTests(TestCase):
             self.suggestion_service,  # suggestion_service customizado
             mocks[4],  # companies
             mocks[5],  # aggregates
+            mocks[6],  # scraper
         )
         self.client = TestClient(app)
 
