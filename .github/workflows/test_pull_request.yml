@@ -46,8 +46,8 @@ jobs:
       - name: Setup environment files
         run: |
           cp --update=none config/sample.env config/current.env || true
-          test -f censo.csv || curl -f -s -O https://querido-diario.nyc3.cdn.digitaloceanspaces.com/censo/censo.csv || true
-          test -f themes_config.json || curl -f -s -O https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json || true
+          test -f censo.csv || curl -fsSO https://data.queridodiario.ok.org.br/censo/censo.csv
+          test -f themes_config.json || curl -fsSO https://raw.githubusercontent.com/okfn-brasil/querido-diario-data-processing/main/config/themes_config.json
 
       - name: Monitor disk usage before build
         run: |
