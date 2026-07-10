@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS job_stats (
 MIGRATE_JOB_STATS_TABLE_COMMAND = """
 DO $$
 BEGIN
+    -- Renomeia colunas do schema legado
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name='job_stats' AND column_name='job_stats'
@@ -35,13 +36,75 @@ BEGIN
     ) THEN
         ALTER TABLE job_stats RENAME COLUMN start_time TO created_at;
     END IF;
+
+    -- Garante colunas canônicas (instalações novas sem schema legado)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='spider_name'
+    ) THEN
+        ALTER TABLE job_stats ADD COLUMN spider_name TEXT;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='job_id'
+    ) THEN
+        ALTER TABLE job_stats ADD COLUMN job_id TEXT;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='stats'
+    ) THEN
+        ALTER TABLE job_stats ADD COLUMN stats JSONB;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='created_at'
+    ) THEN
+        ALTER TABLE job_stats ADD COLUMN created_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
 END $$;
-ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS spider_name TEXT;
-ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS job_id TEXT;
-ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS stats JSONB;
-ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Backfill spider_name a partir da coluna legada spider
 UPDATE job_stats SET spider_name = spider WHERE spider_name IS NULL AND spider IS NOT NULL;
+
+-- Remove coluna legada spider
 ALTER TABLE job_stats DROP COLUMN IF EXISTS spider;
+
+-- Uniformiza tipos para bater com o schema canônico
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='stats' AND data_type='json'
+    ) THEN
+        ALTER TABLE job_stats ALTER COLUMN stats TYPE JSONB USING stats::jsonb;
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='created_at'
+        AND data_type='timestamp without time zone'
+    ) THEN
+        ALTER TABLE job_stats ALTER COLUMN created_at TYPE TIMESTAMPTZ
+            USING created_at AT TIME ZONE 'UTC';
+    END IF;
+END $$;
+
+-- Adiciona NOT NULL após backfill e conversão de tipos
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='spider_name' AND is_nullable='YES'
+    ) THEN
+        ALTER TABLE job_stats ALTER COLUMN spider_name SET NOT NULL;
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='stats' AND is_nullable='YES'
+    ) THEN
+        ALTER TABLE job_stats ALTER COLUMN stats SET NOT NULL;
+    END IF;
+END $$;
 """
 
 
