@@ -64,11 +64,17 @@ BEGIN
     END IF;
 END $$;
 
--- Backfill spider_name a partir da coluna legada spider
-UPDATE job_stats SET spider_name = spider WHERE spider_name IS NULL AND spider IS NOT NULL;
-
--- Remove coluna legada spider
-ALTER TABLE job_stats DROP COLUMN IF EXISTS spider;
+-- Backfill e remoção da coluna legada spider (idempotente)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='spider'
+    ) THEN
+        UPDATE job_stats SET spider_name = spider WHERE spider_name IS NULL AND spider IS NOT NULL;
+        ALTER TABLE job_stats DROP COLUMN spider;
+    END IF;
+END $$;
 
 -- Uniformiza tipos para bater com o schema canônico
 DO $$
