@@ -337,6 +337,20 @@ class JobStatsSearchResponse(BaseModel):
     job_stats: List[JobStatsItem]
 
 
+class SpiderSyncItem(BaseModel):
+    spider_name: str
+    territory_id: str
+    date_from: date
+
+
+class SpiderSyncBody(BaseModel):
+    spiders: List[SpiderSyncItem]
+
+
+class SpiderSyncResponse(BaseModel):
+    synced: int
+
+
 @app.get(
     "/gazettes",
     response_model=GazetteSearchResponse,
@@ -846,6 +860,29 @@ async def get_scraper_job_stats(
         "total_stats": len(job_stats),
         "job_stats": job_stats,
     }
+
+
+@app.post(
+    "/scraper/spiders/sync",
+    response_model=SpiderSyncResponse,
+    status_code=status.HTTP_200_OK,
+    name="Sync spiders",
+    description="Register new or modified spiders and their territory mapping. Run after deploying new spiders.",
+    dependencies=[Security(validate_api_key)],
+    tags=["Scraper (internal)"],
+    responses={
+        401: {"model": HTTPExceptionMessage, "description": "Missing API Key."},
+        403: {"model": HTTPExceptionMessage, "description": "Invalid API Key."},
+        503: {
+            "model": HTTPExceptionMessage,
+            "description": "Scraper API is not configured.",
+        },
+    },
+)
+async def sync_scraper_spiders(body: SpiderSyncBody):
+    spiders = [(s.spider_name, s.territory_id, s.date_from) for s in body.spiders]
+    synced = app.scraper.sync_spiders(spiders)
+    return {"synced": synced}
 
 
 def configure_api_app(

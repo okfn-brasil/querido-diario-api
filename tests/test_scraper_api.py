@@ -74,6 +74,7 @@ class ScraperApiAuthenticationTests(ScraperApiTestCase):
             self.client.post("/scraper/gazettes", json={}),
             self.client.post("/scraper/job-stats", json={}),
             self.client.get("/scraper/job-stats"),
+            self.client.post("/scraper/spiders/sync", json={}),
         ]
         for response in requests:
             self.assertEqual(response.status_code, 401)
@@ -301,3 +302,38 @@ class ScraperApiJobStatsEndpointTests(ScraperApiTestCase):
         self.scraper_interface.get_job_stats.assert_called_once_with(
             "sp_campinas", datetime(2024, 6, 1, 0, 0, 0)
         )
+
+
+class ScraperApiSyncSpidersEndpointTests(ScraperApiTestCase):
+    def test_sync_spiders_should_return_synced_count(self):
+        self.scraper_interface.sync_spiders.return_value = 2
+        response = self.client.post(
+            "/scraper/spiders/sync",
+            headers=TEST_API_KEY_HEADERS,
+            json={
+                "spiders": [
+                    {
+                        "spider_name": "sp_campinas",
+                        "territory_id": "3509502",
+                        "date_from": "2015-01-01",
+                    },
+                    {
+                        "spider_name": "sp_sao_paulo",
+                        "territory_id": "3550308",
+                        "date_from": "2010-01-01",
+                    },
+                ]
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"synced": 2})
+
+    def test_sync_spiders_with_empty_list_should_succeed(self):
+        self.scraper_interface.sync_spiders.return_value = 0
+        response = self.client.post(
+            "/scraper/spiders/sync",
+            headers=TEST_API_KEY_HEADERS,
+            json={"spiders": []},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"synced": 0})

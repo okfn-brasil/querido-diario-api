@@ -80,6 +80,13 @@ class ScraperAccessInterface(abc.ABC):
         Get the stats of scraping jobs.
         """
 
+    @abc.abstractmethod
+    def sync_spiders(self, territory_spider_map: List[tuple]) -> int:
+        """
+        Register new or modified spiders and their territory mapping.
+        Returns the number of spiders processed.
+        """
+
 
 class ScraperAccess(ScraperAccessInterface):
     _database_gateway = None
@@ -104,6 +111,9 @@ class ScraperAccess(ScraperAccessInterface):
         self, spider: Optional[str] = None, since: Optional[datetime] = None
     ) -> List[Dict]:
         return self._database_gateway.get_job_stats(spider, since)
+
+    def sync_spiders(self, territory_spider_map: List[tuple]) -> int:
+        return self._database_gateway.sync_spiders(territory_spider_map)
 
 
 def create_scraper_interface(
