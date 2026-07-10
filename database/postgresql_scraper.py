@@ -21,7 +21,25 @@ CREATE TABLE IF NOT EXISTS job_stats (
 """
 
 MIGRATE_JOB_STATS_TABLE_COMMAND = """
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='job_stats'
+    ) THEN
+        ALTER TABLE job_stats RENAME COLUMN job_stats TO stats;
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='job_stats' AND column_name='start_time'
+    ) THEN
+        ALTER TABLE job_stats RENAME COLUMN start_time TO created_at;
+    END IF;
+END $$;
 ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS spider_name TEXT;
+ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS job_id TEXT;
+ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS stats JSONB;
+ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 """
 
 
