@@ -723,7 +723,7 @@ async def get_aggregates(
 
 
 @app.get(
-    "/api/scraper/spiders",
+    "/scraper/spiders",
     response_model=SpidersSearchResponse,
     name="List enabled spiders",
     description="List the spiders enabled to run, optionally filtered by the scraping date range.",
@@ -756,7 +756,7 @@ async def get_scraper_spiders(
 
 
 @app.post(
-    "/api/scraper/gazettes",
+    "/scraper/gazettes",
     response_model=CreatedScrapedGazetteResponse,
     status_code=status.HTTP_201_CREATED,
     name="Persist a scraped gazette",
@@ -792,7 +792,7 @@ async def create_scraped_gazette(response: Response, body: ScrapedGazetteBody):
 
 
 @app.post(
-    "/api/scraper/job-stats",
+    "/scraper/job-stats",
     response_model=CreatedJobStatsResponse,
     status_code=status.HTTP_201_CREATED,
     name="Persist the stats of a scraping job",
@@ -816,7 +816,7 @@ async def create_scraper_job_stats(body: JobStatsBody):
 
 
 @app.get(
-    "/api/scraper/job-stats",
+    "/scraper/job-stats",
     response_model=JobStatsSearchResponse,
     name="Get the stats of scraping jobs",
     description="Get the stats of scraping jobs, optionally filtered by spider name and datetime.",

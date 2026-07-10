@@ -36,7 +36,7 @@ class ScraperApiAuthenticationTests(ScraperApiTestCase):
     def test_should_return_503_when_no_api_key_is_configured(self):
         with patch.dict(os.environ, {"QUERIDO_DIARIO_SCRAPER_API_KEYS": ""}):
             response = self.client.get(
-                "/api/scraper/spiders", headers=TEST_API_KEY_HEADERS
+                "/scraper/spiders", headers=TEST_API_KEY_HEADERS
             )
         self.assertEqual(response.status_code, 503)
 
@@ -44,17 +44,17 @@ class ScraperApiAuthenticationTests(ScraperApiTestCase):
         with patch.dict(os.environ):
             del os.environ["QUERIDO_DIARIO_SCRAPER_API_KEYS"]
             response = self.client.get(
-                "/api/scraper/spiders", headers=TEST_API_KEY_HEADERS
+                "/scraper/spiders", headers=TEST_API_KEY_HEADERS
             )
         self.assertEqual(response.status_code, 503)
 
     def test_should_return_401_when_api_key_header_is_missing(self):
-        response = self.client.get("/api/scraper/spiders")
+        response = self.client.get("/scraper/spiders")
         self.assertEqual(response.status_code, 401)
 
     def test_should_return_403_when_api_key_is_invalid(self):
         response = self.client.get(
-            "/api/scraper/spiders", headers={"X-API-Key": "wrong-key"}
+            "/scraper/spiders", headers={"X-API-Key": "wrong-key"}
         )
         self.assertEqual(response.status_code, 403)
 
@@ -64,16 +64,16 @@ class ScraperApiAuthenticationTests(ScraperApiTestCase):
             {"QUERIDO_DIARIO_SCRAPER_API_KEYS": f"old-key,{TEST_API_KEY}"},
         ):
             response = self.client.get(
-                "/api/scraper/spiders", headers={"X-API-Key": "old-key"}
+                "/scraper/spiders", headers={"X-API-Key": "old-key"}
             )
         self.assertEqual(response.status_code, 200)
 
     def test_all_scraper_endpoints_should_require_api_key(self):
         requests = [
-            self.client.get("/api/scraper/spiders"),
-            self.client.post("/api/scraper/gazettes", json={}),
-            self.client.post("/api/scraper/job-stats", json={}),
-            self.client.get("/api/scraper/job-stats"),
+            self.client.get("/scraper/spiders"),
+            self.client.post("/scraper/gazettes", json={}),
+            self.client.post("/scraper/job-stats", json={}),
+            self.client.get("/scraper/job-stats"),
         ]
         for response in requests:
             self.assertEqual(response.status_code, 401)
@@ -93,7 +93,7 @@ class ScraperApiSpidersEndpointTests(ScraperApiTestCase):
                 "date_to": None,
             },
         ]
-        response = self.client.get("/api/scraper/spiders", headers=TEST_API_KEY_HEADERS)
+        response = self.client.get("/scraper/spiders", headers=TEST_API_KEY_HEADERS)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json(),
@@ -116,7 +116,7 @@ class ScraperApiSpidersEndpointTests(ScraperApiTestCase):
 
     def test_spiders_endpoint_should_forward_date_filters_to_interface(self):
         response = self.client.get(
-            "/api/scraper/spiders",
+            "/scraper/spiders",
             headers=TEST_API_KEY_HEADERS,
             params={"start_date": "2024-01-01", "end_date": "2024-12-31"},
         )
@@ -126,13 +126,13 @@ class ScraperApiSpidersEndpointTests(ScraperApiTestCase):
         )
 
     def test_spiders_endpoint_should_accept_request_without_date_filters(self):
-        response = self.client.get("/api/scraper/spiders", headers=TEST_API_KEY_HEADERS)
+        response = self.client.get("/scraper/spiders", headers=TEST_API_KEY_HEADERS)
         self.assertEqual(response.status_code, 200)
         self.scraper_interface.get_enabled_spiders.assert_called_once_with(None, None)
 
     def test_spiders_endpoint_should_fail_with_invalid_date_filter(self):
         response = self.client.get(
-            "/api/scraper/spiders",
+            "/scraper/spiders",
             headers=TEST_API_KEY_HEADERS,
             params={"start_date": "foo-bar-2222"},
         )
@@ -159,7 +159,7 @@ class ScraperApiGazettesEndpointTests(ScraperApiTestCase):
     def test_gazettes_endpoint_should_create_gazette(self):
         self.scraper_interface.create_gazette.return_value = 123
         response = self.client.post(
-            "/api/scraper/gazettes",
+            "/scraper/gazettes",
             headers=TEST_API_KEY_HEADERS,
             json=build_gazette_payload(),
         )
@@ -168,7 +168,7 @@ class ScraperApiGazettesEndpointTests(ScraperApiTestCase):
 
     def test_gazettes_endpoint_should_forward_gazette_data_to_interface(self):
         response = self.client.post(
-            "/api/scraper/gazettes",
+            "/scraper/gazettes",
             headers=TEST_API_KEY_HEADERS,
             json=build_gazette_payload(),
         )
@@ -187,7 +187,7 @@ class ScraperApiGazettesEndpointTests(ScraperApiTestCase):
     def test_gazettes_endpoint_should_return_200_for_duplicated_gazette(self):
         self.scraper_interface.create_gazette.return_value = None
         response = self.client.post(
-            "/api/scraper/gazettes",
+            "/scraper/gazettes",
             headers=TEST_API_KEY_HEADERS,
             json=build_gazette_payload(),
         )
@@ -199,7 +199,7 @@ class ScraperApiGazettesEndpointTests(ScraperApiTestCase):
             'Territory "0000000" does not exist.'
         )
         response = self.client.post(
-            "/api/scraper/gazettes",
+            "/scraper/gazettes",
             headers=TEST_API_KEY_HEADERS,
             json=build_gazette_payload(territory_id="0000000"),
         )
@@ -207,7 +207,7 @@ class ScraperApiGazettesEndpointTests(ScraperApiTestCase):
 
     def test_gazettes_endpoint_should_fail_with_malformed_territory_id(self):
         response = self.client.post(
-            "/api/scraper/gazettes",
+            "/scraper/gazettes",
             headers=TEST_API_KEY_HEADERS,
             json=build_gazette_payload(territory_id="12345"),
         )
@@ -217,7 +217,7 @@ class ScraperApiGazettesEndpointTests(ScraperApiTestCase):
         payload = build_gazette_payload()
         del payload["file_checksum"]
         response = self.client.post(
-            "/api/scraper/gazettes",
+            "/scraper/gazettes",
             headers=TEST_API_KEY_HEADERS,
             json=payload,
         )
@@ -228,7 +228,7 @@ class ScraperApiJobStatsEndpointTests(ScraperApiTestCase):
     def test_job_stats_endpoint_should_create_job_stats(self):
         self.scraper_interface.create_job_stats.return_value = 7
         response = self.client.post(
-            "/api/scraper/job-stats",
+            "/scraper/job-stats",
             headers=TEST_API_KEY_HEADERS,
             json={
                 "spider_name": "sp_campinas",
@@ -244,7 +244,7 @@ class ScraperApiJobStatsEndpointTests(ScraperApiTestCase):
 
     def test_job_stats_endpoint_should_accept_request_without_job_id(self):
         response = self.client.post(
-            "/api/scraper/job-stats",
+            "/scraper/job-stats",
             headers=TEST_API_KEY_HEADERS,
             json={"spider_name": "sp_campinas", "stats": {}},
         )
@@ -255,7 +255,7 @@ class ScraperApiJobStatsEndpointTests(ScraperApiTestCase):
 
     def test_job_stats_endpoint_should_fail_without_stats(self):
         response = self.client.post(
-            "/api/scraper/job-stats",
+            "/scraper/job-stats",
             headers=TEST_API_KEY_HEADERS,
             json={"spider_name": "sp_campinas"},
         )
@@ -272,7 +272,7 @@ class ScraperApiJobStatsEndpointTests(ScraperApiTestCase):
             }
         ]
         response = self.client.get(
-            "/api/scraper/job-stats", headers=TEST_API_KEY_HEADERS
+            "/scraper/job-stats", headers=TEST_API_KEY_HEADERS
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -293,7 +293,7 @@ class ScraperApiJobStatsEndpointTests(ScraperApiTestCase):
 
     def test_job_stats_endpoint_should_forward_filters_to_interface(self):
         response = self.client.get(
-            "/api/scraper/job-stats",
+            "/scraper/job-stats",
             headers=TEST_API_KEY_HEADERS,
             params={"spider": "sp_campinas", "since": "2024-06-01T00:00:00"},
         )
