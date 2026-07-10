@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS job_stats (
 );
 """
 
+MIGRATE_JOB_STATS_TABLE_COMMAND = """
+ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS spider_name TEXT;
+"""
+
 
 class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
     _job_stats_table_ready = False
@@ -151,6 +155,7 @@ class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
     def _ensure_job_stats_table(self) -> None:
         if not self._job_stats_table_ready:
             self._execute(CREATE_JOB_STATS_TABLE_COMMAND)
+            self._execute(MIGRATE_JOB_STATS_TABLE_COMMAND)
             self._job_stats_table_ready = True
 
     def _format_spider_data(self, data: Tuple) -> Dict:
