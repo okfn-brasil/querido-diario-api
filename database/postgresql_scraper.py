@@ -40,6 +40,8 @@ ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS spider_name TEXT;
 ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS job_id TEXT;
 ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS stats JSONB;
 ALTER TABLE job_stats ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+UPDATE job_stats SET spider_name = spider WHERE spider_name IS NULL AND spider IS NOT NULL;
+ALTER TABLE job_stats DROP COLUMN IF EXISTS spider;
 """
 
 
