@@ -74,7 +74,10 @@ class ScraperAccessInterface(abc.ABC):
 
     @abc.abstractmethod
     def get_job_stats(
-        self, spider: Optional[str] = None, since: Optional[datetime] = None
+        self,
+        spider: Optional[str] = None,
+        since: Optional[datetime] = None,
+        limit: int = 100,
     ) -> List[Dict]:
         """
         Get the stats of scraping jobs.
@@ -108,9 +111,12 @@ class ScraperAccess(ScraperAccessInterface):
         return self._database_gateway.insert_job_stats(spider_name, job_id, stats)
 
     def get_job_stats(
-        self, spider: Optional[str] = None, since: Optional[datetime] = None
+        self,
+        spider: Optional[str] = None,
+        since: Optional[datetime] = None,
+        limit: int = 100,
     ) -> List[Dict]:
-        return self._database_gateway.get_job_stats(spider, since)
+        return self._database_gateway.get_job_stats(spider, since, limit)
 
     def sync_spiders(self, territory_spider_map: List[tuple]) -> int:
         return self._database_gateway.sync_spiders(territory_spider_map)

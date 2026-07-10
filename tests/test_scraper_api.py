@@ -300,8 +300,22 @@ class ScraperApiJobStatsEndpointTests(ScraperApiTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.scraper_interface.get_job_stats.assert_called_once_with(
-            "sp_campinas", datetime(2024, 6, 1, 0, 0, 0)
+            "sp_campinas", datetime(2024, 6, 1, 0, 0, 0), 100
         )
+
+    def test_job_stats_endpoint_should_apply_default_limit(self):
+        response = self.client.get("/scraper/job-stats", headers=TEST_API_KEY_HEADERS)
+        self.assertEqual(response.status_code, 200)
+        _, _, limit = self.scraper_interface.get_job_stats.call_args.args
+        self.assertEqual(limit, 100)
+
+    def test_job_stats_endpoint_should_reject_limit_above_max(self):
+        response = self.client.get(
+            "/scraper/job-stats",
+            headers=TEST_API_KEY_HEADERS,
+            params={"limit": 1001},
+        )
+        self.assertEqual(response.status_code, 422)
 
 
 class ScraperApiSyncSpidersEndpointTests(ScraperApiTestCase):

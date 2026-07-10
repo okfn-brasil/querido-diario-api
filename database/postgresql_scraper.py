@@ -199,7 +199,10 @@ class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
         return results[0][0]
 
     def get_job_stats(
-        self, spider: Optional[str] = None, since: Optional[datetime] = None
+        self,
+        spider: Optional[str] = None,
+        since: Optional[datetime] = None,
+        limit: int = 100,
     ) -> List[Dict]:
         self._ensure_job_stats_table()
         command = """
@@ -211,9 +214,10 @@ class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
             (%(spider)s IS NULL OR spider_name = %(spider)s)
             AND (%(since)s IS NULL OR created_at >= %(since)s)
         ORDER BY created_at DESC
+        LIMIT %(limit)s
         ;
         """
-        data = {"spider": spider, "since": since}
+        data = {"spider": spider, "since": since, "limit": limit}
         return [
             self._format_job_stats_data(result)
             for result in self._select(command, data)

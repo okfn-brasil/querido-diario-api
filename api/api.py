@@ -854,8 +854,14 @@ async def get_scraper_job_stats(
         None,
         description="Only return stats of jobs created on the given datetime or after (format: YYYY-MM-DDTHH:MM:SS).",
     ),
+    limit: int = Query(
+        100,
+        ge=1,
+        le=1000,
+        description="Maximum number of records to return (default: 100, max: 1000).",
+    ),
 ):
-    job_stats = app.scraper.get_job_stats(spider, since)
+    job_stats = app.scraper.get_job_stats(spider, since, limit)
     return {
         "total_stats": len(job_stats),
         "job_stats": job_stats,
