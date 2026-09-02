@@ -75,6 +75,7 @@ class ScraperApiAuthenticationTests(ScraperApiTestCase):
             self.client.post("/scraper/job-stats", json={}),
             self.client.get("/scraper/job-stats"),
             self.client.post("/scraper/spiders/sync", json={}),
+            self.client.patch("/scraper/spiders/sp_campinas", json={}),
         ]
         for response in requests:
             self.assertEqual(response.status_code, 401)
@@ -351,3 +352,49 @@ class ScraperApiSyncSpidersEndpointTests(ScraperApiTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"synced": 0})
+
+
+class ScraperApiSpiderStatusEndpointTests(ScraperApiTestCase):
+    def test_should_enable_spider(self):
+        self.scraper_interface.set_spider_enabled.return_value = True
+        response = self.client.patch(
+            "/scraper/spiders/sp_campinas",
+            headers=TEST_API_KEY_HEADERS,
+            json={"enabled": True},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(), {"spider_name": "sp_campinas", "enabled": True}
+        )
+        self.scraper_interface.set_spider_enabled.assert_called_once_with(
+            "sp_campinas", True
+        )
+
+    def test_should_disable_spider(self):
+        self.scraper_interface.set_spider_enabled.return_value = True
+        response = self.client.patch(
+            "/scraper/spiders/sp_campinas",
+            headers=TEST_API_KEY_HEADERS,
+            json={"enabled": False},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(), {"spider_name": "sp_campinas", "enabled": False}
+        )
+
+    def test_should_return_404_when_spider_does_not_exist(self):
+        self.scraper_interface.set_spider_enabled.return_value = False
+        response = self.client.patch(
+            "/scraper/spiders/unknown_spider",
+            headers=TEST_API_KEY_HEADERS,
+            json={"enabled": True},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_should_fail_without_enabled_field(self):
+        response = self.client.patch(
+            "/scraper/spiders/sp_campinas",
+            headers=TEST_API_KEY_HEADERS,
+            json={},
+        )
+        self.assertEqual(response.status_code, 422)
