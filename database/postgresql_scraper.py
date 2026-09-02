@@ -223,6 +223,18 @@ class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
             for result in self._select(command, data)
         ]
 
+    def set_spider_enabled(self, spider_name: str, enabled: bool) -> bool:
+        command = """
+        UPDATE querido_diario_spiders
+        SET enabled = %(enabled)s
+        WHERE spider_name = %(spider_name)s
+        RETURNING spider_name
+        ;
+        """
+        data = {"spider_name": spider_name, "enabled": enabled}
+        results = self._execute(command, data)
+        return bool(results)
+
     def sync_spiders(self, territory_spider_map: List[tuple]) -> int:
         for spider_name, territory_id, date_from in territory_spider_map:
             self._execute(

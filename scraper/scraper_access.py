@@ -43,6 +43,12 @@ class ScraperDatabaseInterface(abc.ABC):
         Get the stats of scraping jobs.
         """
 
+    @abc.abstractmethod
+    def set_spider_enabled(self, spider_name: str, enabled: bool) -> bool:
+        """
+        Enable or disable a spider. Returns False if the spider does not exist.
+        """
+
 
 class ScraperAccessInterface(abc.ABC):
     """
@@ -90,6 +96,12 @@ class ScraperAccessInterface(abc.ABC):
         Returns the number of spiders processed.
         """
 
+    @abc.abstractmethod
+    def set_spider_enabled(self, spider_name: str, enabled: bool) -> bool:
+        """
+        Enable or disable a spider. Returns False if the spider does not exist.
+        """
+
 
 class ScraperAccess(ScraperAccessInterface):
     _database_gateway = None
@@ -120,6 +132,9 @@ class ScraperAccess(ScraperAccessInterface):
 
     def sync_spiders(self, territory_spider_map: List[tuple]) -> int:
         return self._database_gateway.sync_spiders(territory_spider_map)
+
+    def set_spider_enabled(self, spider_name: str, enabled: bool) -> bool:
+        return self._database_gateway.set_spider_enabled(spider_name, enabled)
 
 
 def create_scraper_interface(

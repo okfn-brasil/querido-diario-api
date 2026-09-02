@@ -351,6 +351,17 @@ class SpiderSyncResponse(BaseModel):
     synced: int
 
 
+class SpiderStatusBody(BaseModel):
+    enabled: bool = Field(
+        title="Enabled", description="Whether the spider should run when scheduled."
+    )
+
+
+class SpiderStatusResponse(BaseModel):
+    spider_name: str
+    enabled: bool
+
+
 @app.get(
     "/gazettes",
     response_model=GazetteSearchResponse,
@@ -889,6 +900,33 @@ async def sync_scraper_spiders(body: SpiderSyncBody):
     spiders = [(s.spider_name, s.territory_id, s.date_from) for s in body.spiders]
     synced = app.scraper.sync_spiders(spiders)
     return {"synced": synced}
+
+
+@app.patch(
+    "/scraper/spiders/{spider_name}",
+    response_model=SpiderStatusResponse,
+    name="Enable or disable a spider",
+    description="Enable or disable a spider, controlling whether it is scheduled to run.",
+    dependencies=[Security(validate_api_key)],
+    tags=["Scraper (internal)"],
+    responses={
+        401: {"model": HTTPExceptionMessage, "description": "Missing API Key."},
+        403: {"model": HTTPExceptionMessage, "description": "Invalid API Key."},
+        404: {"model": HTTPExceptionMessage, "description": "Spider not found."},
+        503: {
+            "model": HTTPExceptionMessage,
+            "description": "Scraper API is not configured.",
+        },
+    },
+)
+async def set_scraper_spider_status(spider_name: str, body: SpiderStatusBody):
+    found = app.scraper.set_spider_enabled(spider_name, body.enabled)
+    if not found:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": f'Spider "{spider_name}" does not exist.'},
+        )
+    return {"spider_name": spider_name, "enabled": body.enabled}
 
 
 def configure_api_app(

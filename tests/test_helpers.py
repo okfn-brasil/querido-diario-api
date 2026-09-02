@@ -159,7 +159,12 @@ def create_mock_aggregates_interface(aggregates=[]):
 
 
 def create_mock_scraper_interface(
-    spiders=[], gazette_id=1, job_stats_id=1, job_stats=[], synced=0
+    spiders=[],
+    gazette_id=1,
+    job_stats_id=1,
+    job_stats=[],
+    synced=0,
+    spider_enabled_found=True,
 ):
     """
     Helper to create a mock scraper interface.
@@ -170,6 +175,7 @@ def create_mock_scraper_interface(
         job_stats_id: ID returned when job stats are created
         job_stats: List of job stats
         synced: Number of spiders returned by sync_spiders
+        spider_enabled_found: Whether set_spider_enabled finds the spider
 
     Returns:
         MockScraperAccessInterface instance with configured mocks
@@ -180,6 +186,7 @@ def create_mock_scraper_interface(
     interface.create_job_stats = MagicMock(return_value=job_stats_id)
     interface.get_job_stats = MagicMock(return_value=job_stats)
     interface.sync_spiders = MagicMock(return_value=synced)
+    interface.set_spider_enabled = MagicMock(return_value=spider_enabled_found)
     return interface
 
 
