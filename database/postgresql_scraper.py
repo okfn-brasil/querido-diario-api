@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Dict, List, Optional, Tuple
 
 import psycopg2
-from psycopg2.extras import Json
+from psycopg2.extras import Json, execute_values
 
 from scraper import InvalidTerritoryIDException, ScraperDatabaseInterface
 
@@ -236,26 +236,64 @@ class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
         return bool(results)
 
     def sync_spiders(self, territory_spider_map: List[tuple]) -> int:
-        for spider_name, territory_id, date_from in territory_spider_map:
-            self._execute(
-                """
-                INSERT INTO querido_diario_spiders (spider_name, date_from, enabled)
-                VALUES (%(spider_name)s, %(date_from)s, FALSE)
-                ON CONFLICT (spider_name) DO UPDATE
-                    SET date_from = EXCLUDED.date_from
-                    WHERE querido_diario_spiders.date_from <> EXCLUDED.date_from
-                """,
-                {"spider_name": spider_name, "date_from": date_from},
-            )
-            self._execute(
-                """
-                INSERT INTO territory_spider_map (spider_name, territory_id)
-                VALUES (%(spider_name)s, %(territory_id)s)
-                ON CONFLICT DO NOTHING
-                """,
-                {"spider_name": spider_name, "territory_id": territory_id},
-            )
-        return len(territory_spider_map)
+        """Register/update spiders and their territory mapping in bulk.
+
+        Uses a single connection and two batched upserts (instead of one
+        connection + two statements *per spider*) — with 400+ spiders, the
+        per-row round trips (each opening/closing its own connection) were
+        slow enough to blow past callers' HTTP read timeouts.
+        """
+        if not territory_spider_map:
+            return 0
+
+        # Um spider pode aparecer mais de uma vez (uma entrada por território
+        # que ele cobre) — dedup por spider_name antes do upsert em lote,
+        # já que um único INSERT ... ON CONFLICT DO UPDATE não pode afetar a
+        # mesma linha duas vezes (CardinalityViolation).
+        spiders_by_name = {
+            spider_name: date_from
+            for spider_name, _territory_id, date_from in territory_spider_map
+        }
+
+        connection = psycopg2.connect(
+            dbname=self.database,
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+        )
+        try:
+            with connection.cursor() as cursor:
+                execute_values(
+                    cursor,
+                    """
+                    INSERT INTO querido_diario_spiders (spider_name, date_from, enabled)
+                    VALUES %s
+                    ON CONFLICT (spider_name) DO UPDATE
+                        SET date_from = EXCLUDED.date_from
+                        WHERE querido_diario_spiders.date_from <> EXCLUDED.date_from
+                    """,
+                    [
+                        (spider_name, date_from, False)
+                        for spider_name, date_from in spiders_by_name.items()
+                    ],
+                )
+                execute_values(
+                    cursor,
+                    """
+                    INSERT INTO territory_spider_map (spider_name, territory_id)
+                    VALUES %s
+                    ON CONFLICT DO NOTHING
+                    """,
+                    [
+                        (spider_name, territory_id)
+                        for spider_name, territory_id, _date_from in territory_spider_map
+                    ],
+                )
+            connection.commit()
+            return len(territory_spider_map)
+        finally:
+            connection.close()
 
     def _ensure_job_stats_table(self) -> None:
         if not self._job_stats_table_ready:
