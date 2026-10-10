@@ -113,9 +113,25 @@ BEGIN
 END $$;
 """
 
+# Territórios dos governos estaduais (ADR-0006: código IBGE da UF + "99999").
+# Devem espelhar as linhas correspondentes do territories.csv dos raspadores.
+ENSURE_STATE_TERRITORIES_COMMAND = """
+INSERT INTO territories (id, name, state_code, state) VALUES
+    ('3199999', 'Governo do Estado de Minas Gerais', 'MG', 'Minas Gerais'),
+    ('3299999', 'Governo do Estado do Espírito Santo', 'ES', 'Espírito Santo'),
+    ('3399999', 'Governo do Estado do Rio de Janeiro', 'RJ', 'Rio de Janeiro'),
+    ('3599999', 'Governo do Estado de São Paulo', 'SP', 'São Paulo')
+ON CONFLICT (id) DO NOTHING;
+"""
+
 
 class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
     _job_stats_table_ready = False
+    _state_territories_ready = False
+
+    def __init__(self, host, database, user, password, port):
+        super().__init__(host, database, user, password, port)
+        self._ensure_state_territories()
 
     def _execute(self, command: str, data: Dict = {}) -> List[Tuple]:
         """
@@ -255,6 +271,8 @@ class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
             for spider_name, _territory_id, date_from in territory_spider_map
         }
 
+        self._ensure_state_territories()
+
         connection = psycopg2.connect(
             dbname=self.database,
             user=self.user,
@@ -300,6 +318,18 @@ class PostgreSQLDatabaseScraper(PostgreSQLDatabase, ScraperDatabaseInterface):
             self._execute(CREATE_JOB_STATS_TABLE_COMMAND)
             self._execute(MIGRATE_JOB_STATS_TABLE_COMMAND)
             self._job_stats_table_ready = True
+
+    def _ensure_state_territories(self) -> None:
+        if self._state_territories_ready:
+            return
+        try:
+            self._execute(ENSURE_STATE_TERRITORIES_COMMAND)
+        except psycopg2.Error:
+            # Não derruba o startup da API se o banco ainda não estiver
+            # pronto; tenta de novo no próximo sync de spiders.
+            logging.warning("Could not ensure state territories", exc_info=True)
+            return
+        self._state_territories_ready = True
 
     def _format_spider_data(self, data: Tuple) -> Dict:
         return {

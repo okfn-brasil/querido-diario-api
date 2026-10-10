@@ -11,6 +11,7 @@ def make_scraper_db():
     db.password = "password"
     db.host = "localhost"
     db.port = 5432
+    db._state_territories_ready = True
     return db
 
 
