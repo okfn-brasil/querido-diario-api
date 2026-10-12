@@ -28,6 +28,7 @@ A funcionalidade do URL builder foi dividida em módulos de teste focados:
 - **`test_api.py`**: Testes dos endpoints da API
 - **`test_suggestion_service.py`**: Testes do serviço de sugestões
 - **`test_config.py`**: Testes de configuração
+- **`test_state_territory_integration.py`**: Testes de integração (OpenSearch e PostgreSQL reais) do território de governo estadual; só rodam com `RUN_INTEGRATION_TESTS=1`
 
 ## Boas Práticas Implementadas
 
