@@ -370,7 +370,7 @@ class SpiderStatusResponse(BaseModel):
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_gazettes(
+def get_gazettes(
     territory_ids: List[str] = Query(
         [],
         description="Search in gazettes published by cities with the given 7-digit IBGE IDs (an empty field searches in all available cities).",
@@ -457,7 +457,7 @@ async def get_gazettes(
         404: {"model": HTTPExceptionMessage, "description": "Theme not found."},
     },
 )
-async def get_themed_excerpts(
+def get_themed_excerpts(
     theme: str = Path(
         ...,
         description="Search in excerpts from gazettes that are associated to the given theme.",
@@ -552,7 +552,7 @@ async def get_themed_excerpts(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_available_themes():
+def get_available_themes():
     themes = app.themed_excerpts.get_available_themes()
     return {"themes": themes}
 
@@ -568,7 +568,7 @@ async def get_available_themes():
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_available_subthemes(
+def get_available_subthemes(
     theme: str = Path(
         ...,
         description="Theme that can be used to search in gazettes by theme.",
@@ -591,7 +591,7 @@ async def get_available_subthemes(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_available_entities(
+def get_available_entities(
     theme: str = Path(
         ...,
         description="Theme that can be used to search in gazettes by theme.",
@@ -611,7 +611,7 @@ async def get_available_entities(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def get_cities(
+def get_cities(
     city_name: Optional[str] = Query(
         "",
         description="Search for cities with a similar name (empty field returns all cities).",
@@ -634,9 +634,7 @@ async def get_cities(
     response_model_exclude_none=True,
     responses={404: {"model": HTTPExceptionMessage, "description": "City not found"}},
 )
-async def get_city(
-    territory_id: str = Path(..., description="City's 7-digit IBGE ID.")
-):
+def get_city(territory_id: str = Path(..., description="City's 7-digit IBGE ID.")):
     city_info = app.cities.get_city(territory_id)
     if city_info is None:
         return JSONResponse(status_code=404, content={"detail": "City not found."})
@@ -651,7 +649,7 @@ async def get_city(
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def add_suggestion(response: Response, body: CreateSuggestionBody):
+def add_suggestion(response: Response, body: CreateSuggestionBody):
     suggestion = Suggestion(
         email_address=body.email_address,
         name=body.name,
@@ -674,7 +672,7 @@ async def add_suggestion(response: Response, body: CreateSuggestionBody):
         400: {"model": HTTPExceptionMessage, "description": "CNPJ is not valid."},
     },
 )
-async def get_company(
+def get_company(
     cnpj: str = Path(
         ..., description="Company's CNPJ number (may include non-digit characters)."
     )
@@ -699,7 +697,7 @@ async def get_company(
         400: {"model": HTTPExceptionMessage, "description": "CNPJ is not valid."},
     },
 )
-async def get_partners(
+def get_partners(
     cnpj: str = Path(
         ..., description="Company's CNPJ number (may include non-digit characters)."
     )
@@ -724,7 +722,7 @@ async def get_partners(
         },
     },
 )
-async def get_aggregates(
+def get_aggregates(
     territory_id: Optional[str] = Query(None, description="City's 7-digit IBGE ID."),
     state_code: str = Path(..., description="City's state code."),
 ):
@@ -763,7 +761,7 @@ async def get_aggregates(
         },
     },
 )
-async def get_scraper_spiders(
+def get_scraper_spiders(
     start_date: Optional[date] = Query(
         None,
         description="Only return spiders which scrape gazettes published since the given date (format: YYYY-MM-DD).",
@@ -803,7 +801,7 @@ async def get_scraper_spiders(
         },
     },
 )
-async def create_scraped_gazette(response: Response, body: ScrapedGazetteBody):
+def create_scraped_gazette(response: Response, body: ScrapedGazetteBody):
     try:
         gazette_id = app.scraper.create_gazette(body.model_dump())
     except InvalidTerritoryIDException as exc:
@@ -833,7 +831,7 @@ async def create_scraped_gazette(response: Response, body: ScrapedGazetteBody):
         },
     },
 )
-async def create_scraper_job_stats(body: JobStatsBody):
+def create_scraper_job_stats(body: JobStatsBody):
     job_stats_id = app.scraper.create_job_stats(
         body.spider_name, body.job_id, body.stats
     )
@@ -856,7 +854,7 @@ async def create_scraper_job_stats(body: JobStatsBody):
         },
     },
 )
-async def get_scraper_job_stats(
+def get_scraper_job_stats(
     spider: Optional[str] = Query(
         None,
         description="Only return stats of jobs run by the spider with the given name.",
@@ -896,7 +894,7 @@ async def get_scraper_job_stats(
         },
     },
 )
-async def sync_scraper_spiders(body: SpiderSyncBody):
+def sync_scraper_spiders(body: SpiderSyncBody):
     spiders = [(s.spider_name, s.territory_id, s.date_from) for s in body.spiders]
     synced = app.scraper.sync_spiders(spiders)
     return {"synced": synced}
@@ -919,7 +917,7 @@ async def sync_scraper_spiders(body: SpiderSyncBody):
         },
     },
 )
-async def set_scraper_spider_status(spider_name: str, body: SpiderStatusBody):
+def set_scraper_spider_status(spider_name: str, body: SpiderStatusBody):
     found = app.scraper.set_spider_enabled(spider_name, body.enabled)
     if not found:
         return JSONResponse(
