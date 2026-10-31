@@ -205,3 +205,67 @@ jobs:
             -t ghcr.io/$REPO:${{ github.ref_name }} \
             ghcr.io/$REPO:${{ github.ref_name }}-amd64 \
             ghcr.io/$REPO:${{ github.ref_name }}-arm64
+
+  bump-deployment:
+    name: Bump image in querido-diario-deployment
+    needs: create-manifest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: bump-deployment
+      cancel-in-progress: false
+
+    steps:
+      # Token do GitHub App da org (ADR-009 do querido-diario-deployment),
+      # escopado só ao repositório de deployment.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.QD_APP_ID }}
+          private-key: ${{ secrets.QD_APP_PRIVATE_KEY }}
+          owner: okfn-brasil
+          repositories: querido-diario-deployment
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: okfn-brasil/querido-diario-deployment
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Update newTag
+        env:
+          FILE: k8s/overlays/production/kustomization.yaml
+          TAG: ${{ github.ref_name }}
+        run: |
+          set_tag() {
+            awk -v tag="$TAG" -v img="$1" '
+              $0 ~ "name: " img "$" { found = 1; print; next }
+              found && /newTag:/ { sub(/newTag:.*/, "newTag: \"" tag "\""); found = 0 }
+              { print }
+            ' "$FILE" > "$FILE.new"
+            mv "$FILE.new" "$FILE"
+            grep -q "newTag: \"$TAG\"" "$FILE"
+          }
+          set_tag "ghcr.io/okfn-brasil/querido-diario-api"
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: bump/api-prod
+          base: main
+          commit-message: "release: atualiza imagem da API para ${{ github.ref_name }} em produção"
+          title: "release: atualiza imagem da API para ${{ github.ref_name }} em produção"
+          body: |
+            Bump automático de `ghcr.io/okfn-brasil/querido-diario-api` para `${{ github.ref_name }}`.
+
+            Origem: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+
+            Merge aciona o deploy em produção (ver ADR-009).
+          delete-branch: true
