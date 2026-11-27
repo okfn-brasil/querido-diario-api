@@ -103,6 +103,24 @@ class ApiGazettesEndpointTests(TestCase):
         )
         self.assertEqual(response.status_code, 422)
 
+    def test_gazettes_endpoint_should_accept_state_codes_as_query_param(self):
+        interface = create_mock_gazette_interface()
+        configure_api_app(interface, *create_default_mocks()[1:])
+        client = TestClient(app)
+        response = client.get("/gazettes", params={"state_codes": ["sp", " MG "]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            ["SP", "MG"], interface.get_gazettes.call_args.args[0].state_codes
+        )
+
+    def test_get_gazettes_without_state_codes_should_be_fine(self):
+        interface = create_mock_gazette_interface()
+        configure_api_app(interface, *create_default_mocks()[1:])
+        client = TestClient(app)
+        response = client.get("/gazettes")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([], interface.get_gazettes.call_args.args[0].state_codes)
+
     def test_get_gazettes_without_territory_ids_should_be_fine(self):
         interface = create_mock_gazette_interface()
         configure_api_app(interface, *create_default_mocks()[1:])

@@ -375,6 +375,10 @@ async def get_gazettes(
         [],
         description="Search in gazettes published by cities with the given 7-digit IBGE IDs (an empty field searches in all available cities).",
     ),
+    state_codes: List[str] = Query(
+        [],
+        description="Search in gazettes published by cities from the given states, using their 2-letter codes, e.g. SP or MG (an empty field searches in all states).",
+    ),
     published_since: date = Query(
         None,
         description="Search in gazettes published on given date or after (format: YYYY-MM-DD).",
@@ -438,6 +442,7 @@ async def get_gazettes(
         size=size,
         offset=offset,
         sort_by=sort_by.value,
+        state_codes=[code.strip().upper() for code in state_codes if code.strip()],
     )
     gazettes_count, gazettes = app.gazettes.get_gazettes(gazette_request)
     return {

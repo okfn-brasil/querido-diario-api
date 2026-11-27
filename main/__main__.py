@@ -41,6 +41,7 @@ gazettes_query_builder = create_gazettes_query_builder(
     configuration.gazette_publication_date_field,
     configuration.gazette_scraped_at_field,
     configuration.gazette_territory_id_field,
+    configuration.gazette_state_code_field,
 )
 gazettes_search_engine_gateway = create_gazettes_data_gateway(
     search_engine, gazettes_query_builder, configuration.gazette_index

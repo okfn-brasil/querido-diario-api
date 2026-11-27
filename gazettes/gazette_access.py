@@ -38,8 +38,10 @@ class GazetteRequest:
         size: int,
         offset: int,
         sort_by: str,
+        state_codes: Union[List[str], None] = None,
     ):
         self.territory_ids = territory_ids
+        self.state_codes = state_codes or []
         self.published_since = published_since
         self.published_until = published_until
         self.scraped_since = scraped_since
@@ -142,6 +144,7 @@ class GazetteDataGateway(abc.ABC):
         size: int,
         offset: int,
         sort_by: str,
+        state_codes: Union[List[str], None] = None,
     ):
         """
         Method to get the gazette from storage
@@ -178,12 +181,14 @@ class GazetteQueryBuilder(
         publication_date_field: str,
         scraped_at_field: str,
         territory_id_field: str,
+        state_code_field: str = "state_code",
     ):
         self.text_content_field = text_content_field
         self.text_content_exact_field_suffix = text_content_exact_field_suffix
         self.publication_date_field = publication_date_field
         self.scraped_at_field = scraped_at_field
         self.territory_id_field = territory_id_field
+        self.state_code_field = state_code_field
 
     def build_query(
         self,
@@ -200,11 +205,14 @@ class GazetteQueryBuilder(
         size: int,
         offset: int,
         sort_by: str,
+        state_codes: Union[List[str], None] = None,
     ) -> Dict:
         query = {"query": {}}
+        state_codes = state_codes or []
 
         if (
             territory_ids == []
+            and state_codes == []
             and published_since is None
             and published_until is None
             and scraped_since is None
@@ -244,6 +252,9 @@ class GazetteQueryBuilder(
         territory_query = self.build_terms_query(
             field=self.territory_id_field, terms=territory_ids
         )
+        state_query = self.build_terms_query(
+            field=self.state_code_field, terms=state_codes
+        )
         published_date_query = self.build_date_range_query(
             field=self.publication_date_field,
             since=published_since,
@@ -254,7 +265,12 @@ class GazetteQueryBuilder(
         )
         filter_query = [
             q
-            for q in [territory_query, published_date_query, scraped_at_query]
+            for q in [
+                territory_query,
+                state_query,
+                published_date_query,
+                scraped_at_query,
+            ]
             if q is not None
         ]
 
@@ -310,9 +326,11 @@ class GazetteSearchEngineGateway(GazetteDataGateway):
         size: int,
         offset: int,
         sort_by: str,
+        state_codes: Union[List[str], None] = None,
     ):
         query = self._query_builder.build_query(
             territory_ids=territory_ids,
+            state_codes=state_codes,
             published_since=published_since,
             published_until=published_until,
             scraped_since=scraped_since,
@@ -385,6 +403,7 @@ def create_gazettes_query_builder(
     gazette_publication_date_field: str,
     gazette_scraped_at_field: str,
     gazette_territory_id_field: str,
+    gazette_state_code_field: str = "state_code",
 ) -> QueryBuilderInterface:
     return GazetteQueryBuilder(
         gazette_content_field,
@@ -392,6 +411,7 @@ def create_gazettes_query_builder(
         gazette_publication_date_field,
         gazette_scraped_at_field,
         gazette_territory_id_field,
+        gazette_state_code_field,
     )
 
 
