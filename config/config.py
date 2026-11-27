@@ -57,6 +57,9 @@ class Configuration:
         self.gazette_territory_id_field = os.environ.get(
             "GAZETTE_TERRITORY_ID_FIELD", ""
         )
+        self.gazette_state_code_field = os.environ.get(
+            "GAZETTE_STATE_CODE_FIELD", "state_code"
+        )
         self.themes_database_file = os.environ["THEMES_DATABASE_JSON"]
         self.themed_excerpt_content_field = os.environ.get(
             "THEMED_EXCERPT_CONTENT_FIELD", ""
